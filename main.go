@@ -1,10 +1,9 @@
 package main
 
 import (
-	"github.com/teadove/goteleout/internal/container"
+	"github.com/teadove/goteleout/internal/presentation/cli"
 )
 
 func main() {
-	combatContainer := container.MustNewCombatContainer()
-	combatContainer.ClientService.Run()
+	cli.RunCli()
 }

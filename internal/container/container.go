@@ -3,15 +3,16 @@ package container
 import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"
+	"github.com/teadove/goteleout/internal/presentation/telegram"
 	"github.com/teadove/goteleout/internal/service/client"
 	"github.com/teadove/goteleout/internal/shared"
-	"github.com/teadove/goteleout/internal/supplier/telegram"
 	"github.com/teadove/goteleout/internal/utils"
 	"os"
 )
 
 type Container struct {
-	ClientService *client.Service
+	Presentation                   *telegram.Presentation
+	TelegramSessionStorageFullPath string
 }
 
 func MustNewCombatContainer() Container {
@@ -26,10 +27,10 @@ func MustNewCombatContainer() Container {
 	err = os.MkdirAll(realPath, os.ModePerm)
 	utils.Check(err)
 
-	telegramSupplier := telegram.MustNewTelegramSupplier(settings.Telegram.AppID, settings.Telegram.AppHash, settings.Telegram.SessionFullPath)
+	clientService := client.MustNewClientService()
 
-	clientService := client.MustNewClientService(&telegramSupplier, settings.Telegram.SessionFullPath)
+	telegramPresentation := telegram.MustNewTelegramPresentation(&clientService, settings.Telegram.AppID, settings.Telegram.AppHash, settings.Telegram.SessionFullPath)
 
-	container := Container{&clientService}
+	container := Container{&telegramPresentation, settings.Telegram.SessionFullPath}
 	return container
 }

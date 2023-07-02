@@ -14,8 +14,8 @@
 ### TERRAFORM TMP FILES ###
 **/.terraform
 **/.terraform.lock.hcl
-### TERRAGRUNT FILES ###
-**/.terragrunt-cache*
+
+.env
 
 # Poetry
 poetry.lock
