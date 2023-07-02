@@ -3,8 +3,9 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"github.com/gotd/td/telegram/message/html"
 	"strings"
+
+	"github.com/gotd/td/telegram/message/html"
 
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/tg"

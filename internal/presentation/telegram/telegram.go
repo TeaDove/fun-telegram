@@ -3,8 +3,8 @@ package telegram
 import (
 	"context"
 	"errors"
-	"strings"
-
+	"github.com/gotd/contrib/middleware/floodwait"
+	"github.com/gotd/contrib/middleware/ratelimit"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/telegram/message"
@@ -12,6 +12,9 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/service/client"
+	"golang.org/x/time/rate"
+	"strings"
+	"time"
 )
 
 type Presentation struct {
@@ -21,6 +24,7 @@ type Presentation struct {
 	telegramApi        *tg.Client
 	telegramManager    *peers.Manager
 	commandHandler     map[string]commandProcessor
+	waiter             *floodwait.Waiter
 
 	clientService *client.Service
 }
@@ -37,10 +41,19 @@ func MustNewTelegramPresentation(
 
 	sessionStorage := telegram.FileSessionStorage{Path: telegramSessionStorageFullPath}
 	updater := tg.NewUpdateDispatcher()
+
+	waiter := floodwait.NewWaiter().WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
+		log.Warn().Str("status", "flood.waiting").Dur("wait", wait.Duration).Send()
+	})
+
 	telegramClient := telegram.NewClient(
 		telegramAppID,
 		telegramAppHash,
-		telegram.Options{SessionStorage: &sessionStorage, UpdateHandler: updater},
+		telegram.Options{
+			SessionStorage: &sessionStorage,
+			UpdateHandler:  updater,
+			Middlewares:    []telegram.Middleware{ratelimit.New(rate.Every(time.Millisecond*100), 5), waiter},
+		},
 	)
 	api := telegramClient.API()
 	sender := message.NewSender(api)
@@ -51,19 +64,20 @@ func MustNewTelegramPresentation(
 		telegramDispatcher: &updater,
 		telegramApi:        api,
 		telegramSender:     sender,
+		waiter:             waiter,
 	}
 	presentation.commandHandler = map[string]commandProcessor{
 		"ping":  presentation.pingCommandHandler,
 		"help":  presentation.helpCommandHandler,
-		"getMe": presentation.getMeCommandHandler}
+		"getMe": presentation.getMeCommandHandler,
+		//"stats": presentation.statsCommandHandler,
+	}
 	presentation.telegramManager = peers.Options{}.Build(api)
 
 	return presentation
 }
 
-var (
-	BadUpdate = errors.New("bad update")
-)
+var BadUpdate = errors.New("bad update")
 
 func (r *Presentation) login(ctx context.Context) error {
 	flow := auth.NewFlow(terminalAuth{}, auth.SendCodeOptions{})
@@ -126,28 +140,30 @@ func (r *Presentation) routeMessage(
 }
 
 func (r *Presentation) Run() error {
-	return r.telegramClient.Run(context.Background(), func(ctx context.Context) error {
-		err := r.login(ctx)
-		if err != nil {
-			return err
-		}
+	return r.waiter.Run(context.Background(), func(ctx context.Context) error {
+		return r.telegramClient.Run(ctx, func(ctx context.Context) error {
+			err := r.login(ctx)
+			if err != nil {
+				return err
+			}
 
-		r.telegramDispatcher.OnNewChannelMessage(
-			func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewChannelMessage) error {
-				return r.routeMessage(ctx, &entities, update)
-			},
-		)
+			r.telegramDispatcher.OnNewChannelMessage(
+				func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewChannelMessage) error {
+					return r.routeMessage(ctx, &entities, update)
+				},
+			)
 
-		r.telegramDispatcher.OnNewMessage(
-			func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewMessage) error {
-				return r.routeMessage(ctx, &entities, update)
-			},
-		)
-		err = telegram.RunUntilCanceled(context.Background(), r.telegramClient)
-		if err != nil {
-			return err
-		}
+			r.telegramDispatcher.OnNewMessage(
+				func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewMessage) error {
+					return r.routeMessage(ctx, &entities, update)
+				},
+			)
+			err = telegram.RunUntilCanceled(context.Background(), r.telegramClient)
+			if err != nil {
+				return err
+			}
 
-		return nil
+			return nil
+		})
 	})
 }

@@ -16,7 +16,8 @@ func (r *Presentation) helpCommandHandler(
 ) error {
 	const helpMessage = "Available commands:\n\n" +
 		"<code>!help</code> - get this message\n" +
-		"<code>!ping</code> - ping all users\n"
+		"<code>!ping</code> - ping all users\n" +
+		"<code>!getMe</code> - get id, username of requested user and group"
 	_, err := r.telegramSender.Reply(*entities, update).
 		StyledText(ctx, html.String(nil, helpMessage))
 	return err
