@@ -6,6 +6,7 @@ import (
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/telegram/message"
+	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/service/client"
@@ -17,6 +18,7 @@ type Presentation struct {
 	telegramDispatcher *tg.UpdateDispatcher
 	telegramSender     *message.Sender
 	telegramApi        *tg.Client
+	telegramManager    *peers.Manager
 	commandHandler     map[string]commandProcessor
 
 	clientService *client.Service
@@ -35,6 +37,7 @@ func MustNewTelegramPresentation(clientService *client.Service, telegramAppID in
 	presentation.commandHandler = map[string]commandProcessor{
 		"ping": presentation.pingCommandHandler,
 		"help": presentation.helpCommandHandler}
+	presentation.telegramManager = peers.Options{}.Build(api)
 
 	return presentation
 }
