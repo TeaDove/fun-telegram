@@ -1,11 +1,12 @@
 package shared
 
 import (
+	"path/filepath"
+
 	"github.com/caarlos0/env/v7"
 	"github.com/joho/godotenv"
 	"github.com/mitchellh/go-homedir"
 	"github.com/teadove/goteleout/internal/utils"
-	"path/filepath"
 )
 
 const (
@@ -22,8 +23,8 @@ type telegram struct {
 
 type Settings struct {
 	Telegram        telegram `envPrefix:"telegram__"`
-	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/telegram-client-utils/"`
-	LogLevel        string   `env:"log_level" envDefault:"debug"`
+	FileStoragePath string   `                       env:"file_storage_path" envDefault:"~/.config/telegram-client-utils/"`
+	LogLevel        string   `                       env:"log_level"         envDefault:"debug"`
 }
 
 func MustNewSettings() Settings {

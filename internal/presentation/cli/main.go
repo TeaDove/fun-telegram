@@ -1,13 +1,14 @@
 package cli
 
 import (
+	"os"
+	"os/signal"
+	"runtime/pprof"
+
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/container"
 	"github.com/teadove/goteleout/internal/utils"
 	"github.com/urfave/cli"
-	"os"
-	"os/signal"
-	"runtime/pprof"
 )
 
 var combatContainer container.Container

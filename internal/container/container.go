@@ -1,6 +1,8 @@
 package container
 
 import (
+	"os"
+
 	"github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -8,7 +10,6 @@ import (
 	"github.com/teadove/goteleout/internal/service/client"
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/utils"
-	"os"
 )
 
 type Container struct {
@@ -31,7 +32,12 @@ func MustNewCombatContainer() Container {
 
 	clientService := client.MustNewClientService()
 
-	telegramPresentation := telegram.MustNewTelegramPresentation(&clientService, settings.Telegram.AppID, settings.Telegram.AppHash, settings.Telegram.SessionFullPath)
+	telegramPresentation := telegram.MustNewTelegramPresentation(
+		&clientService,
+		settings.Telegram.AppID,
+		settings.Telegram.AppHash,
+		settings.Telegram.SessionFullPath,
+	)
 
 	container := Container{&telegramPresentation, settings.Telegram.SessionFullPath}
 	return container

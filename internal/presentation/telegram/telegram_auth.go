@@ -5,11 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gotd/td/telegram/auth"
-	"github.com/gotd/td/tg"
-	"golang.org/x/crypto/ssh/terminal"
 	"os"
 	"strings"
+
+	"golang.org/x/term"
+
+	"github.com/gotd/td/telegram/auth"
+	"github.com/gotd/td/tg"
 )
 
 type terminalAuth struct{}
@@ -24,7 +26,8 @@ func (terminalAuth) AcceptTermsOfService(_ context.Context, tos tg.HelpTermsOfSe
 
 func (terminalAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 	fmt.Print("Enter code: ")
-	code, err := terminal.ReadPassword(0)
+
+	code, err := term.ReadPassword(0)
 	fmt.Println()
 	if err != nil {
 		return "", err
@@ -43,7 +46,7 @@ func (terminalAuth) Phone(_ context.Context) (string, error) {
 
 func (terminalAuth) Password(_ context.Context) (string, error) {
 	fmt.Print("Enter 2FA password: ")
-	bytePwd, err := terminal.ReadPassword(0)
+	bytePwd, err := term.ReadPassword(0)
 	fmt.Println()
 	if err != nil {
 		return "", err

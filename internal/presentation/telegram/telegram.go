@@ -3,6 +3,8 @@ package telegram
 import (
 	"context"
 	"errors"
+	"strings"
+
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/telegram/message"
@@ -10,7 +12,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/service/client"
-	"strings"
 )
 
 type Presentation struct {
@@ -24,16 +25,31 @@ type Presentation struct {
 	clientService *client.Service
 }
 
-func MustNewTelegramPresentation(clientService *client.Service, telegramAppID int, telegramAppHash string, telegramSessionStorageFullPath string) Presentation {
+func MustNewTelegramPresentation(
+	clientService *client.Service,
+	telegramAppID int,
+	telegramAppHash string,
+	telegramSessionStorageFullPath string,
+) Presentation {
 	// https://core.telegram.org/api/obtaining_api_id
 
 	sessionStorage := telegram.FileSessionStorage{Path: telegramSessionStorageFullPath}
 	updater := tg.NewUpdateDispatcher()
-	telegramClient := telegram.NewClient(telegramAppID, telegramAppHash, telegram.Options{SessionStorage: &sessionStorage, UpdateHandler: updater})
+	telegramClient := telegram.NewClient(
+		telegramAppID,
+		telegramAppHash,
+		telegram.Options{SessionStorage: &sessionStorage, UpdateHandler: updater},
+	)
 	api := telegramClient.API()
 	sender := message.NewSender(api)
 
-	presentation := Presentation{telegramClient: telegramClient, clientService: clientService, telegramDispatcher: &updater, telegramApi: api, telegramSender: sender}
+	presentation := Presentation{
+		telegramClient:     telegramClient,
+		clientService:      clientService,
+		telegramDispatcher: &updater,
+		telegramApi:        api,
+		telegramSender:     sender,
+	}
 	presentation.commandHandler = map[string]commandProcessor{
 		"ping": presentation.pingCommandHandler,
 		"help": presentation.helpCommandHandler}
@@ -65,7 +81,11 @@ func (r *Presentation) login(ctx context.Context) error {
 	return nil
 }
 
-func (r *Presentation) routeMessage(ctx context.Context, entities *tg.Entities, update message.AnswerableMessageUpdate) error {
+func (r *Presentation) routeMessage(
+	ctx context.Context,
+	entities *tg.Entities,
+	update message.AnswerableMessageUpdate,
+) error {
 	m, ok := update.GetMessage().(*tg.Message)
 	if !ok {
 		return BadUpdate
@@ -88,7 +108,11 @@ func (r *Presentation) routeMessage(ctx context.Context, entities *tg.Entities, 
 	log.Info().Str("status", "command.got").Str("command", command).Send()
 	handler, ok := r.commandHandler[command]
 	if !ok {
-		log.Info().Str("status", "unknown.command").Str("command", command).Str("text", m.Message).Send()
+		log.Info().
+			Str("status", "unknown.command").
+			Str("command", command).
+			Str("text", m.Message).
+			Send()
 		return nil
 	}
 	return handler(ctx, entities, update, m)
@@ -101,13 +125,17 @@ func (r *Presentation) Run() error {
 			return err
 		}
 
-		r.telegramDispatcher.OnNewChannelMessage(func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewChannelMessage) error {
-			return r.routeMessage(ctx, &entities, update)
-		})
+		r.telegramDispatcher.OnNewChannelMessage(
+			func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewChannelMessage) error {
+				return r.routeMessage(ctx, &entities, update)
+			},
+		)
 
-		r.telegramDispatcher.OnNewMessage(func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewMessage) error {
-			return r.routeMessage(ctx, &entities, update)
-		})
+		r.telegramDispatcher.OnNewMessage(
+			func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewMessage) error {
+				return r.routeMessage(ctx, &entities, update)
+			},
+		)
 		err = telegram.RunUntilCanceled(context.Background(), r.telegramClient)
 		if err != nil {
 			return err
