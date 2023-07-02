@@ -1,0 +1,15 @@
+version: '3.1'
+
+services:
+  client:
+    restart: always
+    environment:
+      # https://core.telegram.org/api/obtaining_api_id
+      tcu_telegram__app_id: ""
+      tcu_telegram__app_hash: ""
+      tcu_file_storage_path: "/config"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - "~/.config/telegram-client-utils:/config"
