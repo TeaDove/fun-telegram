@@ -5,7 +5,7 @@ This software uses telegram bots
 Powered with love
 
 # Examples
-- `ls -la | goteleout -u 418878871 -c` - send output of `ls -la` to chat `418878871` with monospace font
+- `ls -la | goteleout -update 418878871 -c` - send output of `ls -la` to chat `418878871` with monospace font
 - `teleout -q -f main.py` - send file `main.py` without notification to default user
 
 # Features
@@ -31,7 +31,7 @@ GLOBAL OPTIONS:
    --quite, -q             send message without notifications (default: false)
    --html                  do no escape html tags (default: false)
    --token value           telegram api token [$TELEGRAM_TOKEN]
-   --user value, -u value  telegram user id
+   --user value, -update value  telegram user id
    --settings-file value   file to store default settings
    --verbose, -v           (default: false)
    --get-me                will listen for updates, and reply with user_id and chat_id (default: false)
@@ -46,7 +46,7 @@ go install github.com/teadove/goteleout
 Or download your version from [release page](https://github.com/TeaDove/goteleout/releases), i.e. for Apple Silicon
 ```
 wget -cO - https://github.com/TeaDove/goteleout/releases/download/1.0.0/goteleout-1.0.0-darwin-arm64 > goteleout
-chmod u+x goteleout
+chmod update+x goteleout
 # mv goteleout ~/.local/bin # or any other location in your PATH
 ```
 2. Get bot token from [@BotFather](https://t.me/BotFather)

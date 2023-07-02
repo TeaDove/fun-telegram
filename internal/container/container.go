@@ -3,6 +3,7 @@ package container
 import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram"
 	"github.com/teadove/goteleout/internal/service/client"
 	"github.com/teadove/goteleout/internal/shared"
@@ -21,6 +22,7 @@ func MustNewCombatContainer() Container {
 	utils.Check(err)
 
 	zerolog.SetGlobalLevel(level)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	realPath, err := homedir.Expand(settings.FileStoragePath)
 	utils.Check(err)
