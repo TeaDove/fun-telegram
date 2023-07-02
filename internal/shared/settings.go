@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultEnvPrefix = "tcu_"
+	defaultEnvPrefix = "fun_"
 	defaultEnvFile   = ".env"
 )
 
@@ -23,8 +23,8 @@ type telegram struct {
 
 type Settings struct {
 	Telegram        telegram `envPrefix:"telegram__"`
-	FileStoragePath string   `                       env:"file_storage_path" envDefault:"~/.config/telegram-client-utils/"`
-	LogLevel        string   `                       env:"log_level"         envDefault:"debug"`
+	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
+	LogLevel        string   `env:"log_level"         envDefault:"debug"`
 }
 
 func MustNewSettings() Settings {

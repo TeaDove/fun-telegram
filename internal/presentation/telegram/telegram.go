@@ -25,6 +25,8 @@ type Presentation struct {
 	clientService *client.Service
 }
 
+type commandProcessor func(ctx context.Context, entities *tg.Entities, update message.AnswerableMessageUpdate, m *tg.Message) error
+
 func MustNewTelegramPresentation(
 	clientService *client.Service,
 	telegramAppID int,
@@ -51,8 +53,9 @@ func MustNewTelegramPresentation(
 		telegramSender:     sender,
 	}
 	presentation.commandHandler = map[string]commandProcessor{
-		"ping": presentation.pingCommandHandler,
-		"help": presentation.helpCommandHandler}
+		"ping":  presentation.pingCommandHandler,
+		"help":  presentation.helpCommandHandler,
+		"getMe": presentation.getMeCommandHandler}
 	presentation.telegramManager = peers.Options{}.Build(api)
 
 	return presentation
@@ -96,7 +99,11 @@ func (r *Presentation) routeMessage(
 	}
 	log.Debug().Str("status", "message.got").Str("text", m.Message).Interface("message", m).Send()
 
-	firstMessage := strings.Split(m.Message, " ")[0]
+	fields := strings.Fields(m.Message)
+	if len(fields) == 0 {
+		return nil
+	}
+	firstMessage := fields[0]
 	const commandPrefix = '!'
 	if len(firstMessage) < 1 {
 		return nil
@@ -105,16 +112,16 @@ func (r *Presentation) routeMessage(
 		return nil
 	}
 	command := firstMessage[1:]
-	log.Info().Str("status", "command.got").Str("command", command).Send()
 	handler, ok := r.commandHandler[command]
 	if !ok {
-		log.Info().
+		log.Warn().
 			Str("status", "unknown.command").
 			Str("command", command).
 			Str("text", m.Message).
 			Send()
 		return nil
 	}
+	log.Info().Str("status", "command.got").Str("command", command).Send()
 	return handler(ctx, entities, update, m)
 }
 

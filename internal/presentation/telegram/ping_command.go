@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"strings"
 
 	"github.com/gotd/td/telegram/message"
@@ -10,8 +11,6 @@ import (
 	"github.com/gotd/td/telegram/peers/members"
 	"github.com/gotd/td/tg"
 )
-
-type commandProcessor func(ctx context.Context, entities *tg.Entities, update message.AnswerableMessageUpdate, m *tg.Message) error
 
 func (r *Presentation) pingCommandHandler(
 	ctx context.Context,
@@ -23,8 +22,10 @@ func (r *Presentation) pingCommandHandler(
 	for _, value := range entities.Users {
 		requesters += fmt.Sprintf("@%s ", value.Username)
 	}
-	var text strings.Builder
-	text.WriteString(fmt.Sprintf("Ping requested by %s\n\n", requesters))
+	var textBuilder strings.Builder
+	textBuilder.Grow(100)
+	textBuilder.WriteString(fmt.Sprintf("Ping requested by %s\n\n", requesters))
+	var mentionBuilder strings.Builder
 	compileMention := func(p members.Member) error {
 		user := p.User()
 		_, isBot := user.ToBot()
@@ -35,7 +36,7 @@ func (r *Presentation) pingCommandHandler(
 		if !ok {
 			return nil
 		}
-		text.WriteString(fmt.Sprintf("@%s\n", username))
+		mentionBuilder.WriteString(fmt.Sprintf("@%s\n", username))
 		return nil
 	}
 
@@ -56,8 +57,12 @@ func (r *Presentation) pingCommandHandler(
 			return err
 		}
 	}
-
+	if mentionBuilder.String() == "" {
+		log.Warn().Str("status", "no.users.were.mentioned").Send()
+		return nil
+	}
+	textBuilder.WriteString(mentionBuilder.String())
 	_, err := r.telegramSender.Reply(*entities, update).
-		StyledText(ctx, html.String(nil, text.String()))
+		StyledText(ctx, html.String(nil, textBuilder.String()))
 	return err
 }
