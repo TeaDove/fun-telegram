@@ -1,6 +1,7 @@
 package container
 
 import (
+	"github.com/teadove/goteleout/internal/service/storage/memory"
 	"os"
 
 	"github.com/mitchellh/go-homedir"
@@ -31,12 +32,14 @@ func MustNewCombatContainer() Container {
 	utils.Check(err)
 
 	clientService := client.MustNewClientService()
+	memoryStorage := memory.MustNew()
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		&clientService,
 		settings.Telegram.AppID,
 		settings.Telegram.AppHash,
 		settings.Telegram.SessionFullPath,
+		memoryStorage,
 	)
 
 	container := Container{&telegramPresentation, settings.Telegram.SessionFullPath}

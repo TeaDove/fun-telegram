@@ -1,4 +1,4 @@
-package telegram
+package utils
 
 import (
 	"bufio"
@@ -14,17 +14,17 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-type terminalAuth struct{}
+type TerminalAuth struct{}
 
-func (terminalAuth) SignUp(_ context.Context) (auth.UserInfo, error) {
+func (TerminalAuth) SignUp(_ context.Context) (auth.UserInfo, error) {
 	return auth.UserInfo{}, errors.New("not implemented")
 }
 
-func (terminalAuth) AcceptTermsOfService(_ context.Context, tos tg.HelpTermsOfService) error {
+func (TerminalAuth) AcceptTermsOfService(_ context.Context, tos tg.HelpTermsOfService) error {
 	return &auth.SignUpRequired{TermsOfService: tos}
 }
 
-func (terminalAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
+func (TerminalAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 	fmt.Print("Enter code: ")
 
 	code, err := term.ReadPassword(0)
@@ -35,7 +35,7 @@ func (terminalAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) 
 	return strings.TrimSpace(string(code)), nil
 }
 
-func (terminalAuth) Phone(_ context.Context) (string, error) {
+func (TerminalAuth) Phone(_ context.Context) (string, error) {
 	fmt.Print("Enter phone: ")
 	code, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
@@ -44,7 +44,7 @@ func (terminalAuth) Phone(_ context.Context) (string, error) {
 	return strings.TrimSpace(code), nil
 }
 
-func (terminalAuth) Password(_ context.Context) (string, error) {
+func (TerminalAuth) Password(_ context.Context) (string, error) {
 	fmt.Print("Enter 2FA password: ")
 	bytePwd, err := term.ReadPassword(0)
 	fmt.Println()

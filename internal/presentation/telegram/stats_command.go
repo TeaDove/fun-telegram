@@ -2,13 +2,14 @@ package telegram
 
 import (
 	"context"
+	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
+	"time"
 
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/html"
 	"github.com/gotd/td/telegram/query"
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/tg"
-	"github.com/teadove/goteleout/internal/utils"
 )
 
 func (r *Presentation) statsCommandHandler(
@@ -17,15 +18,7 @@ func (r *Presentation) statsCommandHandler(
 	update message.AnswerableMessageUpdate,
 	m *tg.Message,
 ) error {
-	var peer tg.InputPeerClass
-	for _, value := range entities.Channels {
-		peer = value.AsInputPeer()
-		break
-	}
-	for _, value := range entities.Chats {
-		peer = value.AsInputPeer()
-		break
-	}
+	peer := utils.GetPeer(entities)
 
 	err := query.Messages(r.telegramApi).
 		GetHistory(peer).
@@ -35,11 +28,12 @@ func (r *Presentation) statsCommandHandler(
 			if !ok {
 				return nil
 			}
-			println(elemMessage.Message)
-			for key, v := range elem.Entities.Users() {
-				println(key)
-				utils.LogInterface(v.Username)
-			}
+			println(elemMessage.GetMessage())
+			println(time.Unix(int64(elemMessage.Date), 0).String())
+			//for key, v := range elem.Entities.Users() {
+			//	println(key)
+			//	utils.LogInterface(v.Username)
+			//}
 			return nil
 		})
 	if err != nil {

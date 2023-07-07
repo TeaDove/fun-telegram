@@ -3,6 +3,11 @@ package telegram
 import (
 	"context"
 	"errors"
+	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
+	"github.com/teadove/goteleout/internal/service/storage"
+	"strings"
+	"time"
+
 	"github.com/gotd/contrib/middleware/floodwait"
 	"github.com/gotd/contrib/middleware/ratelimit"
 	"github.com/gotd/td/telegram"
@@ -13,8 +18,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/service/client"
 	"golang.org/x/time/rate"
-	"strings"
-	"time"
 )
 
 type Presentation struct {
@@ -26,6 +29,7 @@ type Presentation struct {
 	commandHandler     map[string]commandProcessor
 	waiter             *floodwait.Waiter
 
+	storage       storage.Interface
 	clientService *client.Service
 }
 
@@ -36,15 +40,17 @@ func MustNewTelegramPresentation(
 	telegramAppID int,
 	telegramAppHash string,
 	telegramSessionStorageFullPath string,
+	storage storage.Interface,
 ) Presentation {
 	// https://core.telegram.org/api/obtaining_api_id
 
 	sessionStorage := telegram.FileSessionStorage{Path: telegramSessionStorageFullPath}
 	updater := tg.NewUpdateDispatcher()
 
-	waiter := floodwait.NewWaiter().WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
-		log.Warn().Str("status", "flood.waiting").Dur("wait", wait.Duration).Send()
-	})
+	waiter := floodwait.NewWaiter().
+		WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
+			log.Warn().Str("status", "flood.waiting").Dur("wait", wait.Duration).Send()
+		})
 
 	telegramClient := telegram.NewClient(
 		telegramAppID,
@@ -52,7 +58,10 @@ func MustNewTelegramPresentation(
 		telegram.Options{
 			SessionStorage: &sessionStorage,
 			UpdateHandler:  updater,
-			Middlewares:    []telegram.Middleware{ratelimit.New(rate.Every(time.Millisecond*100), 5), waiter},
+			Middlewares: []telegram.Middleware{
+				ratelimit.New(rate.Every(time.Millisecond*100), 5),
+				waiter,
+			},
 		},
 	)
 	api := telegramClient.API()
@@ -65,12 +74,13 @@ func MustNewTelegramPresentation(
 		telegramApi:        api,
 		telegramSender:     sender,
 		waiter:             waiter,
+		storage:            storage,
 	}
 	presentation.commandHandler = map[string]commandProcessor{
-		"ping":  presentation.pingCommandHandler,
-		"help":  presentation.helpCommandHandler,
-		"getMe": presentation.getMeCommandHandler,
-		//"stats": presentation.statsCommandHandler,
+		"ping":         presentation.pingCommandHandler,
+		"help":         presentation.helpCommandHandler,
+		"getMe":        presentation.getMeCommandHandler,
+		"spamReaction": presentation.spamReactionCommandHandler,
 	}
 	presentation.telegramManager = peers.Options{}.Build(api)
 
@@ -80,7 +90,7 @@ func MustNewTelegramPresentation(
 var BadUpdate = errors.New("bad update")
 
 func (r *Presentation) login(ctx context.Context) error {
-	flow := auth.NewFlow(terminalAuth{}, auth.SendCodeOptions{})
+	flow := auth.NewFlow(utils.TerminalAuth{}, auth.SendCodeOptions{})
 	status, err := r.telegramClient.Auth().Status(ctx)
 	if !status.Authorized {
 		log.Info().Str("status", "authorizing").Send()
@@ -117,6 +127,12 @@ func (r *Presentation) routeMessage(
 	if len(fields) == 0 {
 		return nil
 	}
+
+	err := r.spamReactionMessageHandler(ctx, entities, update, m)
+	if err != nil {
+		return err
+	}
+
 	firstMessage := fields[0]
 	const commandPrefix = '!'
 	if len(firstMessage) < 1 {
@@ -136,7 +152,13 @@ func (r *Presentation) routeMessage(
 		return nil
 	}
 	log.Info().Str("status", "command.got").Str("command", command).Send()
-	return handler(ctx, entities, update, m)
+	t0 := time.Now()
+	err = handler(ctx, entities, update, m)
+	if err != nil {
+		return err
+	}
+	log.Info().Str("status", "ok").Dur("dur", time.Now().Sub(t0)).Send()
+	return nil
 }
 
 func (r *Presentation) Run() error {
@@ -149,13 +171,21 @@ func (r *Presentation) Run() error {
 
 			r.telegramDispatcher.OnNewChannelMessage(
 				func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewChannelMessage) error {
-					return r.routeMessage(ctx, &entities, update)
+					err = r.routeMessage(ctx, &entities, update)
+					if err != nil {
+						log.Error().Stack().Err(err).Str("status", "error.while.processing.request").Send()
+					}
+					return err
 				},
 			)
 
 			r.telegramDispatcher.OnNewMessage(
 				func(ctx context.Context, entities tg.Entities, update *tg.UpdateNewMessage) error {
-					return r.routeMessage(ctx, &entities, update)
+					err = r.routeMessage(ctx, &entities, update)
+					if err != nil {
+						log.Error().Stack().Err(err).Str("status", "error.while.processing.request").Send()
+					}
+					return err
 				},
 			)
 			err = telegram.RunUntilCanceled(context.Background(), r.telegramClient)

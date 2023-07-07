@@ -19,6 +19,8 @@ func (r *Presentation) pingCommandHandler(
 	update message.AnswerableMessageUpdate,
 	m *tg.Message,
 ) error {
+	const maxCount = 15
+	var count = 0
 	requesters := ""
 	for _, value := range entities.Users {
 		requesters += fmt.Sprintf("@%s ", value.Username)
@@ -37,6 +39,7 @@ func (r *Presentation) pingCommandHandler(
 		if !ok {
 			return nil
 		}
+		count += 1
 		mentionBuilder.WriteString(fmt.Sprintf("@%s\n", username))
 		return nil
 	}
@@ -61,6 +64,12 @@ func (r *Presentation) pingCommandHandler(
 	if mentionBuilder.String() == "" {
 		log.Warn().Str("status", "no.users.were.mentioned").Send()
 		return nil
+	}
+	if count > maxCount {
+		log.Warn().Str("status", "max.count.exceeded").Send()
+		_, err := r.telegramSender.Reply(*entities, update).
+			StyledText(ctx, html.String(nil, fmt.Sprintf("Max user count exceeded, count: %d, maxCount: %d", count, maxCount)))
+		return err
 	}
 	textBuilder.WriteString(mentionBuilder.String())
 	_, err := r.telegramSender.Reply(*entities, update).
