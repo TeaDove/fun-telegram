@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/anonyindian/gotgproto"
 	"github.com/anonyindian/gotgproto/dispatcher/handlers"
-	"github.com/anonyindian/gotgproto/ext"
 	"github.com/anonyindian/gotgproto/sessionMaker"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/message"
@@ -44,7 +43,6 @@ func MustNewTelegramPresentation(
 		Session:          sessionMaker.NewSession(telegramSessionStorageFullPath, sessionMaker.Session),
 	})
 	utils.Check(err)
-	protoClient.Dispatcher.AddHandler(handlers.NewCommand("echo", echo))
 
 	api := protoClient.API()
 
@@ -56,12 +54,13 @@ func MustNewTelegramPresentation(
 		telegramSender:  message.NewSender(api),
 		telegramManager: peers.Options{}.Build(api),
 	}
-	return presentation
-}
 
-func echo(ctx *ext.Context, update *ext.Update) error {
-	_, err := ctx.Reply(update, update.EffectiveMessage, nil)
-	return err
+	protoClient.Dispatcher.AddHandler(handlers.NewCommand("echo", presentation.echoCommandHandler))
+	protoClient.Dispatcher.AddHandler(handlers.NewCommand("help", presentation.helpCommandHandler))
+	protoClient.Dispatcher.AddHandler(handlers.NewCommand("getMe", presentation.getMeCommandHandler))
+	protoClient.Dispatcher.AddHandler(handlers.NewCommand("ping", presentation.pingCommandHandler))
+
+	return presentation
 }
 
 func (r *Presentation) Run() error {
