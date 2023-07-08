@@ -59,6 +59,7 @@ func MustNewTelegramPresentation(
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("help", presentation.helpCommandHandler))
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("getMe", presentation.getMeCommandHandler))
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("ping", presentation.pingCommandHandler))
+	protoClient.Dispatcher.AddHandler(handlers.NewCommand("spamReaction", presentation.spamReactionCommandHandler))
 
 	return presentation
 }

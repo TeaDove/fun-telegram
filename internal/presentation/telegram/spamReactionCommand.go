@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/anonyindian/gotgproto/types"
+	"github.com/anonyindian/gotgproto/ext"
+	"github.com/anonyindian/gotgproto/functions"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/tg"
@@ -63,12 +64,7 @@ func (r *Presentation) spamReactionMessageHandler(
 	return err
 }
 
-func (r *Presentation) spamReactionCommandHandler(
-	ctx context.Context,
-	entities *tg.Entities,
-	update message.AnswerableMessageUpdate,
-	m *tg.Message,
-) error {
+func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update) error {
 	const maxReactionCount = 3
 	//mReplyHeader, ok := m.GetReplyTo()
 	//if !ok {
@@ -78,17 +74,18 @@ func (r *Presentation) spamReactionCommandHandler(
 	//}
 
 	//chatId := functions.GetChatIdFromPeer(m.PeerID)
-	populatedMessage := types.ConstructMessage(m)
-	err := populatedMessage.SetRepliedToMessage(ctx, r.telegramApi)
+	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
+	if err != nil {
+		return err
+	}
+
 	//chat, err := functions.GetChatFromPeer(ctx, r.telegramApi, m.ID)
 	//if err != nil {
 	//	return err
 	//}
 
-	//res, err := functions.GetMessages(ctx, r.telegramApi, chatId, []tg.InputMessageClass{&tg.InputMessageID{ID: mReplyHeader.GetReplyToMsgID()}})
-	if err != nil {
-		return err
-	}
+	res, err := functions.GetMessages(ctx, r.telegramApi, update.GetChat().GetID(), []tg.InputMessageClass{&tg.InputMessageID{ID: update.EffectiveMessage.ReplyTo.GetReplyToMsgID()}})
+	utils.LogInterface(res)
 	//if len(res) <= 0 {
 	//	return errors.Join(errors.New("replied message not found"), BadUpdate)
 	//}
@@ -96,7 +93,6 @@ func (r *Presentation) spamReactionCommandHandler(
 	//if err != nil {
 	//	return errors.Join(errors.New("no replied message found"), BadUpdate)
 	//}
-	utils.LogInterface(populatedMessage)
 
 	//var victimUserId int64
 	//for _, value := range repliedMessages.Users {
