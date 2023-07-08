@@ -38,6 +38,7 @@ func MustNewCombatContainer() Container {
 		&clientService,
 		settings.Telegram.AppID,
 		settings.Telegram.AppHash,
+		settings.Telegram.PhoneNumber,
 		settings.Telegram.SessionFullPath,
 		memoryStorage,
 	)

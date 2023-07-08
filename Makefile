@@ -2,22 +2,19 @@
 
 BUILD_VERSION ?= $(shell cat VERSION)
 BUILD_OUTPUT ?= fun-telegram
-GO ?= GO111MODULE=on CGO_ENABLED=0 go
+GO ?= GO111MODULE=on CGO_ENABLED=1 go
 GOOS ?= $(shell $(GO) version | cut -d' ' -f4 | cut -d'/' -f1)
 GOARCH ?= $(shell $(GO) version | cut -d' ' -f4 | cut -d'/' -f2)
 
 run:
-	go run main.go
+	@$(GO) run main.go
 
 check:
 	pre-commit run -a
-	go test -v ./...
-
-install:
-	go install
+	@$(GO) test -v ./...
 
 build:
-	go build -o $(BUILD_OUTPUT) main.go
+	@$(GO) build -o $(BUILD_OUTPUT) main.go
 
 clean:
 	@echo -n ">> CLEAN"

@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/anonyindian/gotgproto/functions"
+	"github.com/anonyindian/gotgproto/types"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/telegram/message"
-	"github.com/gotd/td/telegram/message/html"
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog/log"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
@@ -71,33 +70,33 @@ func (r *Presentation) spamReactionCommandHandler(
 	m *tg.Message,
 ) error {
 	const maxReactionCount = 3
-	mReplyHeader, ok := m.GetReplyTo()
-	if !ok {
-		_, err := r.telegramSender.Reply(*entities, update).
-			StyledText(ctx, html.String(nil, "Err: you need to reply to victim with active reactions"))
-		return err
-	}
+	//mReplyHeader, ok := m.GetReplyTo()
+	//if !ok {
+	//	_, err := r.telegramSender.Reply(*entities, update).
+	//		StyledText(ctx, html.String(nil, "Err: you need to reply to victim with active reactions"))
+	//	return err
+	//}
 
-	utils.LogInterface(m)
-	utils.LogInterface(mReplyHeader)
-	chatId := tgUtils.GetChatOrChannelId(entities)
+	//chatId := functions.GetChatIdFromPeer(m.PeerID)
+	populatedMessage := types.ConstructMessage(m)
+	err := populatedMessage.SetRepliedToMessage(ctx, r.telegramApi)
 	//chat, err := functions.GetChatFromPeer(ctx, r.telegramApi, m.ID)
 	//if err != nil {
 	//	return err
 	//}
 
-	res, err := functions.GetMessages(ctx, r.telegramApi, chatId, []tg.InputMessageClass{&tg.InputMessageID{ID: mReplyHeader.GetReplyToMsgID()}})
+	//res, err := functions.GetMessages(ctx, r.telegramApi, chatId, []tg.InputMessageClass{&tg.InputMessageID{ID: mReplyHeader.GetReplyToMsgID()}})
 	if err != nil {
 		return err
 	}
-	if len(res) <= 0 {
-		return errors.Join(errors.New("replied message not found"), BadUpdate)
-	}
-	repliedMessages, ok := res[0].(*tg.Message)
-	if err != nil {
-		return errors.Join(errors.New("no replied message found"), BadUpdate)
-	}
-	utils.LogInterface(repliedMessages)
+	//if len(res) <= 0 {
+	//	return errors.Join(errors.New("replied message not found"), BadUpdate)
+	//}
+	//repliedMessages, ok := res[0].(*tg.Message)
+	//if err != nil {
+	//	return errors.Join(errors.New("no replied message found"), BadUpdate)
+	//}
+	utils.LogInterface(populatedMessage)
 
 	//var victimUserId int64
 	//for _, value := range repliedMessages.Users {

@@ -17,6 +17,7 @@ const (
 type telegram struct {
 	AppID           int    `env:"app_id,required"`
 	AppHash         string `env:"app_hash,required"`
+	PhoneNumber     string `env:"phone_number,required"`
 	SessionPath     string `env:"session_storage_path" envDefault:"telegram-session.json"`
 	SessionFullPath string
 }
