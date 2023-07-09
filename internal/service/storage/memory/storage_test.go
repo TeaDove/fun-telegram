@@ -2,11 +2,12 @@ package memory
 
 import (
 	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	interfaceStorage "github.com/teadove/goteleout/internal/service/storage"
-	"sync"
-	"testing"
 
 	"github.com/teadove/goteleout/internal/utils"
 )

@@ -2,13 +2,14 @@ package memory
 
 import (
 	"encoding/json"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/go-co-op/gocron"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"github.com/teadove/goteleout/internal/utils"
-	"os"
-	"sync"
-	"time"
 )
 
 type Storage struct {

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+
 	"github.com/anonyindian/gotgproto/types"
 	"github.com/gotd/td/tg"
 )

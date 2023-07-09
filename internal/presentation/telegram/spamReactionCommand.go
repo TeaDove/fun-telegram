@@ -3,6 +3,7 @@ package telegram
 import (
 	"errors"
 	"fmt"
+
 	"github.com/anonyindian/gotgproto/ext"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/tg"
@@ -54,7 +55,8 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update) error {
 		_, err = ctx.Reply(update, "Err: reply not found", nil)
 		return err
 	}
-	userId, err := tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
+	var userId int64
+	userId, err = tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
 
 	key := compileSmapKey(chatId, userId)
 	err = r.storage.Delete(key)
