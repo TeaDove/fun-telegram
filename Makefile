@@ -9,8 +9,7 @@ DOCKER_IMAGE ?= ghcr.io/teadove/fun-telegram:$(BUILD_VERSION)
 
 upload:
 	docker login ghcr.io
-	docker build . --tag $(DOCKER_IMAGE)
-	docker push $(DOCKER_IMAGE)
+	docker buildx build --platform linux/arm64,linux/amd64 . --tag $(DOCKER_IMAGE) --no-cache --push
 
 run:
 	@$(GO) run main.go
