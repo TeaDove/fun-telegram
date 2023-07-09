@@ -4,7 +4,6 @@ services:
   client:
     restart: always
     environment:
-      # https://core.telegram.org/api/obtaining_api_id
       fun_file_storage_path: "/config"
     build:
       context: .

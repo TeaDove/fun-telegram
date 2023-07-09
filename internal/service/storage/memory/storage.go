@@ -51,6 +51,8 @@ func (r *Storage) loadFlushed() error {
 	newMap := make(map[string][]byte, 10)
 	err = json.Unmarshal(content, &newMap)
 	if err != nil {
+		log.Warn().Str("status", "err.while.unmarshalling.json.recreating.file").Stack().Err(err).Send()
+		err = os.Remove(r.filename)
 		return err
 	}
 
