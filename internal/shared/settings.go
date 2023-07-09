@@ -22,10 +22,15 @@ type telegram struct {
 	SessionFullPath string
 }
 
+type storage struct {
+	Filename string `env:"filename" envDefault:"storage.json"`
+}
+
 type Settings struct {
 	Telegram        telegram `envPrefix:"telegram__"`
-	FileStoragePath string   `                       env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
-	LogLevel        string   `                       env:"log_level"         envDefault:"debug"`
+	Storage         storage  `envPrefix:"storage__"`
+	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
+	LogLevel        string   `env:"log_level"         envDefault:"debug"`
 }
 
 func MustNewSettings() Settings {

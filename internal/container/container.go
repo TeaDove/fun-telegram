@@ -2,6 +2,7 @@ package container
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/teadove/goteleout/internal/service/storage/memory"
 
@@ -32,8 +33,9 @@ func MustNewCombatContainer() Container {
 	err = os.MkdirAll(realPath, os.ModePerm)
 	utils.Check(err)
 
+	path := filepath.Join(realPath, settings.Storage.Filename)
 	clientService := client.MustNewClientService()
-	memoryStorage := memory.MustNew()
+	memoryStorage := memory.MustNew(true, path)
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		&clientService,
