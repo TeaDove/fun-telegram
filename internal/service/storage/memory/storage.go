@@ -32,7 +32,7 @@ func MustNew(persistent bool, filename string) *Storage {
 		_, err = scheduler.Every(1 * time.Minute).StartAt(time.Now().Add(1 * time.Minute)).Do(memoryStorage.flush)
 		utils.Check(err)
 		scheduler.StartAsync()
-		log.Info().Str("status", "flush.scheduled").Send()
+		log.Info().Str("status", "flush.scheduled").Str("filename", filename).Send()
 	}
 
 	return &memoryStorage
@@ -107,5 +107,14 @@ func (r *Storage) Save(k string, v []byte) error {
 
 	r.needFlush = true
 	r.mapping[k] = v
+	return nil
+}
+
+func (r *Storage) Delete(k string) error {
+	r.mappingMu.Lock()
+	defer r.mappingMu.Unlock()
+
+	r.needFlush = true
+	delete(r.mapping, k)
 	return nil
 }

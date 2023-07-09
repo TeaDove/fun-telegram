@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anonyindian/gotgproto/ext"
-	"github.com/anonyindian/gotgproto/functions"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog/log"
@@ -44,7 +43,31 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	return err
 }
 
-func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update) error {
+func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update) error {
+	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+	if chatId == 0 {
+		_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
+		return err
+	}
+	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
+	if err != nil {
+		_, err = ctx.Reply(update, "Err: reply not found", nil)
+		return err
+	}
+	userId, err := tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
+
+	key := compileSmapKey(chatId, userId)
+	err = r.storage.Delete(key)
+	if err != nil {
+		return err
+	}
+
+	log.Info().Str("status", "spam.reaction.deleted").Str("key", key).Send()
+	_, err = ctx.Reply(update, "Ok: reactions were deleted", nil)
+	return err
+}
+
+func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
 	const maxReactionCount = 3
 
 	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
@@ -54,33 +77,17 @@ func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.
 	}
 	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
 	if err != nil {
-		return nil
-	}
-	repliedMessages, err := functions.GetMessages(
-		ctx,
-		r.telegramApi,
-		chatId,
-		[]tg.InputMessageClass{
-			&tg.InputMessageID{ID: update.EffectiveMessage.ReplyTo.GetReplyToMsgID()},
-		},
-	)
-	repliedMessage, ok := repliedMessages.First()
-	if !ok {
-		_, err := ctx.Reply(update, "Err: you need to reply to victim with active reactions", nil)
+		_, err = ctx.Reply(update, "Err: reply not found", nil)
 		return err
 	}
-	repliedTgMessage, ok := repliedMessage.(*tg.Message)
-	if !ok {
-		return errors.Join(errors.New("reply is not a message"), BadUpdate)
-	}
-	userId, err := tgUtils.GetSenderId(repliedTgMessage)
+	userId, err := tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
 	if err != nil {
 		return err
 	}
 
 	reactionRequest := tg.MessagesSendReactionRequest{Peer: currentPeer, AddToRecent: true}
 	reactionRequest.Reaction = make([]tg.ReactionClass, 0, 1)
-	for idx, currentReaction := range repliedTgMessage.Reactions.Results {
+	for idx, currentReaction := range update.EffectiveMessage.ReplyToMessage.Reactions.Results {
 		if idx >= maxReactionCount {
 			break
 		}
@@ -112,4 +119,13 @@ func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.
 		Send()
 	_, err = ctx.Reply(update, "Ok: reactions were saved", nil)
 	return err
+}
+
+func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update) error {
+	args := tgUtils.GetArguments(update.EffectiveMessage.Message.Message)
+	if len(args) > 0 && args[0] == "stop" {
+		return r.deleteSpam(ctx, update)
+	} else {
+		return r.addSpam(ctx, update)
+	}
 }
