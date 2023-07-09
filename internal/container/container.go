@@ -44,6 +44,7 @@ func MustNewCombatContainer() Container {
 		settings.Telegram.PhoneNumber,
 		settings.Telegram.SessionFullPath,
 		memoryStorage,
+		settings.LogErrorToSelf,
 	)
 
 	container := Container{&telegramPresentation, settings.Telegram.SessionFullPath}

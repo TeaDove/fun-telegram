@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/anonyindian/gotgproto/dispatcher"
 	"github.com/anonyindian/gotgproto/ext"
@@ -30,6 +31,8 @@ type Presentation struct {
 
 	storage       storage.Interface
 	clientService *client.Service
+
+	logErrorToSelf bool
 }
 
 func MustNewTelegramPresentation(
@@ -39,8 +42,8 @@ func MustNewTelegramPresentation(
 	telegramPhoneNumber string,
 	telegramSessionStorageFullPath string,
 	storage storage.Interface,
+	logErrorToSelf bool,
 ) Presentation {
-
 	protoClient, err := gotgproto.NewClient(telegramAppID, telegramAppHash, gotgproto.ClientType{
 		Phone: telegramPhoneNumber,
 	}, &gotgproto.ClientOpts{
@@ -61,6 +64,7 @@ func MustNewTelegramPresentation(
 		telegramApi:     api,
 		telegramSender:  message.NewSender(api),
 		telegramManager: peers.Options{}.Build(api),
+		logErrorToSelf:  logErrorToSelf,
 	}
 
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("echo", presentation.echoCommandHandler))
@@ -100,6 +104,15 @@ func (r *Presentation) errorHandler(
 		Str("status", "error.while.processing.update").
 		Interface("update", update).
 		Send()
+	if r.logErrorToSelf {
+		_, err := ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{
+			Silent:  true,
+			Message: fmt.Sprintf("Error occured while processing update:\n\n%s", errorString),
+		})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

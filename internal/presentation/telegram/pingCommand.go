@@ -13,7 +13,7 @@ import (
 
 func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) error {
 	const maxCount = 15
-	var count = 0
+	count := 0
 	requestedUser := update.EffectiveUser()
 
 	var textBuilder strings.Builder

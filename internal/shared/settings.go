@@ -27,10 +27,11 @@ type storage struct {
 }
 
 type Settings struct {
+	LogErrorToSelf  bool     `env:"log_error_to_self" envDefault:"false"`
 	Telegram        telegram `envPrefix:"telegram__"`
 	Storage         storage  `envPrefix:"storage__"`
-	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
-	LogLevel        string   `env:"log_level"         envDefault:"debug"`
+	FileStoragePath string   `                       env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
+	LogLevel        string   `                       env:"log_level"         envDefault:"debug"`
 }
 
 func MustNewSettings() Settings {

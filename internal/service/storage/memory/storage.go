@@ -30,7 +30,9 @@ func MustNew(persistent bool, filename string) *Storage {
 	if memoryStorage.persistent {
 		err := memoryStorage.loadFlushed()
 		utils.Check(err)
-		_, err = scheduler.Every(1 * time.Minute).StartAt(time.Now().Add(1 * time.Minute)).Do(memoryStorage.flush)
+		_, err = scheduler.Every(1 * time.Minute).
+			StartAt(time.Now().Add(1 * time.Minute)).
+			Do(memoryStorage.flush)
 		utils.Check(err)
 		scheduler.StartAsync()
 		log.Info().Str("status", "flush.scheduled").Str("filename", filename).Send()
@@ -51,7 +53,11 @@ func (r *Storage) loadFlushed() error {
 	newMap := make(map[string][]byte, 10)
 	err = json.Unmarshal(content, &newMap)
 	if err != nil {
-		log.Warn().Str("status", "err.while.unmarshalling.json.recreating.file").Stack().Err(err).Send()
+		log.Warn().
+			Str("status", "err.while.unmarshalling.json.recreating.file").
+			Stack().
+			Err(err).
+			Send()
 		err = os.Remove(r.filename)
 		return err
 	}
@@ -79,7 +85,7 @@ func (r *Storage) flush() error {
 		return err
 	}
 
-	f, err := os.OpenFile(r.filename, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(r.filename, os.O_WRONLY|os.O_CREATE, 0o666)
 	if err != nil {
 		return err
 	}
