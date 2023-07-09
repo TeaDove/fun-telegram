@@ -2,8 +2,9 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/anonyindian/gotgproto/ext"
 	"strings"
+
+	"github.com/anonyindian/gotgproto/ext"
 )
 
 func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update) error {

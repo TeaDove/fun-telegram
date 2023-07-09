@@ -2,10 +2,11 @@ package telegram
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/anonyindian/gotgproto/ext"
 	"github.com/anonyindian/gotgproto/types"
 	"github.com/rs/zerolog/log"
-	"strings"
 
 	"github.com/gotd/td/telegram/peers/members"
 )
@@ -60,7 +61,11 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 	}
 	if count > maxCount {
 		log.Warn().Str("status", "max.count.exceeded").Send()
-		_, err := ctx.Reply(update, fmt.Sprintf("Max user count exceeded, count: %d, maxCount: %d", count, maxCount), nil)
+		_, err := ctx.Reply(
+			update,
+			fmt.Sprintf("Max user count exceeded, count: %d, maxCount: %d", count, maxCount),
+			nil,
+		)
 		return err
 	}
 	textBuilder.WriteString(mentionBuilder.String())

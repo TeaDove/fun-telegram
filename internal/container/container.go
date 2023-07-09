@@ -1,8 +1,9 @@
 package container
 
 import (
-	"github.com/teadove/goteleout/internal/service/storage/memory"
 	"os"
+
+	"github.com/teadove/goteleout/internal/service/storage/memory"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"

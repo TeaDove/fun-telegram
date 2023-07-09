@@ -1,9 +1,10 @@
 package memory
 
 import (
+	"testing"
+
 	"github.com/go-playground/assert/v2"
 	"github.com/teadove/goteleout/internal/utils"
-	"testing"
 )
 
 func TestUnit_MemoryStorage_SaveLoad_Ok(t *testing.T) {

@@ -4,8 +4,5 @@ import "github.com/anonyindian/gotgproto/ext"
 
 func (r *Presentation) echoCommandHandler(ctx *ext.Context, update *ext.Update) error {
 	_, err := ctx.Reply(update, update.EffectiveMessage.Message.Message, nil)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
