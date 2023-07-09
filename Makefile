@@ -5,6 +5,12 @@ BUILD_OUTPUT ?= fun-telegram
 GO ?= GO111MODULE=on CGO_ENABLED=1 go
 GOOS ?= $(shell $(GO) version | cut -d' ' -f4 | cut -d'/' -f1)
 GOARCH ?= $(shell $(GO) version | cut -d' ' -f4 | cut -d'/' -f2)
+DOCKER_IMAGE ?= ghcr.io/teadove/fun-telegram:$(BUILD_VERSION)
+
+upload:
+	docker login ghcr.io
+	docker build . --tag $(DOCKER_IMAGE)
+	docker push $(DOCKER_IMAGE)
 
 run:
 	@$(GO) run main.go
