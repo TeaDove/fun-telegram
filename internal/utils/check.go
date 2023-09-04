@@ -6,6 +6,10 @@ import (
 
 func Check(err error) {
 	if err != nil {
-		log.Panic().Stack().Err(err).Msg("check failed!")
+		FancyPanic(err)
 	}
+}
+
+func FancyPanic(err error) {
+	log.Panic().Stack().Err(err).Msg("check failed!")
 }
