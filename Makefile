@@ -7,8 +7,10 @@ GOOS ?= $(shell $(GO) version | cut -d' ' -f4 | cut -d'/' -f1)
 GOARCH ?= $(shell $(GO) version | cut -d' ' -f4 | cut -d'/' -f2)
 DOCKER_IMAGE ?= ghcr.io/teadove/fun-telegram:$(BUILD_VERSION)
 
-upload:
+docker-login:
 	docker login ghcr.io
+
+docker-build: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 . --tag $(DOCKER_IMAGE) --no-cache --push
 
 test-unit:
@@ -19,7 +21,6 @@ run:
 
 check:
 	pre-commit run -a
-	@$(GO) test -v ./...
 
 build:
 	@$(GO) build -o $(BUILD_OUTPUT) main.go
