@@ -1,6 +1,6 @@
 package storage
 
-import "errors"
+import "github.com/pkg/errors"
 
 var KeyError = errors.New("key error")
 

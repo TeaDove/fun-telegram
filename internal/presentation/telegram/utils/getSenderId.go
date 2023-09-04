@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
 	"github.com/anonyindian/gotgproto/types"
 	"github.com/gotd/td/tg"

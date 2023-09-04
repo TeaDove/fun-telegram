@@ -1,8 +1,8 @@
 package telegram
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/anonyindian/gotgproto/ext"
 	"github.com/gotd/td/bin"
@@ -19,7 +19,7 @@ func compileSmapKey(chatId int64, userId int64) string {
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
 	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
-		return errors.Join(errors.New("peer not found"), BadUpdate)
+		return errors.WithStack(PeerNotFound)
 	}
 
 	reactionsBuf, err := r.storage.Load(compileSmapKey(chatId, update.EffectiveUser().ID))
@@ -27,7 +27,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return nil
 	}
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	log.Info().Str("status", "victim.found").Send()
 
@@ -35,25 +35,34 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	buf := bin.Buffer{Buf: reactionsBuf}
 	err = reactionRequest.Decode(&buf)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	reactionRequest.MsgID = update.EffectiveMessage.ID
 	log.Info().Str("status", "spamming.reactions").Interface("reactions", reactionRequest).Send()
 	_, err = r.telegramApi.MessagesSendReaction(ctx, &reactionRequest)
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update) error {
 	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
 		_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
-		return err
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
 	if err != nil {
 		_, err = ctx.Reply(update, "Err: reply not found", nil)
-		return err
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 	var userId int64
 	userId, err = tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
@@ -61,12 +70,15 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update) error {
 	key := compileSmapKey(chatId, userId)
 	err = r.storage.Delete(key)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	log.Info().Str("status", "spam.reaction.deleted").Str("key", key).Send()
 	_, err = ctx.Reply(update, "Ok: reactions were deleted", nil)
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
@@ -75,16 +87,22 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
 	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
 		_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
-		return err
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
 	if err != nil {
 		_, err = ctx.Reply(update, "Err: reply not found", nil)
-		return err
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 	userId, err := tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	reactionRequest := tg.MessagesSendReactionRequest{Peer: currentPeer, AddToRecent: true}
@@ -97,21 +115,22 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
 		reactionRequest.Reaction = append(reactionRequest.Reaction, currentReaction.Reaction)
 	}
 	if len(reactionRequest.Reaction) == 0 {
-		_, err := ctx.Reply(update, "Err: no reactions found", nil)
-		return err
+		_, err = ctx.Reply(update, "Err: no reactions found", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
 	buf := bin.Buffer{}
 	err = reactionRequest.Encode(&buf)
 	if err != nil {
-		println(err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	key := compileSmapKey(chatId, userId)
 	err = r.storage.Save(key, buf.Buf)
 	if err != nil {
-		println(err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	log.Info().
@@ -120,7 +139,10 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
 		Interface("reactions", reactionRequest).
 		Send()
 	_, err = ctx.Reply(update, "Ok: reactions were saved", nil)
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update) error {

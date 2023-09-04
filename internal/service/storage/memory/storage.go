@@ -71,7 +71,7 @@ func (r *Storage) loadFlushed() error {
 
 func (r *Storage) flush() error {
 	if !r.needFlush {
-		log.Info().Str("status", "flush.no.need").Send()
+		log.Debug().Str("status", "flush.no.need").Send()
 		return nil
 	}
 	log.Info().Str("status", "flush.begin").Send()

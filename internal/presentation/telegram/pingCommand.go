@@ -2,36 +2,36 @@ package telegram
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/anonyindian/gotgproto/ext"
 	"github.com/anonyindian/gotgproto/types"
+	"github.com/gotd/td/telegram/message/styling"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 
 	"github.com/gotd/td/telegram/peers/members"
 )
 
 func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) error {
-	const maxCount = 15
+	const maxCount = 40
 	count := 0
 	requestedUser := update.EffectiveUser()
 
-	var textBuilder strings.Builder
-	textBuilder.Grow(100)
-	textBuilder.WriteString(fmt.Sprintf("Ping requested by %s\n\n", requestedUser.Username))
-	var mentionBuilder strings.Builder
+	stylingOptions := make([]styling.StyledTextOption, 0, 40)
+
+	stylingOptions = append(stylingOptions, styling.Plain(fmt.Sprintf("Ping requested by %s\n\n", requestedUser.Username)))
 	compileMention := func(p members.Member) error {
 		user := p.User()
 		_, isBot := user.ToBot()
 		if isBot {
 			return nil
 		}
-		username, ok := user.Username()
-		if !ok {
-			return nil
-		}
 		count += 1
-		mentionBuilder.WriteString(fmt.Sprintf("@%s\n", username))
+
+		stylingOptions = append(stylingOptions, []styling.StyledTextOption{
+			styling.MentionName(utils.GetNameFromPeerUser(&user), user.InputUser()),
+			styling.Plain("\n"),
+		}...)
 		return nil
 	}
 
@@ -41,21 +41,21 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 		chatMembers := members.Chat(chat)
 		err := chatMembers.ForEach(ctx, compileMention)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	case *types.Channel:
 		chat := r.telegramManager.Channel(t.Raw())
 		chatMembers := members.Channel(chat)
 		err := chatMembers.ForEach(ctx, compileMention)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 	default:
 		_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
-		return err
+		return errors.WithStack(err)
 	}
 
-	if mentionBuilder.String() == "" {
+	if count == 0 {
 		log.Warn().Str("status", "no.users.were.mentioned").Send()
 		return nil
 	}
@@ -66,9 +66,14 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 			fmt.Sprintf("Max user count exceeded, count: %d, maxCount: %d", count, maxCount),
 			nil,
 		)
-		return err
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
 	}
-	textBuilder.WriteString(mentionBuilder.String())
-	_, err := ctx.Reply(update, textBuilder.String(), nil)
-	return err
+	_, err := ctx.Reply(update, stylingOptions, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }

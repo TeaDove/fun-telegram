@@ -1,25 +1,37 @@
 package telegram
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/anonyindian/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/styling"
+	"github.com/pkg/errors"
+	"strconv"
 )
 
 func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update) error {
-	var textBuilder strings.Builder
-	const requestedUserTmp = "Requested user: \n" +
-		"id: <code>%d</code>\n" +
-		"username: @%s\n\n"
-	const currentChatTmp = "Current chat: \n" +
-		"id: <code>%d</code>"
 	user := update.EffectiveUser()
-	textBuilder.WriteString(fmt.Sprintf(requestedUserTmp, user.ID, user.Username))
-
 	chat := update.EffectiveChat()
-	textBuilder.WriteString(fmt.Sprintf(currentChatTmp, chat.GetID()))
+	stylingOptions := []styling.StyledTextOption{
+		styling.Plain("Requested user: \n" +
+			"id: "), styling.Code(strconv.FormatInt(user.ID, 10)), styling.Plain("\n" +
+			"mention: "), styling.MentionName(user.FirstName, user.AsInput()), styling.Plain("\n\n" +
+			"Current chat: \n" +
+			"id: "), styling.Code(strconv.FormatInt(chat.GetID(), 10))}
 
-	_, err := ctx.Reply(update, textBuilder.String(), nil)
-	return err
+	// TODO add replied user information
+	//if update.EffectiveMessage.ReplyToMessage != nil {
+	//	repliedMessage := update.EffectiveMessage.ReplyToMessage
+	//	repliedMessage.GetFromID()
+	//	r.telegramManager.GetUser()
+	//
+	//	r.telegramApi.UsersGetUsers(ctx, []tg.InputUserClass{repliedMessage.FromID})
+	//	//repliedUser := update.EffectiveMessage.ReplyToMessage.
+	//	stylingOptions = append(stylingOptions, []styling.StyledTextOption{styling.Plain("Replied user: \n" +
+	//		"id: "), styling.MentionName("Aaa", update.EffectiveMessage.ReplyToMessage.PeerID)}...)
+	//}
+
+	_, err := ctx.Reply(update, stylingOptions, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }

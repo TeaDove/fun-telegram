@@ -1,8 +1,8 @@
 package telegram
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/anonyindian/gotgproto/dispatcher"
 	"github.com/anonyindian/gotgproto/ext"
@@ -20,7 +20,10 @@ import (
 	"github.com/teadove/goteleout/internal/utils"
 )
 
-var BadUpdate = errors.New("bad update")
+var (
+	BadUpdate    = errors.New("bad update")
+	PeerNotFound = errors.Wrap(BadUpdate, "peer not found")
+)
 
 type Presentation struct {
 	telegramClient  *telegram.Client
@@ -86,7 +89,7 @@ func MustNewTelegramPresentation(
 	)
 	dp, ok := protoClient.Dispatcher.(*dispatcher.NativeDispatcher)
 	if !ok {
-		utils.Check(errors.New("can only work with NativeDispatcher"))
+		utils.FancyPanic(errors.New("can only work with NativeDispatcher"))
 	}
 	dp.Error = presentation.errorHandler
 
@@ -110,8 +113,9 @@ func (r *Presentation) errorHandler(
 			Message: fmt.Sprintf("Error occured while processing update:\n\n%s", errorString),
 		})
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
+		return nil
 	}
 	return nil
 }

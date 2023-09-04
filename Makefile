@@ -11,6 +11,9 @@ upload:
 	docker login ghcr.io
 	docker buildx build --platform linux/arm64,linux/amd64 . --tag $(DOCKER_IMAGE) --no-cache --push
 
+test-unit:
+	go test ./... -run 'TestUnit_*'
+
 run:
 	@$(GO) run main.go
 
@@ -24,7 +27,7 @@ build:
 clean:
 	@echo -n ">> CLEAN"
 	@$(GO) clean -i ./...
-	@rm -f goteleout-*-*
+	@rm -f $(BUILD_OUTPUT)*
 	@rm -rf dist/*
 	@printf '%s\n' '$(OK)'
 
