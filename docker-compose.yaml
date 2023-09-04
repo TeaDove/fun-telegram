@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       fun_file_storage_path: "/config"
-    image: ghcr.io/teadove/fun-telegram:v1.1.0
+    image: ghcr.io/teadove/fun-telegram:v1.2.0
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
