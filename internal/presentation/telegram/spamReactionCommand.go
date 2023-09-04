@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 
 	"github.com/anonyindian/gotgproto/ext"
@@ -66,6 +67,9 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update) error {
 	}
 	var userId int64
 	userId, err = tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	key := compileSmapKey(chatId, userId)
 	err = r.storage.Delete(key)

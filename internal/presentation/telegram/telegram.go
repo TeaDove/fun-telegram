@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 
 	"github.com/anonyindian/gotgproto/dispatcher"

@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+
 	"github.com/anonyindian/gotgproto/ext"
 	"github.com/anonyindian/gotgproto/types"
 	"github.com/gotd/td/telegram/message/styling"

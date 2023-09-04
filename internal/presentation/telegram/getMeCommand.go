@@ -1,10 +1,11 @@
 package telegram
 
 import (
+	"strconv"
+
 	"github.com/anonyindian/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update) error {
@@ -18,7 +19,7 @@ func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update)
 			"id: "), styling.Code(strconv.FormatInt(chat.GetID(), 10))}
 
 	// TODO add replied user information
-	//if update.EffectiveMessage.ReplyToMessage != nil {
+	//  if update.EffectiveMessage.ReplyToMessage != nil {
 	//	repliedMessage := update.EffectiveMessage.ReplyToMessage
 	//	repliedMessage.GetFromID()
 	//	r.telegramManager.GetUser()
@@ -27,7 +28,7 @@ func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update)
 	//	//repliedUser := update.EffectiveMessage.ReplyToMessage.
 	//	stylingOptions = append(stylingOptions, []styling.StyledTextOption{styling.Plain("Replied user: \n" +
 	//		"id: "), styling.MentionName("Aaa", update.EffectiveMessage.ReplyToMessage.PeerID)}...)
-	//}
+	//  }
 
 	_, err := ctx.Reply(update, stylingOptions, nil)
 	if err != nil {
