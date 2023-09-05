@@ -26,9 +26,6 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	if chatId == 0 {
 		return errors.WithStack(PeerNotFound)
 	}
-	if r.storage.Contains(compileSpamDisableKey(chatId)) {
-		return nil
-	}
 
 	reactionsBuf, err := r.storage.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
 	if errors.Is(err, storage.KeyError) {
