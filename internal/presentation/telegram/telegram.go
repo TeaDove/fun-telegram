@@ -91,6 +91,14 @@ func MustNewTelegramPresentation(
 			Outgoing:      true,
 		},
 	)
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.statsMessageHandler,
+			Filters:       nil,
+			UpdateFilters: nil,
+			Outgoing:      true,
+		},
+	)
 	dp, ok := protoClient.Dispatcher.(*dispatcher.NativeDispatcher)
 	if !ok {
 		utils.FancyPanic(errors.New("can only work with NativeDispatcher"))

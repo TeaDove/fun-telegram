@@ -19,6 +19,44 @@ type userStats struct {
 	Ok bool
 }
 
+func compileStatsKey(chatId int64) string {
+	return fmt.Sprintf("stats:%d", chatId)
+}
+
+func (r *Presentation) statsMessageHandler(ctx *ext.Context, update *ext.Update) error {
+	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+	if chatId == 0 {
+		return errors.WithStack(PeerNotFound)
+	}
+
+	statsRaw, ok := r.storage.Load(compileStatsKey(chatId))
+
+
+	//reactionsBuf, err := r.storage.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
+	//if errors.Is(err, storage.KeyError) {
+	//	return nil
+	//}
+	//if err != nil {
+	//	return errors.WithStack(err)
+	//}
+	//log.Info().Str("status", "victim.found").Send()
+	//
+	//var reactionRequest tg.MessagesSendReactionRequest
+	//buf := bin.Buffer{Buf: reactionsBuf}
+	//err = reactionRequest.Decode(&buf)
+	//if err != nil {
+	//	return errors.WithStack(err)
+	//}
+	//
+	//reactionRequest.MsgID = update.EffectiveMessage.ID
+	//log.Info().Str("status", "spamming.reactions").Interface("reactions", reactionRequest).Send()
+	//_, err = r.telegramApi.MessagesSendReaction(ctx, &reactionRequest)
+	//if err != nil {
+	//	return errors.WithStack(err)
+	//}
+	//return nil
+}
+
 func (r *Presentation) putStatsFromMessages(
 	ctx context.Context,
 	res tg.MessagesMessagesClass,
