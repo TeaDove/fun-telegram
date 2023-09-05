@@ -61,6 +61,14 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update) error {
 		}
 		return nil
 	}
+	if r.storage.Contains(compileSpamDisableKey(chatId)) {
+		_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
+	}
+
 	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
 	if err != nil {
 		_, err = ctx.Reply(update, "Err: reply not found", nil)
