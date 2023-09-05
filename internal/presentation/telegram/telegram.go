@@ -81,6 +81,9 @@ func MustNewTelegramPresentation(
 		handlers.NewCommand("spam_reaction", presentation.spamReactionCommandHandler),
 	)
 	protoClient.Dispatcher.AddHandler(
+		handlers.NewCommand("stats", presentation.statsCommandHandler),
+	)
+	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
 			Callback:      presentation.spamReactionMessageHandler,
 			Filters:       nil,
