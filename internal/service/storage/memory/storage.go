@@ -127,3 +127,11 @@ func (r *Storage) Delete(k string) error {
 	delete(r.mapping, k)
 	return nil
 }
+
+func (r *Storage) Contains(k string) bool {
+	r.mappingMu.Lock()
+	defer r.mappingMu.Unlock()
+
+	_, ok := r.mapping[k]
+	return ok
+}

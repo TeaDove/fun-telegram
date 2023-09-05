@@ -13,8 +13,12 @@ import (
 	"github.com/teadove/goteleout/internal/service/storage"
 )
 
-func compileSmapKey(chatId int64, userId int64) string {
-	return fmt.Sprintf("smap:%d:%d", chatId, userId)
+func compileSpamVictimKey(chatId int64, userId int64) string {
+	return fmt.Sprintf("spam:victim:%d:%d", chatId, userId)
+}
+
+func compileSpamDisableKey(chatId int64) string {
+	return fmt.Sprintf("spam:disable:%d", chatId)
 }
 
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
@@ -22,8 +26,11 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	if chatId == 0 {
 		return errors.WithStack(PeerNotFound)
 	}
+	if r.storage.Contains(compileSpamDisableKey(chatId)) {
+		return nil
+	}
 
-	reactionsBuf, err := r.storage.Load(compileSmapKey(chatId, update.EffectiveUser().ID))
+	reactionsBuf, err := r.storage.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
 	if errors.Is(err, storage.KeyError) {
 		return nil
 	}
@@ -71,7 +78,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update) error {
 		return errors.WithStack(err)
 	}
 
-	key := compileSmapKey(chatId, userId)
+	key := compileSpamVictimKey(chatId, userId)
 	err = r.storage.Delete(key)
 	if err != nil {
 		return errors.WithStack(err)
@@ -89,6 +96,14 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
 	const maxReactionCount = 3
 
 	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+	if r.storage.Contains(compileSpamDisableKey(chatId)) {
+		_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
+	}
+
 	if chatId == 0 {
 		_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
 		if err != nil {
@@ -131,7 +146,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
 		return errors.WithStack(err)
 	}
 
-	key := compileSmapKey(chatId, userId)
+	key := compileSpamVictimKey(chatId, userId)
 	err = r.storage.Save(key, buf.Buf)
 	if err != nil {
 		return errors.WithStack(err)
@@ -149,11 +164,52 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update) error {
 	return nil
 }
 
+func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update) error {
+	if !update.EffectiveUser().Self {
+		_, err := ctx.Reply(update, "Err: disable can be done only by owner of bot", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+	key := compileSpamDisableKey(chatId)
+	// Warning, not thread safe but I don't care
+	contains := r.storage.Contains(key)
+	if contains {
+		err := r.storage.Delete(key)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		_, err = ctx.Reply(update, "Ok: reactions were enabled in chat", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		return nil
+	}
+	err := r.storage.Save(key, []byte{})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	_, err = ctx.Reply(update, "Ok: reactions were disabled in chat", nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
 func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update) error {
 	args := tgUtils.GetArguments(update.EffectiveMessage.Message.Message)
-	if len(args) > 0 && args[0] == "stop" {
-		return r.deleteSpam(ctx, update)
-	} else {
-		return r.addSpam(ctx, update)
+	const stopCommand = "stop"
+	const disableCommand = "disable"
+
+	if len(args) > 0 {
+		switch args[0] {
+		case stopCommand:
+			return r.deleteSpam(ctx, update)
+		case disableCommand:
+			return r.disableSpam(ctx, update)
+		}
 	}
+	return r.addSpam(ctx, update)
 }
