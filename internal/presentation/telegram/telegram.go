@@ -12,7 +12,6 @@ import (
 	"github.com/anonyindian/gotgproto"
 	"github.com/anonyindian/gotgproto/dispatcher/handlers"
 	"github.com/anonyindian/gotgproto/sessionMaker"
-	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
@@ -27,7 +26,8 @@ var (
 )
 
 type Presentation struct {
-	telegramClient  *telegram.Client
+	// Unused, but may be usefully later
+	//telegramClient  *telegram.Client
 	telegramSender  *message.Sender
 	telegramApi     *tg.Client
 	telegramManager *peers.Manager
@@ -71,6 +71,14 @@ func MustNewTelegramPresentation(
 		logErrorToSelf:  logErrorToSelf,
 	}
 
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.injectContext,
+			Filters:       nil,
+			UpdateFilters: nil,
+			Outgoing:      true,
+		},
+	)
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("echo", presentation.echoCommandHandler))
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("help", presentation.helpCommandHandler))
 	protoClient.Dispatcher.AddHandler(
