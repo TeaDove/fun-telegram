@@ -72,8 +72,6 @@ func TestUnit_MemoryStorage_delete_Ok(t *testing.T) {
 }
 
 func saveFlushLoad(wg *sync.WaitGroup, storage *Storage, t *testing.T) {
-	t.Parallel()
-
 	defer wg.Done()
 
 	key, value := uuid.New().String(), []byte(uuid.New().String())
