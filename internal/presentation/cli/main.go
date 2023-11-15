@@ -44,9 +44,9 @@ func RunCli() {
 func captureInterrupt() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
+
 	go func() {
 		for sig := range c {
-			println()
 			log.Info().Str("signal", sig.String()).Msg("captured exit signal, exiting...")
 			pprof.StopCPUProfile()
 			os.Exit(0)

@@ -1,0 +1,49 @@
+issues:
+  exclude-rules:
+    - path: (.+)_test.go
+      linters:
+        - errcheck
+        - forcetypeassert
+        - wsl
+        - bodyclose
+        - forbidigo
+
+linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+    - dogsled
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gofmt
+    #    - goerr113
+    - unparam
+    #    - wrapcheck
+    - unconvert
+    - megacheck
+    - staticcheck
+    - unused
+    - gosimple
+    #    - dupl # TODO remove comment
+    - goconst
+    - gocyclo
+    - nakedret
+    - gocritic
+    - misspell
+    - wsl
+    - wastedassign
+  disable:
+    - typecheck

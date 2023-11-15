@@ -11,3 +11,12 @@ services:
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
+
+  cache:
+    image: redis:7.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - "./data:/data"

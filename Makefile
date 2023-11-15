@@ -13,11 +13,22 @@ docker-login:
 docker-build: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 . --tag $(DOCKER_IMAGE) --no-cache --push
 
+test-integration:
+	go test ./... --run 'TestIntegration_*' -cover -count=1 -p=100
+
 test-unit:
-	go test ./... -run 'TestUnit_*'
+	go test ./... --run 'TestUnit_*' -cover -count=1 -p=100
+
+lint:
+	golangci-lint run
+
+test: test-unit lint test-integration
 
 run:
 	@$(GO) run main.go
+
+run-infra:
+	docker-compose up -d cache
 
 check:
 	pre-commit run -a

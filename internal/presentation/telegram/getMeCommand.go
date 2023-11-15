@@ -34,5 +34,6 @@ func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update)
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
 	return nil
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/anonyindian/gotgproto"
 	"github.com/anonyindian/gotgproto/dispatcher/handlers"
 	"github.com/anonyindian/gotgproto/sessionMaker"
-	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
@@ -22,12 +21,13 @@ import (
 )
 
 var (
-	BadUpdate    = errors.New("bad update")
-	PeerNotFound = errors.Wrap(BadUpdate, "peer not found")
+	ErrBadUpdate    = errors.New("bad update")
+	ErrPeerNotFound = errors.Wrap(ErrBadUpdate, "peer not found")
 )
 
 type Presentation struct {
-	telegramClient  *telegram.Client
+	// Unused, but may be usefully later
+	//  telegramClient  *telegram.Client
 	telegramSender  *message.Sender
 	telegramApi     *tg.Client
 	telegramManager *peers.Manager
@@ -71,6 +71,14 @@ func MustNewTelegramPresentation(
 		logErrorToSelf:  logErrorToSelf,
 	}
 
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.injectContext,
+			Filters:       nil,
+			UpdateFilters: nil,
+			Outgoing:      true,
+		},
+	)
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("echo", presentation.echoCommandHandler))
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("help", presentation.helpCommandHandler))
 	protoClient.Dispatcher.AddHandler(
@@ -88,10 +96,12 @@ func MustNewTelegramPresentation(
 			Outgoing:      true,
 		},
 	)
+
 	dp, ok := protoClient.Dispatcher.(*dispatcher.NativeDispatcher)
 	if !ok {
 		utils.FancyPanic(errors.New("can only work with NativeDispatcher"))
 	}
+
 	dp.Error = presentation.errorHandler
 
 	return presentation
@@ -108,21 +118,25 @@ func (r *Presentation) errorHandler(
 		Str("status", "error.while.processing.update").
 		Interface("update", update).
 		Send()
+
 	if r.logErrorToSelf {
 		_, err := ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{
 			Silent:  true,
-			Message: fmt.Sprintf("Error occured while processing update:\n\n%s", errorString),
+			Message: fmt.Sprintf("Error occurred while processing update:\n\n%s", errorString),
 		})
 		if err != nil {
 			return errors.WithStack(err)
 		}
+
 		return nil
 	}
+
 	return nil
 }
 
 func (r *Presentation) Run() error {
 	ctx := r.protoClient.CreateContext()
+
 	_, err := ctx.SendMessage(
 		ctx.Self.ID,
 		&tg.MessagesSendMessageRequest{Message: "Fun telegram initialized!"},
@@ -132,5 +146,6 @@ func (r *Presentation) Run() error {
 	}
 
 	err = r.protoClient.Idle()
+
 	return err
 }
