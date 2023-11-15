@@ -44,6 +44,7 @@ func MustNewCombatContainer() Container {
 	utils.Check(err)
 
 	zerolog.SetGlobalLevel(level)
+
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	persistentStorage := makeStorage(&settings)
@@ -61,5 +62,6 @@ func MustNewCombatContainer() Container {
 	)
 
 	container := Container{&telegramPresentation, settings.Telegram.SessionFullPath}
+
 	return container
 }

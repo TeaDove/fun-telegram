@@ -7,5 +7,6 @@ func GetArguments(message string) []string {
 	if len(fields) <= 1 {
 		return []string{""}
 	}
+
 	return fields[1:]
 }

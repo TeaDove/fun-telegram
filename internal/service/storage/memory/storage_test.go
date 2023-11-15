@@ -68,7 +68,7 @@ func TestUnit_MemoryStorage_delete_Ok(t *testing.T) {
 	utils.Check(err)
 
 	_, err = storage.Load("key")
-	assert.Error(t, err, interfaceStorage.KeyError)
+	assert.Error(t, err, interfaceStorage.ErrKeyNotFound)
 }
 
 func saveFlushLoad(wg *sync.WaitGroup, storage *Storage, t *testing.T) {

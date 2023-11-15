@@ -13,8 +13,11 @@ import (
 	"github.com/gotd/td/telegram/peers/members"
 )
 
+// TODO: fix nolint
+// nolint: cyclop
 func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) error {
 	const maxCount = 40
+
 	count := 0
 	requestedUser := update.EffectiveUser()
 
@@ -23,16 +26,19 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 	stylingOptions = append(stylingOptions, styling.Plain(fmt.Sprintf("Ping requested by %s\n\n", requestedUser.Username)))
 	compileMention := func(p members.Member) error {
 		user := p.User()
+
 		_, isBot := user.ToBot()
 		if isBot {
 			return nil
 		}
+
 		count += 1
 
 		stylingOptions = append(stylingOptions, []styling.StyledTextOption{
 			styling.MentionName(utils.GetNameFromPeerUser(&user), user.InputUser()),
 			styling.Plain("\n"),
 		}...)
+
 		return nil
 	}
 
@@ -40,6 +46,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 	case *types.Chat:
 		chat := r.telegramManager.Chat(t.Raw())
 		chatMembers := members.Chat(chat)
+
 		err := chatMembers.ForEach(ctx, compileMention)
 		if err != nil {
 			return errors.WithStack(err)
@@ -47,6 +54,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 	case *types.Channel:
 		chat := r.telegramManager.Channel(t.Raw())
 		chatMembers := members.Channel(chat)
+
 		err := chatMembers.ForEach(ctx, compileMention)
 		if err != nil {
 			return errors.WithStack(err)
@@ -58,10 +66,13 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 
 	if count == 0 {
 		log.Warn().Str("status", "no.users.were.mentioned").Send()
+
 		return nil
 	}
+
 	if count > maxCount {
 		log.Warn().Str("status", "max.count.exceeded").Send()
+
 		_, err := ctx.Reply(
 			update,
 			fmt.Sprintf("Max user count exceeded, count: %d, maxCount: %d", count, maxCount),
@@ -70,11 +81,14 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) 
 		if err != nil {
 			return errors.WithStack(err)
 		}
+
 		return nil
 	}
+
 	_, err := ctx.Reply(update, stylingOptions, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
 	return nil
 }

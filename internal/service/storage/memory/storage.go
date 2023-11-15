@@ -25,6 +25,7 @@ func MustNew(persistent bool, filename string) *Storage {
 	memoryStorage := Storage{mapping, &sync.RWMutex{}, &sync.Mutex{}, persistent, false, filename}
 
 	scheduler := gocron.NewScheduler(time.UTC)
+
 	if memoryStorage.persistent {
 		err := memoryStorage.loadFlushed()
 		utils.Check(err)
@@ -45,8 +46,9 @@ func (r *Storage) Load(k string) ([]byte, error) {
 
 	v, ok := r.mapping[k]
 	if !ok {
-		return []byte{}, storage.KeyError
+		return []byte{}, storage.ErrKeyNotFound
 	}
+
 	return v, nil
 }
 
@@ -56,6 +58,7 @@ func (r *Storage) Save(k string, v []byte) error {
 
 	r.needFlush = true
 	r.mapping[k] = v
+
 	return nil
 }
 
@@ -65,6 +68,7 @@ func (r *Storage) Delete(k string) error {
 
 	r.needFlush = true
 	delete(r.mapping, k)
+
 	return nil
 }
 
@@ -73,5 +77,6 @@ func (r *Storage) Contains(k string) bool {
 	defer r.mappingMu.Unlock()
 
 	_, ok := r.mapping[k]
+
 	return ok
 }

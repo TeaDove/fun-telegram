@@ -14,10 +14,10 @@ docker-build: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 . --tag $(DOCKER_IMAGE) --no-cache --push
 
 test-integration:
-	go test ./... --run 'TestIntegration_*' -cover
+	go test ./... --run 'TestIntegration_*' -cover -count=1 -p=100
 
 test-unit:
-	go test ./... --run 'TestUnit_*' -cover
+	go test ./... --run 'TestUnit_*' -cover -count=1 -p=100
 
 lint:
 	golangci-lint run

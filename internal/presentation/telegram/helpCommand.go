@@ -20,5 +20,6 @@ func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update) 
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
 	return nil
 }

@@ -7,13 +7,16 @@ func GetNameFromPeerUser(user *peers.User) string {
 	if ok {
 		return name
 	}
+
 	name, ok = user.LastName()
 	if ok {
 		return name
 	}
+
 	name, ok = user.Username()
 	if ok {
 		return name
 	}
+
 	return "undefined"
 }

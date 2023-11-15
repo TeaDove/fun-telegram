@@ -37,6 +37,7 @@ type Settings struct {
 
 func MustNewSettings() Settings {
 	var settings Settings
+
 	_ = godotenv.Load(defaultEnvFile)
 
 	err := env.Parse(&settings, env.Options{Prefix: defaultEnvPrefix})
@@ -44,6 +45,8 @@ func MustNewSettings() Settings {
 
 	realPath, err := homedir.Expand(settings.FileStoragePath)
 	utils.Check(err)
+
 	settings.Telegram.SessionFullPath = filepath.Join(realPath, settings.Telegram.SessionPath)
+
 	return settings
 }
