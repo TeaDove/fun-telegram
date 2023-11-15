@@ -28,17 +28,23 @@ func saveLoad(t *testing.T) *Storage {
 }
 
 func TestUnit_MemoryStorage_SaveLoad_Ok(t *testing.T) {
+	t.Parallel()
+
 	saveLoad(t)
 }
 
 func TestUnit_MemoryStorage_Flush_Ok(t *testing.T) {
+	t.Parallel()
+
 	storage := saveLoad(t)
 
 	err := storage.flush()
 	utils.Check(err)
 }
 
-func TestUnit_MemoryStorage_loadFlushed_Ok(t *testing.T) {
+func TestUnit_MemoryStorage_LoadFlushed_Ok(t *testing.T) {
+	t.Parallel()
+
 	storage := saveLoad(t)
 	err := storage.Save("abc", []byte("def"))
 	utils.Check(err)
@@ -54,6 +60,8 @@ func TestUnit_MemoryStorage_loadFlushed_Ok(t *testing.T) {
 }
 
 func TestUnit_MemoryStorage_delete_Ok(t *testing.T) {
+	t.Parallel()
+
 	storage := saveLoad(t)
 
 	err := storage.Delete("key")
@@ -64,6 +72,8 @@ func TestUnit_MemoryStorage_delete_Ok(t *testing.T) {
 }
 
 func saveFlushLoad(wg *sync.WaitGroup, storage *Storage, t *testing.T) {
+	t.Parallel()
+
 	defer wg.Done()
 
 	key, value := uuid.New().String(), []byte(uuid.New().String())
@@ -79,7 +89,9 @@ func saveFlushLoad(wg *sync.WaitGroup, storage *Storage, t *testing.T) {
 	assert.Equal(t, value, storedValue)
 }
 
-func TestUnit_MemoryStorage_multipleSave_Ok(t *testing.T) {
+func TestUnit_MemoryStorage_MultipleSave_Ok(t *testing.T) {
+	t.Parallel()
+
 	storage := saveLoad(t)
 
 	wg := sync.WaitGroup{}

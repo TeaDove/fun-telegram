@@ -1,6 +1,8 @@
 package container
 
 import (
+	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/service/storage/redis"
 	"os"
 	"path/filepath"
 
@@ -20,6 +22,22 @@ type Container struct {
 	TelegramSessionStorageFullPath string
 }
 
+func makeStorage(settings *shared.Settings) storage.Interface {
+	realPath, err := homedir.Expand(settings.FileStoragePath)
+	utils.Check(err)
+	err = os.MkdirAll(realPath, os.ModePerm)
+	utils.Check(err)
+
+	path := filepath.Join(realPath, settings.Storage.Filename)
+
+	switch settings.Storage.Type {
+	case "redis":
+		return redis.MustNew()
+	default:
+		return memory.MustNew(true, path)
+	}
+}
+
 func MustNewCombatContainer() Container {
 	settings := shared.MustNewSettings()
 	level, err := zerolog.ParseLevel(settings.LogLevel)
@@ -28,14 +46,9 @@ func MustNewCombatContainer() Container {
 	zerolog.SetGlobalLevel(level)
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	realPath, err := homedir.Expand(settings.FileStoragePath)
-	utils.Check(err)
-	err = os.MkdirAll(realPath, os.ModePerm)
-	utils.Check(err)
+	persistentStorage := makeStorage(&settings)
 
-	path := filepath.Join(realPath, settings.Storage.Filename)
 	clientService := client.MustNewClientService()
-	memoryStorage := memory.MustNew(true, path)
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		&clientService,
@@ -43,7 +56,7 @@ func MustNewCombatContainer() Container {
 		settings.Telegram.AppHash,
 		settings.Telegram.PhoneNumber,
 		settings.Telegram.SessionFullPath,
-		memoryStorage,
+		persistentStorage,
 		settings.LogErrorToSelf,
 	)
 

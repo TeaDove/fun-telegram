@@ -22,16 +22,17 @@ type telegram struct {
 	SessionFullPath string
 }
 
-type storage struct {
+type Storage struct {
 	Filename string `env:"filename" envDefault:"storage.json"`
+	Type     string `env:"type" envDefault:"redis"` // redis, simpleFile
 }
 
 type Settings struct {
 	LogErrorToSelf  bool     `env:"log_error_to_self" envDefault:"false"`
 	Telegram        telegram `envPrefix:"telegram__"`
-	Storage         storage  `envPrefix:"storage__"`
-	FileStoragePath string   `                       env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
-	LogLevel        string   `                       env:"log_level"         envDefault:"debug"`
+	Storage         Storage  `envPrefix:"storage__"`
+	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
+	LogLevel        string   `env:"log_level"         envDefault:"debug"`
 }
 
 func MustNewSettings() Settings {

@@ -1,6 +1,9 @@
 ### Builds ###
 fun-telegram-v*
 
+data/
+!data/.gitkeep
+
 ### SAM BUILD ###
 **/.aws-sam
 ### SAM TEMPLATE ###
@@ -28,9 +31,9 @@ poetry.lock
 .vscode/
 
 # vim tmp
-[._]*.s[a-v][a-z]
+[._]*.r[a-v][a-z]
 [._]*.sw[a-p]
-[._]s[a-v][a-z]
+[._]r[a-v][a-z]
 [._]sw[a-p]
 
 # Byte-compiled / optimized / DLL files
