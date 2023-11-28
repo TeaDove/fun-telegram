@@ -36,6 +36,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		silent: silent,
 	}
 	log.Debug().Str("status", "executing.command").Interface("input", input).Str("command", command).Send()
+
 	err := executor(ctx, update, &input)
 	if err != nil {
 		return errors.WithStack(err)
