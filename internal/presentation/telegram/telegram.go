@@ -79,6 +79,14 @@ func MustNewTelegramPresentation(
 			Outgoing:      true,
 		},
 	)
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.deleteOut,
+			Filters:       nil,
+			UpdateFilters: nil,
+			Outgoing:      true,
+		},
+	)
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("echo", presentation.echoCommandHandler))
 	protoClient.Dispatcher.AddHandler(handlers.NewCommand("help", presentation.helpCommandHandler))
 	protoClient.Dispatcher.AddHandler(
