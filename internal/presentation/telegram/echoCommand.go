@@ -1,7 +1,7 @@
 package telegram
 
 import (
-	"github.com/anonyindian/gotgproto/ext"
+	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
 )
 

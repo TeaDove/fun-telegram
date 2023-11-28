@@ -3,7 +3,7 @@ package telegram
 import (
 	"strconv"
 
-	"github.com/anonyindian/gotgproto/ext"
+	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 )
