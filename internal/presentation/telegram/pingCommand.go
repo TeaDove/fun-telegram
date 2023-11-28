@@ -3,8 +3,8 @@ package telegram
 import (
 	"fmt"
 
-	"github.com/anonyindian/gotgproto/ext"
-	"github.com/anonyindian/gotgproto/types"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"

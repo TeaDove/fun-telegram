@@ -12,7 +12,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram"
-	"github.com/teadove/goteleout/internal/service/client"
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/utils"
 )
@@ -49,10 +48,7 @@ func MustNewCombatContainer() Container {
 
 	persistentStorage := makeStorage(&settings)
 
-	clientService := client.MustNewClientService()
-
 	telegramPresentation := telegram.MustNewTelegramPresentation(
-		&clientService,
 		settings.Telegram.AppID,
 		settings.Telegram.AppHash,
 		settings.Telegram.PhoneNumber,

@@ -1,7 +1,7 @@
 package telegram
 
 import (
-	"github.com/anonyindian/gotgproto/ext"
+	"github.com/celestix/gotgproto/ext"
 )
 
 func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error {

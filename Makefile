@@ -27,6 +27,9 @@ test: test-unit lint test-integration
 run:
 	@$(GO) run main.go
 
+run-web:
+	@$(GO) run internal/presentation/web/main.go
+
 run-infra:
 	docker-compose up -d cache
 

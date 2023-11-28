@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/anonyindian/gotgproto/types"
+	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/tg"
 )
 

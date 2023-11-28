@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/anonyindian/gotgproto/ext"
+	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog/log"

@@ -5,17 +5,16 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/anonyindian/gotgproto/dispatcher"
-	"github.com/anonyindian/gotgproto/ext"
+	"github.com/celestix/gotgproto/dispatcher"
+	"github.com/celestix/gotgproto/ext"
 	"github.com/rs/zerolog/log"
 
-	"github.com/anonyindian/gotgproto"
-	"github.com/anonyindian/gotgproto/dispatcher/handlers"
-	"github.com/anonyindian/gotgproto/sessionMaker"
+	"github.com/celestix/gotgproto"
+	"github.com/celestix/gotgproto/dispatcher/handlers"
+	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
-	"github.com/teadove/goteleout/internal/service/client"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"github.com/teadove/goteleout/internal/utils"
 )
@@ -33,14 +32,12 @@ type Presentation struct {
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
 
-	storage       storage.Interface
-	clientService *client.Service
+	storage storage.Interface
 
 	logErrorToSelf bool
 }
 
 func MustNewTelegramPresentation(
-	clientService *client.Service,
 	telegramAppID int,
 	telegramAppHash string,
 	telegramPhoneNumber string,
@@ -62,7 +59,6 @@ func MustNewTelegramPresentation(
 	api := protoClient.API()
 
 	presentation := Presentation{
-		clientService:   clientService,
 		storage:         storage,
 		protoClient:     protoClient,
 		telegramApi:     api,
