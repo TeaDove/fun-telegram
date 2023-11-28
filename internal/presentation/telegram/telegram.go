@@ -35,6 +35,7 @@ type Presentation struct {
 
 	storage       storage.Interface
 	clientService *client.Service
+	router        map[string]messageProcessor
 
 	logErrorToSelf bool
 }
@@ -73,29 +74,28 @@ func MustNewTelegramPresentation(
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback:      presentation.injectContext,
-			Filters:       nil,
-			UpdateFilters: nil,
-			Outgoing:      true,
+			Callback: presentation.injectContext, Outgoing: true,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback:      presentation.deleteOut,
-			Filters:       nil,
-			UpdateFilters: nil,
-			Outgoing:      true,
+			Callback: presentation.deleteOut, Outgoing: true,
 		},
 	)
-	protoClient.Dispatcher.AddHandler(handlers.NewCommand("echo", presentation.echoCommandHandler))
-	protoClient.Dispatcher.AddHandler(handlers.NewCommand("help", presentation.helpCommandHandler))
 	protoClient.Dispatcher.AddHandler(
-		handlers.NewCommand("get_me", presentation.getMeCommandHandler),
+		handlers.Message{
+			Callback: presentation.route, Outgoing: true,
+		},
 	)
-	protoClient.Dispatcher.AddHandler(handlers.NewCommand("ping", presentation.pingCommandHandler))
-	protoClient.Dispatcher.AddHandler(
-		handlers.NewCommand("spam_reaction", presentation.spamReactionCommandHandler),
-	)
+
+	presentation.router = map[string]messageProcessor{
+		"echo":          presentation.echoCommandHandler,
+		"help":          presentation.helpCommandHandler,
+		"get_me":        presentation.getMeCommandHandler,
+		"ping":          presentation.pingCommandHandler,
+		"spam_reaction": presentation.spamReactionCommandHandler,
+	}
+
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
 			Callback:      presentation.spamReactionMessageHandler,

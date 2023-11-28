@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"fmt"
-
 	"github.com/pkg/errors"
 
 	"github.com/celestix/gotgproto/ext"
@@ -59,10 +58,10 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 }
 
 // nolint: cyclop
-func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, silent bool) error {
+func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
 	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
-		if !silent {
+		if !input.silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -73,7 +72,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, silent b
 	}
 
 	if r.storage.Contains(compileSpamDisableKey(chatId)) {
-		if !silent {
+		if !input.silent {
 			_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -85,7 +84,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, silent b
 
 	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
 	if err != nil {
-		if !silent {
+		if !input.silent {
 			_, err = ctx.Reply(update, "Err: reply not found", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -111,7 +110,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, silent b
 
 	log.Info().Str("status", "spam.reaction.deleted").Str("key", key).Send()
 
-	if !silent {
+	if !input.silent {
 		_, err = ctx.Reply(update, "Ok: reactions were deleted", nil)
 		if err != nil {
 			return errors.WithStack(err)
@@ -123,12 +122,12 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, silent b
 
 // TODO: fix nolint
 // nolint: cyclop
-func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, silent bool) error {
+func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const maxReactionCount = 3
 
 	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
 	if r.storage.Contains(compileSpamDisableKey(chatId)) {
-		if !silent {
+		if !input.silent {
 			_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -139,7 +138,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, silent bool
 	}
 
 	if chatId == 0 {
-		if !silent {
+		if !input.silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -151,7 +150,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, silent bool
 
 	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
 	if err != nil {
-		if !silent {
+		if !input.silent {
 			_, err = ctx.Reply(update, "Err: reply not found", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -178,7 +177,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, silent bool
 	}
 
 	if len(reactionRequest.Reaction) == 0 {
-		if !silent {
+		if !input.silent {
 			_, err = ctx.Reply(update, "Err: no reactions found", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -208,7 +207,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, silent bool
 		Interface("reactions", reactionRequest).
 		Send()
 
-	if !silent {
+	if !input.silent {
 		_, err = ctx.Reply(update, "Ok: reactions were saved", nil)
 		if err != nil {
 			return errors.WithStack(err)
@@ -219,9 +218,9 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, silent bool
 }
 
 // nolint: cyclop
-func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, silent bool) error {
+func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if !update.EffectiveUser().Self {
-		if !silent {
+		if !input.silent {
 			_, err := ctx.Reply(update, "Err: disable can be done only by owner of bot", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -239,7 +238,7 @@ func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, silent 
 			return errors.WithStack(err)
 		}
 
-		if !silent {
+		if !input.silent {
 			_, err = ctx.Reply(update, "Ok: reactions were enabled in chat", nil)
 			if err != nil {
 				return errors.WithStack(err)
@@ -254,7 +253,7 @@ func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, silent 
 		return errors.WithStack(err)
 	}
 
-	if !silent {
+	if !input.silent {
 		_, err = ctx.Reply(update, "Ok: reactions were disabled in chat", nil)
 		if err != nil {
 			return errors.WithStack(err)
@@ -264,24 +263,19 @@ func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, silent 
 	return nil
 }
 
-func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update) error {
-	args := tgUtils.GetArguments(update.EffectiveMessage.Message.Message)
-
+func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const (
 		stopCommand    = "stop"
 		disableCommand = "disable"
-		silentArgument = "silent"
 	)
 
-	_, silent := args[silentArgument]
-
-	if _, ok := args[stopCommand]; ok {
-		return r.deleteSpam(ctx, update, silent)
+	if _, ok := input.args[stopCommand]; ok {
+		return r.deleteSpam(ctx, update, input)
 	}
 
-	if _, ok := args[disableCommand]; ok {
-		return r.disableSpam(ctx, update, silent)
+	if _, ok := input.args[disableCommand]; ok {
+		return r.disableSpam(ctx, update, input)
 	}
 
-	return r.addSpam(ctx, update, silent)
+	return r.addSpam(ctx, update, input)
 }

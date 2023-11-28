@@ -15,7 +15,7 @@ import (
 
 // TODO: fix nolint
 // nolint: cyclop
-func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update) error {
+func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const maxCount = 40
 
 	count := 0

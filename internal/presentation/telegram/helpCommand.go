@@ -15,7 +15,7 @@ var helpMessage = []styling.StyledTextOption{
 		"[stop] - stop spamming.\n" +
 		"[disable] - toggle spam_reaction in this chat")}
 
-func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update) error {
+func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	_, err := ctx.Reply(update, helpMessage, nil)
 	if err != nil {
 		return errors.WithStack(err)
