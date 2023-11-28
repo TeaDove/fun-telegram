@@ -9,6 +9,7 @@ func GetArguments(message string) map[string]string {
 	if len(fields) <= 1 {
 		return args
 	}
+
 	for _, field := range fields {
 		arg := strings.Split(field, "=")
 

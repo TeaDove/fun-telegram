@@ -58,6 +58,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	return nil
 }
 
+// nolint: cyclop
 func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, silent bool) error {
 	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
@@ -217,6 +218,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, silent bool
 	return nil
 }
 
+// nolint: cyclop
 func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, silent bool) error {
 	if !update.EffectiveUser().Self {
 		if !silent {
@@ -270,11 +272,13 @@ func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.
 		disableCommand = "disable"
 		silentArgument = "silent"
 	)
+
 	_, silent := args[silentArgument]
 
 	if _, ok := args[stopCommand]; ok {
 		return r.deleteSpam(ctx, update, silent)
 	}
+
 	if _, ok := args[disableCommand]; ok {
 		return r.disableSpam(ctx, update, silent)
 	}
