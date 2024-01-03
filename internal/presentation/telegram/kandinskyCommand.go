@@ -19,8 +19,17 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 		}
 	}
 
-	kandinskyInput := kandinsky_supplier.RequestGenerationInput{
-		Prompt: update.EffectiveMessage.Message.Message[11:],
+	var kandinskyInput kandinsky_supplier.RequestGenerationInput
+
+	if len(update.EffectiveMessage.Message.Message) < 11 {
+		_, err := ctx.Reply(update, "Prompt required, using default", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		kandinskyInput.Prompt = "Anime girl with plush blue bear"
+	} else {
+		kandinskyInput.Prompt = update.EffectiveMessage.Message.Message[11:]
 	}
 
 	// TODO add style and negativePrompt
