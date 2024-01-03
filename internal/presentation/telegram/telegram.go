@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 
 	"github.com/pkg/errors"
 
@@ -33,9 +34,10 @@ type Presentation struct {
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
 
-	storage       storage.Interface
-	clientService *client.Service
-	router        map[string]messageProcessor
+	storage           storage.Interface
+	clientService     *client.Service
+	router            map[string]messageProcessor
+	kandinskySupplier *kandinsky_supplier.Supplier
 
 	logErrorToSelf bool
 }
@@ -48,6 +50,7 @@ func MustNewTelegramPresentation(
 	telegramSessionStorageFullPath string,
 	storage storage.Interface,
 	logErrorToSelf bool,
+	kandinskySupplier *kandinsky_supplier.Supplier,
 ) Presentation {
 	protoClient, err := gotgproto.NewClient(telegramAppID, telegramAppHash, gotgproto.ClientType{
 		Phone: telegramPhoneNumber,
@@ -63,13 +66,14 @@ func MustNewTelegramPresentation(
 	api := protoClient.API()
 
 	presentation := Presentation{
-		clientService:   clientService,
-		storage:         storage,
-		protoClient:     protoClient,
-		telegramApi:     api,
-		telegramSender:  message.NewSender(api),
-		telegramManager: peers.Options{}.Build(api),
-		logErrorToSelf:  logErrorToSelf,
+		clientService:     clientService,
+		storage:           storage,
+		protoClient:       protoClient,
+		telegramApi:       api,
+		telegramSender:    message.NewSender(api),
+		telegramManager:   peers.Options{}.Build(api),
+		logErrorToSelf:    logErrorToSelf,
+		kandinskySupplier: kandinskySupplier,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -94,6 +98,7 @@ func MustNewTelegramPresentation(
 		"get_me":        presentation.getMeCommandHandler,
 		"ping":          presentation.pingCommandHandler,
 		"spam_reaction": presentation.spamReactionCommandHandler,
+		"kandinsky":     presentation.kandkinskyCommandHandler,
 	}
 
 	protoClient.Dispatcher.AddHandler(

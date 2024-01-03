@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
@@ -12,9 +13,9 @@ type Storage struct {
 	rbs redis.Client
 }
 
-func MustNew() *Storage {
+func MustNew(host string) *Storage {
 	return &Storage{rbs: *redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     fmt.Sprintf("%s:6379", host),
 		Password: "", // no password set
 		DB:       0,  // use default DB,
 	})}

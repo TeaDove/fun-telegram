@@ -28,7 +28,7 @@ run:
 	@$(GO) run main.go
 
 run-infra:
-	docker-compose up -d cache
+	docker-compose -f docker-compose-infra.yaml -d up
 
 check:
 	pre-commit run -a
