@@ -6,7 +6,7 @@ services:
     environment:
       fun_file_storage_path: "/config"
       fun_storage__redis_host: "redis"
-    image: ghcr.io/teadove/fun-telegram:v1.4.1
+    image: ghcr.io/teadove/fun-telegram:v1.5.0
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
