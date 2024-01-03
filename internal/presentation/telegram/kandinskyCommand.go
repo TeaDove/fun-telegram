@@ -4,12 +4,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
-	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 )
+
+const defaultPrompt = "Anime girl with plush blue bear"
 
 func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if r.kandinskySupplier == nil {
@@ -24,31 +26,19 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 	var kandinskyInput kandinsky_supplier.RequestGenerationInput
 
 	if len(update.EffectiveMessage.Message.Message) < 11 {
-		_, err := ctx.Reply(update, "Prompt required, using default", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		kandinskyInput.Prompt = "Anime girl with plush blue bear"
+		kandinskyInput.Prompt = defaultPrompt
 	} else {
 		kandinskyInput.Prompt = update.EffectiveMessage.Message.Message[11:]
 	}
 
 	// TODO add style and negativePrompt
-	//style, ok := input.Args["style"]
-	//if ok {
-	//	kandinskyInput.Style = style
-	//}
-	//negativePrompt, ok := input.Args["negative-prompt"]
-	//if ok {
-	//	kandinskyInput.NegativePromptUnclip = negativePrompt
-	//}
 
 	requestedUser := update.EffectiveUser()
 
-	_, err := ctx.Reply(
+	imageAnnotation := fmt.Sprintf("Image requested by %s\n\nPrompt: %s\n\n", requestedUser.Username, kandinskyInput.Prompt)
+	msg, err := ctx.Reply(
 		update,
-		[]styling.StyledTextOption{styling.Plain(fmt.Sprintf("Image requested by %s\n\n", requestedUser.Username))},
+		imageAnnotation,
 		nil,
 	)
 	if err != nil {
@@ -94,9 +84,15 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 			File: f,
 		},
 		ReplyTo: &tg.InputReplyToMessage{ReplyToMsgID: update.EffectiveMessage.ID},
+		Message: imageAnnotation,
 	})
 	if err != nil {
 		return errors.WithStack(err)
+	}
+
+	err = ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{msg.ID})
+	if err != nil {
+		log.Error().Stack().Err(err).Str("status", "failed.to.delete.msgs").Send()
 	}
 
 	return nil

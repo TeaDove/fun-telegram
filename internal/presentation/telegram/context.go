@@ -17,6 +17,10 @@ func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error
 }
 
 func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
+	if update.EffectiveUser().GetID() != ctx.Self.ID {
+		return nil
+	}
+
 	const silentArgument = "Silent"
 
 	args := tgUtils.GetArguments(update.EffectiveMessage.Message.Message)
