@@ -17,6 +17,8 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 		if err != nil {
 			return errors.WithStack(err)
 		}
+
+		return nil
 	}
 
 	var kandinskyInput kandinsky_supplier.RequestGenerationInput
