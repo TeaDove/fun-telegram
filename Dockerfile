@@ -10,7 +10,7 @@ RUN go mod download
 RUN go build -o bootstrap
 
 ## Now copy it into our base image.
-FROM debian:trixie-slim
+FROM debian:trixie
 
 COPY --from=build /src/bootstrap /
 
