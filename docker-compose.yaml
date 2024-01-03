@@ -5,6 +5,7 @@ services:
     restart: always
     environment:
       fun_file_storage_path: "/config"
+      fun_storage__redis_host: "redis"
     image: ghcr.io/teadove/fun-telegram:v1.4.1
     volumes:
       - "~/.config/fun-telegram:/config"
@@ -13,8 +14,6 @@ services:
   cache:
     image: redis:7.2-alpine
     restart: always
-    ports:
-      - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - "./data:/data"

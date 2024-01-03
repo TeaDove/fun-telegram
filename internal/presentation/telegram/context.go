@@ -17,7 +17,7 @@ func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error
 }
 
 func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
-	const silentArgument = "silent"
+	const silentArgument = "Silent"
 
 	args := tgUtils.GetArguments(update.EffectiveMessage.Message.Message)
 	_, silent := args[silentArgument]

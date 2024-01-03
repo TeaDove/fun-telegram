@@ -8,7 +8,7 @@ import (
 )
 
 func getStorage() *Storage {
-	return MustNew()
+	return MustNew("localhost")
 }
 
 func randomString() string {

@@ -23,8 +23,9 @@ type telegram struct {
 }
 
 type Storage struct {
-	Filename string `env:"filename" envDefault:"storage.json"`
-	Type     string `env:"type" envDefault:"redis"` // redis, simpleFile
+	Filename  string `env:"filename" envDefault:"storage.json"`
+	Type      string `env:"type" envDefault:"redis"` // redis, simpleFile
+	RedisHost string `env:"redis_host" envDefault:"localhost"`
 }
 
 type Settings struct {
@@ -33,6 +34,9 @@ type Settings struct {
 	Storage         Storage  `envPrefix:"storage__"`
 	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
 	LogLevel        string   `env:"log_level"         envDefault:"debug"`
+
+	KandinskyKey    string `env:"kandinsky_key"`
+	KandinskySecret string `env:"kandinsky_secret"`
 }
 
 func MustNewSettings() Settings {

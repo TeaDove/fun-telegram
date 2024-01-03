@@ -9,8 +9,8 @@ import (
 )
 
 type Input struct {
-	args   map[string]string
-	silent bool
+	Args   map[string]string
+	Silent bool
 }
 
 type messageProcessor func(ctx *ext.Context, update *ext.Update, input *Input) error
@@ -29,11 +29,11 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	}
 
 	args := tgUtils.GetArguments(text)
-	_, silent := args["silent"]
+	_, silent := args["Silent"]
 
 	input := Input{
-		args:   args,
-		silent: silent,
+		Args:   args,
+		Silent: silent,
 	}
 	log.Debug().Str("status", "executing.command").Interface("input", input).Str("command", command).Send()
 
