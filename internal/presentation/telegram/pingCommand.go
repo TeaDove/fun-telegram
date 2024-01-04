@@ -23,7 +23,10 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 
 	stylingOptions := make([]styling.StyledTextOption, 0, 40)
 
-	stylingOptions = append(stylingOptions, styling.Plain(fmt.Sprintf("Ping requested by %s\n\n", requestedUser.Username)))
+	stylingOptions = append(
+		stylingOptions,
+		styling.Plain(fmt.Sprintf("Ping requested by %s\n\n", requestedUser.Username)),
+	)
 	compileMention := func(p members.Member) error {
 		user := p.User()
 

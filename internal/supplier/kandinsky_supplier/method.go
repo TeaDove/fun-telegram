@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	ImageWasCensoredErr    = errors.New("image was censored")
-	ImageNotReadyErr       = errors.New("image not ready yet")
-	ImageCreationFailedErr = errors.New("image cannot be created")
+	ErrImageWasCensored    = errors.New("image was censored")
+	ErrImageNotReady       = errors.New("image not ready yet")
+	ErrImageCreationFailed = errors.New("image cannot be created")
 )
 
 func (r *Supplier) getModels(ctx context.Context) (int, error) {
@@ -36,6 +36,8 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 		return 0, errors.WithStack(err)
 	}
 
+	defer resp.Body.Close()
+
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, errors.WithStack(err)
@@ -48,6 +50,7 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 	for _, v := range gjson.ParseBytes(respBytes).Array() {
 		model := int(v.Get("id").Int())
 		log.Info().Str("status", "kandinsky.model.got").Int("model_id", model).Send()
+
 		return model, nil
 	}
 
@@ -80,6 +83,7 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 	paramsPart := make(map[string][]string)
 	paramsPart["Content-Disposition"] = append(paramsPart["Content-Disposition"], "form-data; name=\"params\"")
 	paramsPart["Content-Type"] = append(paramsPart["Content-Type"], "application/json")
+
 	paramsWriter, err := writer.CreatePart(paramsPart)
 	if err != nil {
 		return uuid.Nil, errors.WithStack(err)
@@ -129,6 +133,8 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 		return uuid.Nil, errors.WithStack(err)
 	}
 
+	defer resp.Body.Close()
+
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return uuid.Nil, errors.WithStack(err)
@@ -137,7 +143,7 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 	imageId, err := uuid.Parse(gjson.GetBytes(respBytes, "uuid").String())
 	if err != nil {
 		log.Warn().Str("status", "kandinsky.image.cannot.be.generated").Send()
-		return uuid.Nil, goErrors.Join(ImageCreationFailedErr, err)
+		return uuid.Nil, goErrors.Join(ErrImageCreationFailed, err)
 	}
 
 	log.Info().Str("status", "kandinsky.image.generation.send").Send()
@@ -146,7 +152,12 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 }
 
 func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/key/api/v1/text2image/status/%s", r.url, id.String()), nil)
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"GET",
+		fmt.Sprintf("%s/key/api/v1/text2image/status/%s", r.url, id.String()),
+		nil,
+	)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -157,6 +168,8 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
+	defer resp.Body.Close()
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -169,16 +182,17 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 			return []byte(img.String()), nil
 		}
 
-		return nil, errors.WithStack(ImageCreationFailedErr)
+		return nil, errors.WithStack(ErrImageCreationFailed)
 	}
 
 	if gjson.GetBytes(respBytes, "censored").Bool() {
 		log.Info().Str("status", "kandinsky.image.censored").Str("id", id.String()).Send()
-		return nil, errors.WithStack(ImageWasCensoredErr)
+		return nil, errors.WithStack(ErrImageWasCensored)
 	}
 
 	log.Info().Str("status", "kandinsky.image.not.ready").Str("id", id.String()).Send()
-	return nil, errors.WithStack(ImageNotReadyErr)
+
+	return nil, errors.WithStack(ErrImageNotReady)
 }
 
 const delay = time.Second * 8
@@ -190,18 +204,22 @@ func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	for amount > 0 {
 		img, err := r.Get(ctx, id)
 		if err != nil {
-			if errors.Is(err, ImageNotReadyErr) {
+			if errors.Is(err, ErrImageNotReady) {
 				time.Sleep(delay)
 				amount--
+
 				continue
 			}
+
 			return nil, errors.WithStack(err)
 		}
+
 		return img, nil
 	}
 
 	log.Info().Str("status", "kandinsky.image.creation.failed").Str("id", id.String()).Send()
-	return nil, errors.WithStack(ImageCreationFailedErr)
+
+	return nil, errors.WithStack(ErrImageCreationFailed)
 }
 
 func (r *Supplier) WaitGeneration(ctx context.Context, input *RequestGenerationInput) ([]byte, error) {
@@ -209,6 +227,7 @@ func (r *Supplier) WaitGeneration(ctx context.Context, input *RequestGenerationI
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
 	time.Sleep(delay)
 
 	img, err := r.WaitGet(ctx, id)

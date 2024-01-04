@@ -13,6 +13,8 @@ import (
 
 const defaultPrompt = "Anime girl with plush blue bear"
 
+// kandkinskyCommandHandler
+// nolint: cyclop
 func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if r.kandinskySupplier == nil {
 		_, err := ctx.Reply(update, "Kandinsky supplier is currently disabled", nil)
@@ -35,7 +37,12 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 
 	requestedUser := update.EffectiveUser()
 
-	imageAnnotation := fmt.Sprintf("Image requested by %s\n\nPrompt: %s\n\n", requestedUser.Username, kandinskyInput.Prompt)
+	imageAnnotation := fmt.Sprintf(
+		"Image requested by %s\n\nPrompt: %s\n\n",
+		requestedUser.Username,
+		kandinskyInput.Prompt,
+	)
+
 	msg, err := ctx.Reply(
 		update,
 		imageAnnotation,
@@ -48,14 +55,14 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 	img, err := r.kandinskySupplier.WaitGeneration(ctx, &kandinskyInput)
 	if err != nil {
 		switch {
-		case errors.Is(err, kandinsky_supplier.ImageWasCensoredErr):
+		case errors.Is(err, kandinsky_supplier.ErrImageWasCensored):
 			_, err := ctx.Reply(update, "Image was censored", nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
 			return nil
-		case errors.Is(err, kandinsky_supplier.ImageCreationFailedErr):
+		case errors.Is(err, kandinsky_supplier.ErrImageCreationFailed):
 			_, err := ctx.Reply(update, "Image creation failed...", nil)
 			if err != nil {
 				return errors.WithStack(err)

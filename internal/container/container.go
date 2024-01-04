@@ -54,7 +54,11 @@ func MustNewCombatContainer() Container {
 
 	clientService := client.MustNewClientService()
 
-	kandinskySupplier, err := kandinsky_supplier.New(context.Background(), settings.KandinskyKey, settings.KandinskySecret)
+	kandinskySupplier, err := kandinsky_supplier.New(
+		context.Background(),
+		settings.KandinskyKey,
+		settings.KandinskySecret,
+	)
 	if err != nil {
 		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.create.kandinsky.supplier").Send()
 	}

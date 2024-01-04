@@ -20,7 +20,8 @@ test-unit:
 	go test ./... --run 'TestUnit_*' -cover -count=1 -p=100
 
 lint:
-	golangci-lint run
+	golangci-lint run ./...
+	golines --base-formatter=gofmt --max-len=120 --no-reformat-tags -w .
 
 test: test-unit lint test-integration
 

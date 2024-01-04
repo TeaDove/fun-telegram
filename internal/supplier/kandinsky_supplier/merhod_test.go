@@ -47,7 +47,7 @@ func TestIntegration_KandinskySupplier_Get_Ok(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = supplier.Get(ctx, id)
-	assert.ErrorIs(t, err, ImageNotReadyErr)
+	assert.ErrorIs(t, err, ErrImageNotReady)
 }
 
 func TestIntegration_KandinskySupplier_WaitGet_Ok(t *testing.T) {
