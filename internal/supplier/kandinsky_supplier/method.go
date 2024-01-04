@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	goErrors "errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -135,7 +136,8 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 
 	imageId, err := uuid.Parse(gjson.GetBytes(respBytes, "uuid").String())
 	if err != nil {
-		return uuid.Nil, errors.WithStack(err)
+		log.Warn().Str("status", "kandinsky.image.cannot.be.generated").Send()
+		return uuid.Nil, goErrors.Join(ImageCreationFailedErr, err)
 	}
 
 	log.Info().Str("status", "kandinsky.image.generation.send").Send()
