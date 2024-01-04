@@ -181,7 +181,7 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	return nil, errors.WithStack(ImageNotReadyErr)
 }
 
-const delay = time.Second * 5
+const delay = time.Second * 8
 const maxAttempts = 5
 
 func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
