@@ -27,6 +27,9 @@ test: test-unit lint test-integration
 run:
 	@$(GO) run main.go
 
+run-docker:
+	docker-compose -f docker-compose-local.yaml -d up
+
 run-infra:
 	docker-compose -f docker-compose-infra.yaml -d up
 
