@@ -28,10 +28,13 @@ run:
 	@$(GO) run main.go
 
 run-docker:
-	docker-compose -f docker-compose-local.yaml -d up
+	docker-compose -f docker-compose-local.yaml up -d
+
+run-docker-rebuild:
+	docker-compose -f docker-compose-local.yaml up -d --build
 
 run-infra:
-	docker-compose -f docker-compose-infra.yaml -d up
+	docker-compose -f docker-compose-infra.yaml up -d
 
 check:
 	pre-commit run -a
