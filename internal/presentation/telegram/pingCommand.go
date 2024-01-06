@@ -23,7 +23,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 
 	stylingOptions = append(
 		stylingOptions,
-		styling.Plain(fmt.Sprintf("Ping requested by %s\n\n", requestedUser.Username)),
+		styling.Plain(fmt.Sprintf("Ping requested by @%s\n\n", requestedUser.Username)),
 	)
 	compileMention := func(p members.Member) error {
 		user := p.User()
@@ -35,15 +35,18 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 
 		count += 1
 
-		mentionLine := utils.GetNameFromPeerUser(&user)
+		name := utils.GetNameFromPeerUser(&user)
 		username, ok := user.Username()
 		if ok {
 			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
-				styling.Plain(fmt.Sprintf("%s: ", mentionLine)), styling.Mention(fmt.Sprintf("@%s", username)), styling.Plain("\n"),
+				styling.MentionName(name, user.InputUser()),
+				styling.Plain(": @"),
+				styling.Mention(username),
+				styling.Plain("\n"),
 			}...)
 		} else {
 			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
-				styling.MentionName(mentionLine, user.InputUser()),
+				styling.MentionName(name, user.InputUser()),
 			}...)
 		}
 
