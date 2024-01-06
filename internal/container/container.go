@@ -21,8 +21,7 @@ import (
 )
 
 type Container struct {
-	Presentation                   *telegram.Presentation
-	TelegramSessionStorageFullPath string
+	Presentation *telegram.Presentation
 }
 
 func makeStorage(settings *shared.Settings) storage.Interface {
@@ -42,22 +41,21 @@ func makeStorage(settings *shared.Settings) storage.Interface {
 }
 
 func MustNewCombatContainer() Container {
-	settings := shared.MustNewSettings()
-	level, err := zerolog.ParseLevel(settings.LogLevel)
+	level, err := zerolog.ParseLevel(shared.AppSettings.LogLevel)
 	utils.Check(err)
 
 	zerolog.SetGlobalLevel(level)
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	persistentStorage := makeStorage(&settings)
+	persistentStorage := makeStorage(&shared.AppSettings)
 
 	clientService := client.MustNewClientService()
 
 	kandinskySupplier, err := kandinsky_supplier.New(
 		context.Background(),
-		settings.KandinskyKey,
-		settings.KandinskySecret,
+		shared.AppSettings.KandinskyKey,
+		shared.AppSettings.KandinskySecret,
 	)
 	if err != nil {
 		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.create.kandinsky.supplier").Send()
@@ -65,16 +63,16 @@ func MustNewCombatContainer() Container {
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		&clientService,
-		settings.Telegram.AppID,
-		settings.Telegram.AppHash,
-		settings.Telegram.PhoneNumber,
-		settings.Telegram.SessionFullPath,
+		shared.AppSettings.Telegram.AppID,
+		shared.AppSettings.Telegram.AppHash,
+		shared.AppSettings.Telegram.PhoneNumber,
+		shared.AppSettings.Telegram.SessionFullPath,
 		persistentStorage,
-		settings.LogErrorToSelf,
+		shared.AppSettings.LogErrorToSelf,
 		kandinskySupplier,
 	)
 
-	container := Container{&telegramPresentation, settings.Telegram.SessionFullPath}
+	container := Container{&telegramPresentation}
 
 	return container
 }

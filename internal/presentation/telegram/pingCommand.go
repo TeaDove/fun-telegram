@@ -2,15 +2,13 @@ package telegram
 
 import (
 	"fmt"
-
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/message/styling"
+	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
-
-	"github.com/gotd/td/telegram/peers/members"
 )
 
 // TODO: fix nolint
@@ -21,7 +19,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 	count := 0
 	requestedUser := update.EffectiveUser()
 
-	stylingOptions := make([]styling.StyledTextOption, 0, 40)
+	stylingOptions := make([]styling.StyledTextOption, 0, 121)
 
 	stylingOptions = append(
 		stylingOptions,
@@ -37,10 +35,17 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 
 		count += 1
 
-		stylingOptions = append(stylingOptions, []styling.StyledTextOption{
-			styling.MentionName(utils.GetNameFromPeerUser(&user), user.InputUser()),
-			styling.Plain("\n"),
-		}...)
+		mentionLine := utils.GetNameFromPeerUser(&user)
+		username, ok := user.Username()
+		if ok {
+			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
+				styling.Plain(fmt.Sprintf("%s: ", mentionLine)), styling.Mention(fmt.Sprintf("@%s", username)), styling.Plain("\n"),
+			}...)
+		} else {
+			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
+				styling.MentionName(mentionLine, user.InputUser()),
+			}...)
+		}
 
 		return nil
 	}
@@ -64,7 +69,11 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 		}
 	default:
 		_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
-		return errors.WithStack(err)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		return nil
 	}
 
 	if count == 0 {
@@ -76,16 +85,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 	if count > maxCount {
 		log.Warn().Str("status", "max.count.exceeded").Send()
 
-		_, err := ctx.Reply(
-			update,
-			fmt.Sprintf("Max user count exceeded, count: %d, maxCount: %d", count, maxCount),
-			nil,
-		)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		return nil
+		stylingOptions = append(stylingOptions, styling.Plain("\n\nMax user count exceeded, only pinging 40 people"))
 	}
 
 	_, err := ctx.Reply(update, stylingOptions, nil)

@@ -2,16 +2,14 @@ package telegram
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 
-	"github.com/pkg/errors"
-
-	"github.com/celestix/gotgproto/dispatcher"
-	"github.com/celestix/gotgproto/ext"
-	"github.com/rs/zerolog/log"
-
 	"github.com/celestix/gotgproto"
+	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
+	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/peers"
@@ -47,20 +45,23 @@ func MustNewTelegramPresentation(
 	telegramAppID int,
 	telegramAppHash string,
 	telegramPhoneNumber string,
-	telegramSessionStorageFullPath string,
+	SessionFullPath string,
 	storage storage.Interface,
 	logErrorToSelf bool,
 	kandinskySupplier *kandinsky_supplier.Supplier,
 ) Presentation {
-	protoClient, err := gotgproto.NewClient(telegramAppID, telegramAppHash, gotgproto.ClientType{
-		Phone: telegramPhoneNumber,
-	}, &gotgproto.ClientOpts{
-		DisableCopyright: true,
-		Session: sessionMaker.NewSession(
-			telegramSessionStorageFullPath,
-			sessionMaker.Session,
-		),
-	})
+
+	protoClient, err := gotgproto.NewClient(
+		telegramAppID,
+		telegramAppHash,
+		gotgproto.ClientType{
+			Phone: telegramPhoneNumber,
+		},
+		&gotgproto.ClientOpts{
+			InMemory:         false,
+			DisableCopyright: true,
+			Session:          sessionMaker.SqliteSession(SessionFullPath),
+		})
 	utils.Check(err)
 
 	api := protoClient.API()
@@ -125,7 +126,7 @@ func (r *Presentation) errorHandler(
 	update *ext.Update,
 	errorString string,
 ) error {
-	log.Error().
+	zerolog.Ctx(ctx.Context).Error().
 		Stack().
 		Err(errors.New(errorString)).
 		Str("status", "error.while.processing.update").

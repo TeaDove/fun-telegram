@@ -4,8 +4,22 @@ services:
   redis:
     image: redis:7.2-alpine
     restart: always
-    ports:
-      - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning
     volumes:
-      - "./data:/data"
+      - "./data/redis:/data"
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+
+  mongodb:
+    image: mongo:7.0.4-jammy
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: db_main
+    volumes:
+      - "./data/mongo:/data/db"
+      - './extra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro'
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet

@@ -23,9 +23,10 @@ type telegram struct {
 }
 
 type Storage struct {
-	Filename  string `env:"filename" envDefault:"storage.json"`
-	Type      string `env:"type" envDefault:"redis"` // redis, simpleFile
-	RedisHost string `env:"redis_host" envDefault:"localhost"`
+	Filename   string `env:"filename" envDefault:"storage.json"`
+	Type       string `env:"type" envDefault:"redis"` // redis, simpleFile
+	RedisHost  string `env:"redis_host" envDefault:"localhost"`
+	MongoDbUrl string `env:"mongo_db_url" envDefault:"mongodb://localhost:27017"`
 }
 
 type Settings struct {
@@ -39,7 +40,7 @@ type Settings struct {
 	KandinskySecret string `env:"kandinsky_secret"`
 }
 
-func MustNewSettings() Settings {
+func mustNewSettings() Settings {
 	var settings Settings
 
 	_ = godotenv.Load(defaultEnvFile)
@@ -54,3 +55,5 @@ func MustNewSettings() Settings {
 
 	return settings
 }
+
+var AppSettings = mustNewSettings()

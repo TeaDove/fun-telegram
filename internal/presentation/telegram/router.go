@@ -3,7 +3,7 @@ package telegram
 import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"strings"
 )
@@ -17,7 +17,7 @@ type messageProcessor func(ctx *ext.Context, update *ext.Update, input *Input) e
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	text := update.EffectiveMessage.Message.Message
-	if len(text) == 0 || text[0] != '!' {
+	if len(text) == 0 || !(text[0] == '!' || text[0] == '/') {
 		return nil
 	}
 
@@ -35,7 +35,8 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Args:   args,
 		Silent: silent,
 	}
-	log.Debug().Str("status", "executing.command").Interface("input", input).Str("command", command).Send()
+
+	zerolog.Ctx(ctx.Context).Info().Str("status", "executing.command").Interface("input", input).Str("command", command).Send()
 
 	err := executor(ctx, update, &input)
 	if err != nil {

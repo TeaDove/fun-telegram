@@ -1,21 +1,24 @@
 package utils
 
-import "github.com/gotd/td/telegram/peers"
+import (
+	"fmt"
+	"github.com/gotd/td/telegram/peers"
+)
 
 func GetNameFromPeerUser(user *peers.User) string {
-	name, ok := user.FirstName()
-	if ok {
+	name, nameOk := user.FirstName()
+	lastName, lastNameOk := user.LastName()
+
+	if nameOk {
+		if lastNameOk {
+			return fmt.Sprintf("%s %s", name, lastName)
+		}
 		return name
 	}
 
-	name, ok = user.LastName()
+	username, ok := user.Username()
 	if ok {
-		return name
-	}
-
-	name, ok = user.Username()
-	if ok {
-		return name
+		return username
 	}
 
 	return "undefined"

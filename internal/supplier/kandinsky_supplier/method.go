@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/tidwall/gjson"
 	"io"
 	"mime/multipart"
@@ -49,7 +49,7 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 
 	for _, v := range gjson.ParseBytes(respBytes).Array() {
 		model := int(v.Get("id").Int())
-		log.Info().Str("status", "kandinsky.model.got").Int("model_id", model).Send()
+		zerolog.Ctx(ctx).Info().Str("status", "kandinsky.model.got").Int("model_id", model).Send()
 
 		return model, nil
 	}
@@ -75,7 +75,7 @@ type RequestGenerationRequest struct {
 }
 
 func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerationInput) (uuid.UUID, error) {
-	log.Info().Str("status", "kandinsky.image.generation.begin").Interface("input", input).Send()
+	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.begin").Interface("input", input).Send()
 
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
@@ -142,11 +142,11 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 
 	imageId, err := uuid.Parse(gjson.GetBytes(respBytes, "uuid").String())
 	if err != nil {
-		log.Warn().Str("status", "kandinsky.image.cannot.be.generated").Send()
+		zerolog.Ctx(ctx).Warn().Str("status", "kandinsky.image.cannot.be.generated").Send()
 		return uuid.Nil, goErrors.Join(ErrImageCreationFailed, err)
 	}
 
-	log.Info().Str("status", "kandinsky.image.generation.send").Send()
+	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.send").Send()
 
 	return imageId, nil
 }
@@ -178,7 +178,7 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 
 	if gjson.GetBytes(respBytes, "status").String() == "DONE" {
 		for _, img := range gjson.GetBytes(respBytes, "images").Array() {
-			log.Info().Str("status", "kandinsky.image.generation.done").Str("id", id.String()).Send()
+			zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.done").Str("id", id.String()).Send()
 			return []byte(img.String()), nil
 		}
 
@@ -186,11 +186,11 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	}
 
 	if gjson.GetBytes(respBytes, "censored").Bool() {
-		log.Info().Str("status", "kandinsky.image.censored").Str("id", id.String()).Send()
+		zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.censored").Str("id", id.String()).Send()
 		return nil, errors.WithStack(ErrImageWasCensored)
 	}
 
-	log.Info().Str("status", "kandinsky.image.not.ready").Str("id", id.String()).Send()
+	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.not.ready").Str("id", id.String()).Send()
 
 	return nil, errors.WithStack(ErrImageNotReady)
 }
@@ -217,7 +217,7 @@ func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
 		return img, nil
 	}
 
-	log.Info().Str("status", "kandinsky.image.creation.failed").Str("id", id.String()).Send()
+	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.creation.failed").Str("id", id.String()).Send()
 
 	return nil, errors.WithStack(ErrImageCreationFailed)
 }

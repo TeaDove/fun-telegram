@@ -7,7 +7,7 @@ import (
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 )
 
@@ -99,7 +99,7 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 
 	err = ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{msg.ID})
 	if err != nil {
-		log.Error().Stack().Err(err).Str("status", "failed.to.delete.msgs").Send()
+		zerolog.Ctx(ctx.Context).Error().Stack().Err(err).Str("status", "failed.to.delete.msgs").Send()
 	}
 
 	return nil

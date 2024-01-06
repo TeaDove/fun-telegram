@@ -15,9 +15,7 @@ var input = RequestGenerationInput{
 }
 
 func getSupplier(t *testing.T) *Supplier {
-	settings := shared.MustNewSettings()
-
-	supplier, err := New(ctx, settings.KandinskyKey, settings.KandinskySecret)
+	supplier, err := New(ctx, shared.AppSettings.KandinskyKey, shared.AppSettings.KandinskySecret)
 	assert.NoError(t, err)
 
 	return supplier

@@ -6,12 +6,15 @@ services:
     environment:
       fun_file_storage_path: "/config"
       fun_storage__redis_host: "redis"
+      fun_storage__mongo_db_url: "mongodb://mongodb:27017"
     image: ghcr.io/teadove/fun-telegram:v1.5.2
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
     depends_on:
       redis:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
 
   redis:
@@ -23,3 +26,12 @@ services:
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
 
+  mongodb:
+    image: mongo:7.0.4-jammy
+    environment:
+      MONGO_INITDB_DATABASE: db_main
+    volumes:
+      - "./data/mongo:/data/db"
+      - './extra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro'
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet

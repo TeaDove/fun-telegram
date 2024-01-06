@@ -3,11 +3,11 @@ package telegram
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/tg"
-	"github.com/rs/zerolog/log"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/service/storage"
 )
@@ -35,7 +35,11 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return errors.WithStack(err)
 	}
 
-	log.Info().Str("status", "victim.found").Send()
+	zerolog.Ctx(ctx.Context).
+		Info().
+		Str("status", "victim.found").
+		Str("victims_username", update.EffectiveUser().Username).
+		Send()
 
 	var reactionRequest tg.MessagesSendReactionRequest
 
@@ -47,7 +51,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	}
 
 	reactionRequest.MsgID = update.EffectiveMessage.ID
-	log.Info().Str("status", "spamming.reactions").Interface("reactions", reactionRequest).Send()
+	zerolog.Ctx(ctx.Context).Info().Str("status", "spamming.reactions").Interface("reactions", reactionRequest).Send()
 
 	_, err = r.telegramApi.MessagesSendReaction(ctx, &reactionRequest)
 	if err != nil {
@@ -82,7 +86,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *I
 		return nil
 	}
 
-	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
+	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi, r.protoClient.PeerStorage)
 	if err != nil {
 		if !input.Silent {
 			_, err = ctx.Reply(update, "Err: reply not found", nil)
@@ -108,7 +112,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *I
 		return errors.WithStack(err)
 	}
 
-	log.Info().Str("status", "spam.reaction.deleted").Str("key", key).Send()
+	zerolog.Ctx(ctx.Context).Info().Str("status", "spam.reaction.deleted").Str("key", key).Send()
 
 	if !input.Silent {
 		_, err = ctx.Reply(update, "Ok: reactions were deleted", nil)
@@ -148,7 +152,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 		return nil
 	}
 
-	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi)
+	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi, r.protoClient.PeerStorage)
 	if err != nil {
 		if !input.Silent {
 			_, err = ctx.Reply(update, "Err: reply not found", nil)
@@ -201,7 +205,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 		return errors.WithStack(err)
 	}
 
-	log.Info().
+	zerolog.Ctx(ctx.Context).Info().
 		Str("status", "spam.reactions.saved").
 		Str("key", key).
 		Interface("reactions", reactionRequest).

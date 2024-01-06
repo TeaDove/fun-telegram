@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/teadove/goteleout/internal/presentation/cli"
+	"github.com/teadove/goteleout/internal/presentation"
 )
 
 func main() {
-	cli.RunCli()
+	presentation.Run()
 }
