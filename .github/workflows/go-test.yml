@@ -18,14 +18,11 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Move envs
-        run: mv example.env .env
-
       - name: Build
         run: make build
 
       - name: TestUnit
-        run: make test-unit
+        run: mv example.env .env && make test-unit
 
 
 
