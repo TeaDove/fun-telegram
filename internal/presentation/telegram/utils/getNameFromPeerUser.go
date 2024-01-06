@@ -13,6 +13,7 @@ func GetNameFromPeerUser(user *peers.User) string {
 		if lastNameOk {
 			return fmt.Sprintf("%s %s", name, lastName)
 		}
+
 		return name
 	}
 

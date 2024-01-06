@@ -17,7 +17,12 @@ func (r *Repository) CreateUser(ctx context.Context, user *User) (*User, error) 
 		return nil, errors.WithStack(err)
 	}
 
-	user.ID = res.InsertedID.(primitive.ObjectID)
+	id, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return nil, errors.New("res.InsertedID is not primitive.ObjectID")
+	}
+
+	user.ID = id
 
 	return user, nil
 }
@@ -25,7 +30,7 @@ func (r *Repository) CreateUser(ctx context.Context, user *User) (*User, error) 
 func (r *Repository) GetUser(ctx context.Context, tgUserId int64) (*User, error) {
 	var user User
 
-	err := r.userCollection.FindOne(ctx, bson.D{{"tg_user_id", tgUserId}}).Decode(&user)
+	err := r.userCollection.FindOne(ctx, bson.D{{Key: "tg_user_id", Value: tgUserId}}).Decode(&user)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -42,7 +47,12 @@ func (r *Repository) CreateUserInChat(ctx context.Context, userInChat *UserInCha
 		return nil, errors.WithStack(err)
 	}
 
-	userInChat.ID = res.InsertedID.(primitive.ObjectID)
+	id, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return nil, errors.New("res.InsertedID is not primitive.ObjectID")
+	}
+
+	userInChat.ID = id
 
 	return userInChat, nil
 }

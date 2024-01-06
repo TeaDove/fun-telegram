@@ -36,7 +36,12 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Silent: silent,
 	}
 
-	zerolog.Ctx(ctx.Context).Info().Str("status", "executing.command").Interface("input", input).Str("command", command).Send()
+	zerolog.Ctx(ctx.Context).
+		Info().
+		Str("status", "executing.command").
+		Interface("input", input).
+		Str("command", command).
+		Send()
 
 	err := executor(ctx, update, &input)
 	if err != nil {

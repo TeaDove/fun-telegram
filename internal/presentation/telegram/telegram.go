@@ -45,12 +45,11 @@ func MustNewTelegramPresentation(
 	telegramAppID int,
 	telegramAppHash string,
 	telegramPhoneNumber string,
-	SessionFullPath string,
+	sessionFullPath string,
 	storage storage.Interface,
 	logErrorToSelf bool,
 	kandinskySupplier *kandinsky_supplier.Supplier,
 ) Presentation {
-
 	protoClient, err := gotgproto.NewClient(
 		telegramAppID,
 		telegramAppHash,
@@ -60,7 +59,7 @@ func MustNewTelegramPresentation(
 		&gotgproto.ClientOpts{
 			InMemory:         false,
 			DisableCopyright: true,
-			Session:          sessionMaker.SqliteSession(SessionFullPath),
+			Session:          sessionMaker.SqliteSession(sessionFullPath),
 		})
 	utils.Check(err)
 

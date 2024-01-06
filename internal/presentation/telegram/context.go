@@ -31,6 +31,7 @@ func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error
 		WithContext(ctx.Context)
 
 	zerolog.Ctx(ctx.Context).Trace().Str("status", "got.update").Interface("update", update).Send()
+
 	return nil
 }
 

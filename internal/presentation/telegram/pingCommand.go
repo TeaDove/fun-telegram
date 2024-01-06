@@ -36,6 +36,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 		count += 1
 
 		name := utils.GetNameFromPeerUser(&user)
+
 		username, ok := user.Username()
 		if ok {
 			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
