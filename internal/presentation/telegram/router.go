@@ -5,6 +5,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
+	"github.com/teadove/goteleout/internal/service/storage"
+	"strconv"
 	"strings"
 )
 
@@ -36,6 +38,29 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Silent: silent,
 	}
 
+	chatId := strconv.Itoa(int(update.EffectiveChat().GetID()))
+
+	_, err := r.storage.Load(chatId)
+	if err != nil {
+		if errors.Is(err, storage.ErrKeyNotFound) {
+			// Bot enabled
+		} else {
+			return errors.WithStack(err)
+		}
+	} else {
+		if command[1:] != "disable" {
+			zerolog.Ctx(ctx.Context).
+				Debug().
+				Str("status", "bot.disable.in.chat").
+				Str("chat_id", chatId).
+				Str("command", command[1:]).
+				Send()
+
+			return nil
+		}
+		// only pass not disable command
+	}
+
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command").
@@ -43,7 +68,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Str("command", command).
 		Send()
 
-	err := executor(ctx, update, &input)
+	err = executor(ctx, update, &input)
 	if err != nil {
 		return errors.WithStack(err)
 	}

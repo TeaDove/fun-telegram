@@ -146,7 +146,7 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 		return uuid.Nil, goErrors.Join(ErrImageCreationFailed, err)
 	}
 
-	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.send").Send()
+	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.send").Interface("input", input).Str("id", imageId.String()).Send()
 
 	return imageId, nil
 }
@@ -227,6 +227,8 @@ func (r *Supplier) WaitGeneration(ctx context.Context, input *RequestGenerationI
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
+	ctx = zerolog.Ctx(ctx).With().Str("kandinsky_id", id.String()).Logger().WithContext(ctx)
 
 	time.Sleep(delay)
 

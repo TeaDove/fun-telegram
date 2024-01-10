@@ -99,6 +99,7 @@ func MustNewTelegramPresentation(
 		"ping":          presentation.pingCommandHandler,
 		"spam_reaction": presentation.spamReactionCommandHandler,
 		"kandinsky":     presentation.kandkinskyCommandHandler,
+		"disable":       presentation.disableCommandHandler,
 	}
 
 	protoClient.Dispatcher.AddHandler(
