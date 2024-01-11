@@ -62,7 +62,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 }
 
 // nolint: cyclop
-func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
 		if !input.Silent {
@@ -126,7 +126,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *I
 
 // TODO: fix nolint
 // nolint: cyclop
-func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	const maxReactionCount = 3
 
 	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
@@ -222,7 +222,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 }
 
 // nolint: cyclop
-func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	if !update.EffectiveUser().Self {
 		if !input.Silent {
 			_, err := ctx.Reply(update, "Err: disable can be done only by owner of bot", nil)
@@ -267,17 +267,17 @@ func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, input *
 	return nil
 }
 
-func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
-	const (
-		stopCommand    = "stop"
-		disableCommand = "disable"
-	)
+var (
+	FlagStop    = tgUtils.OptFlag{Long: "stop", Short: "s"}
+	FlagDisable = tgUtils.OptFlag{Long: "disable", Short: "d"}
+)
 
-	if _, ok := input.Args[stopCommand]; ok {
+func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
+	if _, ok := input.Ops[FlagStop.Long]; ok {
 		return r.deleteSpam(ctx, update, input)
 	}
 
-	if _, ok := input.Args[disableCommand]; ok {
+	if _, ok := input.Ops[FlagDisable.Long]; ok {
 		return r.disableSpam(ctx, update, input)
 	}
 

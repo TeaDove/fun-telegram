@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"strconv"
 
 	"github.com/celestix/gotgproto/ext"
@@ -8,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	user := update.EffectiveUser()
 	chat := update.EffectiveChat()
 	stylingOptions := []styling.StyledTextOption{

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 
 	"github.com/celestix/gotgproto"
@@ -93,13 +94,13 @@ func MustNewTelegramPresentation(
 	)
 
 	presentation.router = map[string]messageProcessor{
-		"echo":          presentation.echoCommandHandler,
-		"help":          presentation.helpCommandHandler,
-		"get_me":        presentation.getMeCommandHandler,
-		"ping":          presentation.pingCommandHandler,
-		"spam_reaction": presentation.spamReactionCommandHandler,
-		"kandinsky":     presentation.kandkinskyCommandHandler,
-		"disable":       presentation.disableCommandHandler,
+		"echo":          {executor: presentation.echoCommandHandler},
+		"help":          {executor: presentation.helpCommandHandler},
+		"get_me":        {executor: presentation.getMeCommandHandler},
+		"ping":          {executor: presentation.pingCommandHandler},
+		"spam_reaction": {executor: presentation.spamReactionCommandHandler, flags: []tgUtils.OptFlag{FlagDisable, FlagStop}},
+		"kandinsky":     {executor: presentation.kandkinskyCommandHandler, flags: []tgUtils.OptFlag{FlagNegativePrompt, FlagStyle}},
+		"disable":       {executor: presentation.disableCommandHandler},
 	}
 
 	protoClient.Dispatcher.AddHandler(

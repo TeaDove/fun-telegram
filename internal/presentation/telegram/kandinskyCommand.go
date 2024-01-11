@@ -8,14 +8,20 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 )
 
 const defaultPrompt = "Anime girl with plush blue bear"
 
+var (
+	FlagNegativePrompt = tgUtils.OptFlag{Long: "negative", Short: "n"}
+	FlagStyle          = tgUtils.OptFlag{Long: "style", Short: "s"}
+)
+
 // kandkinskyCommandHandler
 // nolint: cyclop
-func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	if r.kandinskySupplier == nil {
 		_, err := ctx.Reply(update, "Kandinsky supplier is currently disabled", nil)
 		if err != nil {
@@ -30,10 +36,17 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 	if len(update.EffectiveMessage.Message.Message) < 11 {
 		kandinskyInput.Prompt = defaultPrompt
 	} else {
-		kandinskyInput.Prompt = update.EffectiveMessage.Message.Message[11:]
+		kandinskyInput.Prompt = input.Text
 	}
 
 	// TODO add style and negativePrompt
+	if negative, ok := input.Ops[FlagNegativePrompt.Long]; ok {
+		kandinskyInput.NegativePromptUnclip = negative
+	}
+
+	if style, ok := input.Ops[FlagStyle.Long]; ok {
+		kandinskyInput.Style = style
+	}
 
 	requestedUser := update.EffectiveUser()
 

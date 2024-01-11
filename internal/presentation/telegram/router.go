@@ -10,12 +10,10 @@ import (
 	"strings"
 )
 
-type Input struct {
-	Args   map[string]string
-	Silent bool
+type messageProcessor struct {
+	flags    []tgUtils.OptFlag
+	executor func(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error
 }
-
-type messageProcessor func(ctx *ext.Context, update *ext.Update, input *Input) error
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	text := update.EffectiveMessage.Message.Message
@@ -23,20 +21,15 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	command, _, _ := strings.Cut(text, " ")
+	firstWord, _, _ := strings.Cut(text, " ")
+	command := firstWord[1:]
 
-	executor, ok := r.router[command[1:]]
+	route, ok := r.router[command]
 	if !ok {
 		return nil
 	}
 
-	args := tgUtils.GetArguments(text)
-	_, silent := args["Silent"]
-
-	input := Input{
-		Args:   args,
-		Silent: silent,
-	}
+	opts := tgUtils.GetOpt(text, route.flags...)
 
 	chatId := strconv.Itoa(int(update.EffectiveChat().GetID()))
 
@@ -48,12 +41,12 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			return errors.WithStack(err)
 		}
 	} else {
-		if command[1:] != "disable" {
+		if command != "disable" {
 			zerolog.Ctx(ctx.Context).
 				Debug().
 				Str("status", "bot.disable.in.chat").
 				Str("chat_id", chatId).
-				Str("command", command[1:]).
+				Str("command", command).
 				Send()
 
 			return nil
@@ -64,11 +57,11 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command").
-		Interface("input", input).
-		Str("command", command).
+		Interface("input", opts).
+		Str("command", firstWord).
 		Send()
 
-	err = executor(ctx, update, &input)
+	err = route.executor(ctx, update, &opts)
 	if err != nil {
 		return errors.WithStack(err)
 	}

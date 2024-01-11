@@ -4,11 +4,12 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"strconv"
 )
 
-func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	if update.EffectiveUser().GetID() != ctx.Self.ID {
 		_, err := ctx.Reply(update, "Err: insufficient privilege", nil)
 		if err != nil {
