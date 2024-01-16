@@ -146,7 +146,12 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 		return uuid.Nil, goErrors.Join(ErrImageCreationFailed, err)
 	}
 
-	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.send").Interface("input", input).Str("id", imageId.String()).Send()
+	zerolog.Ctx(ctx).
+		Info().
+		Str("status", "kandinsky.image.generation.send").
+		Interface("input", input).
+		Str("id", imageId.String()).
+		Send()
 
 	return imageId, nil
 }
