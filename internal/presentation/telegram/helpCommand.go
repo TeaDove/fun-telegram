@@ -21,6 +21,7 @@ var helpMessage = []styling.StyledTextOption{
 	), styling.Plain(" - generate image via "), styling.TextURL("kandinsky", "https://www.sberbank.com/promo/kandinsky/"),
 	styling.Plain("\n\n"),
 	styling.Plain("/disable - fully disable bot in this chat\n\n"),
+	styling.Plain("/location [address] - get description by ip address or domain\n\n"),
 }
 
 func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
