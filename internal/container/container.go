@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/service/ip_locator"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"github.com/teadove/goteleout/internal/service/storage/redis"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
@@ -61,6 +62,8 @@ func MustNewCombatContainer() Container {
 		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.create.kandinsky.supplier").Send()
 	}
 
+	locator := ip_locator.Service{}
+
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		&clientService,
 		shared.AppSettings.Telegram.AppID,
@@ -70,6 +73,7 @@ func MustNewCombatContainer() Container {
 		persistentStorage,
 		shared.AppSettings.LogErrorToSelf,
 		kandinskySupplier,
+		&locator,
 	)
 
 	container := Container{&telegramPresentation}

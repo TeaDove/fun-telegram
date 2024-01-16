@@ -17,7 +17,7 @@ const defaultPrompt = "Anime girl with plush blue bear"
 // nolint: cyclop
 func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if r.kandinskySupplier == nil {
-		_, err := ctx.Reply(update, "Kandinsky supplier is currently disabled", nil)
+		_, err := ctx.Reply(update, "Err: kandinsky supplier is currently disabled", nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
