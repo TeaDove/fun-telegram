@@ -37,6 +37,9 @@ run-docker-rebuild:
 run-infra:
 	docker-compose -f docker-compose-infra.yaml up -d
 
+logs:
+	docker-compose logs -f client
+
 check:
 	pre-commit run -a
 
