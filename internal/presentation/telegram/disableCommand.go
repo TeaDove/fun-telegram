@@ -12,6 +12,10 @@ import (
 func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok bool, err error) {
 	chatMembers, err := r.getMembers(ctx, update.EffectiveChat())
 	if err != nil {
+		if errors.Is(err, ErrNotChatOrChannel) {
+			// Expects, that in private conversation everyone is admin
+			return true, nil
+		}
 		return false, errors.WithStack(err)
 	}
 

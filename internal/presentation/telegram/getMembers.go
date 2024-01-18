@@ -7,6 +7,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var ErrNotChatOrChannel = errors.New("is not chat or channel")
+
 func (r *Presentation) getMembers(
 	ctx context.Context,
 	effectiveChat types.EffectiveChat,
@@ -37,7 +39,7 @@ func (r *Presentation) getMembers(
 			return nil, errors.WithStack(err)
 		}
 	default:
-		return nil, errors.New("is not chat or channel")
+		return nil, errors.WithStack(ErrNotChatOrChannel)
 	}
 
 	return chatMembersSlice, nil
