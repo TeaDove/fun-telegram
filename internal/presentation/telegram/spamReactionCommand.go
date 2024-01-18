@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"strconv"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/bin"
@@ -16,14 +17,22 @@ func compileSpamVictimKey(chatId int64, userId int64) string {
 	return fmt.Sprintf("spam:victim:%d:%d", chatId, userId)
 }
 
-func compileSpamDisableKey(chatId int64) string {
-	return fmt.Sprintf("spam:disable:%d", chatId)
-}
-
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
-	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+	chatId := update.EffectiveChat().GetID()
 	if chatId == 0 {
 		return errors.WithStack(ErrPeerNotFound)
+	}
+
+	_, err := r.storage.Load(strconv.Itoa(int(chatId)))
+	if err != nil {
+		if errors.Is(err, storage.ErrKeyNotFound) {
+			// Bot enabled
+		} else {
+			return errors.WithStack(err)
+		}
+	} else {
+		// Bot disable
+		return nil
 	}
 
 	reactionsBuf, err := r.storage.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
@@ -67,17 +76,6 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *I
 	if chatId == 0 {
 		if !input.Silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		return nil
-	}
-
-	if r.storage.Contains(compileSpamDisableKey(chatId)) {
-		if !input.Silent {
-			_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -130,17 +128,6 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 	const maxReactionCount = 3
 
 	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
-	if r.storage.Contains(compileSpamDisableKey(chatId)) {
-		if !input.Silent {
-			_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		return nil
-	}
-
 	if chatId == 0 {
 		if !input.Silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
@@ -221,64 +208,13 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 	return nil
 }
 
-// nolint: cyclop
-func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
-	if !update.EffectiveUser().Self {
-		if !input.Silent {
-			_, err := ctx.Reply(update, "Err: disable can be done only by owner of bot", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-	}
-
-	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
-	key := compileSpamDisableKey(chatId)
-	// Warning, not thread safe but I don't care
-	contains := r.storage.Contains(key)
-	if contains {
-		err := r.storage.Delete(key)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		if !input.Silent {
-			_, err = ctx.Reply(update, "Ok: reactions were enabled in chat", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		return nil
-	}
-
-	err := r.storage.Save(key, []byte{})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if !input.Silent {
-		_, err = ctx.Reply(update, "Ok: reactions were disabled in chat", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
-}
-
 func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const (
-		stopCommand    = "stop"
-		disableCommand = "disable"
+		stopCommand = "stop"
 	)
 
 	if _, ok := input.Args[stopCommand]; ok {
 		return r.deleteSpam(ctx, update, input)
-	}
-
-	if _, ok := input.Args[disableCommand]; ok {
-		return r.disableSpam(ctx, update, input)
 	}
 
 	return r.addSpam(ctx, update, input)
