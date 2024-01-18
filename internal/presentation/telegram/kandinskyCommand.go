@@ -56,14 +56,14 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 	if err != nil {
 		switch {
 		case errors.Is(err, kandinsky_supplier.ErrImageWasCensored):
-			_, err := ctx.Reply(update, "Image was censored", nil)
+			_, err := ctx.Reply(update, "Err: image was censored", nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
 			return nil
 		case errors.Is(err, kandinsky_supplier.ErrImageCreationFailed):
-			_, err := ctx.Reply(update, "Image creation failed...", nil)
+			_, err := ctx.Reply(update, fmt.Sprintf("Err: %s", err.Error()), nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}

@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/tidwall/gjson"
 	"io"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -75,8 +76,6 @@ type RequestGenerationRequest struct {
 }
 
 func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerationInput) (uuid.UUID, error) {
-	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.begin").Interface("input", input).Send()
-
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
 
@@ -150,7 +149,7 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 		Info().
 		Str("status", "kandinsky.image.generation.send").
 		Interface("input", input).
-		Str("id", imageId.String()).
+		Str("kandinsky_id", imageId.String()).
 		Send()
 
 	return imageId, nil
@@ -181,37 +180,46 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	if gjson.GetBytes(respBytes, "status").String() == "DONE" {
-		for _, img := range gjson.GetBytes(respBytes, "images").Array() {
-			zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.done").Str("id", id.String()).Send()
-			return []byte(img.String()), nil
-		}
-
-		return nil, errors.WithStack(ErrImageCreationFailed)
-	}
+	zerolog.Ctx(ctx).Debug().Str("status", "kandinsky.image.get.response").Str("content", string(respBytes)).Send()
 
 	if gjson.GetBytes(respBytes, "censored").Bool() {
 		zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.censored").Str("id", id.String()).Send()
 		return nil, errors.WithStack(ErrImageWasCensored)
 	}
 
-	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.not.ready").Str("id", id.String()).Send()
+	if gjson.GetBytes(respBytes, "status").String() == "DONE" {
+		for _, img := range gjson.GetBytes(respBytes, "images").Array() {
+			zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.done").Str("id", id.String()).Send()
+			return []byte(img.String()), nil
+		}
+
+		return nil, errors.Wrapf(ErrImageCreationFailed, "failed to get image, content: %s", string(respBytes))
+	}
+
+	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.not.ready").Send()
 
 	return nil, errors.WithStack(ErrImageNotReady)
 }
 
-const delay = time.Second * 8
-const maxAttempts = 5
+const (
+	delayFirstTerm         = time.Second * 10
+	delayRate      float64 = 3
+	maxAttempts            = 10
+)
 
 func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
-	amount := maxAttempts
+	attempt := 0
 
-	for amount > 0 {
+	for attempt < maxAttempts {
 		img, err := r.Get(ctx, id)
 		if err != nil {
 			if errors.Is(err, ErrImageNotReady) {
-				time.Sleep(delay)
-				amount--
+				sleepTime := delayFirstTerm * time.Duration(math.Pow(delayRate, float64(attempt)))
+				zerolog.Ctx(ctx).Info().Str("status", "kandinsky.sleeping").Dur("sleep_time", sleepTime).Send()
+
+				// Will sleep for 10s, 30, 90, 270, ...
+				time.Sleep(sleepTime)
+				attempt++
 
 				continue
 			}
@@ -222,9 +230,9 @@ func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
 		return img, nil
 	}
 
-	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.creation.failed").Str("id", id.String()).Send()
+	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.creation.timed.outed").Send()
 
-	return nil, errors.WithStack(ErrImageCreationFailed)
+	return nil, errors.Wrap(ErrImageCreationFailed, "image creation timed out")
 }
 
 func (r *Supplier) WaitGeneration(ctx context.Context, input *RequestGenerationInput) ([]byte, error) {
@@ -235,7 +243,7 @@ func (r *Supplier) WaitGeneration(ctx context.Context, input *RequestGenerationI
 
 	ctx = zerolog.Ctx(ctx).With().Str("kandinsky_id", id.String()).Logger().WithContext(ctx)
 
-	time.Sleep(delay)
+	time.Sleep(delayFirstTerm)
 
 	img, err := r.WaitGet(ctx, id)
 	if err != nil {
