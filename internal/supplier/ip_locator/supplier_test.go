@@ -8,7 +8,7 @@ import (
 )
 
 func TestIntegration_IpLocator_GetLocation_Ok(t *testing.T) {
-	r := Service{}
+	r := Supplier{}
 
 	resp, err := r.GetLocation(context.Background(), "116.203.245.151")
 
@@ -17,7 +17,7 @@ func TestIntegration_IpLocator_GetLocation_Ok(t *testing.T) {
 }
 
 func TestIntegration_IpLocator_GetLocation_ValidationError(t *testing.T) {
-	r := Service{}
+	r := Supplier{}
 
 	_, err := r.GetLocation(context.Background(), "116.203.299.151")
 

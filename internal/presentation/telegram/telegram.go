@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/service/ip_locator"
+	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/supplier/ip_locator"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 
 	"github.com/celestix/gotgproto"
@@ -15,7 +16,6 @@ import (
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
-	"github.com/teadove/goteleout/internal/service/client"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"github.com/teadove/goteleout/internal/utils"
 )
@@ -33,18 +33,18 @@ type Presentation struct {
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
 
-	storage       storage.Interface
-	clientService *client.Service
-	router        map[string]messageProcessor
+	storage storage.Interface
+	router  map[string]messageProcessor
 
 	kandinskySupplier *kandinsky_supplier.Supplier
-	ipLocator         *ip_locator.Service
+	ipLocator         *ip_locator.Supplier
+
+	dbRepository *db_repository.Repository
 
 	logErrorToSelf bool
 }
 
 func MustNewTelegramPresentation(
-	clientService *client.Service,
 	telegramAppID int,
 	telegramAppHash string,
 	telegramPhoneNumber string,
@@ -52,8 +52,10 @@ func MustNewTelegramPresentation(
 	storage storage.Interface,
 	logErrorToSelf bool,
 	kandinskySupplier *kandinsky_supplier.Supplier,
-	ipLocator *ip_locator.Service,
+	ipLocator *ip_locator.Supplier,
+	dbRepository *db_repository.Repository,
 ) Presentation {
+
 	protoClient, err := gotgproto.NewClient(
 		telegramAppID,
 		telegramAppHash,
@@ -70,7 +72,6 @@ func MustNewTelegramPresentation(
 	api := protoClient.API()
 
 	presentation := Presentation{
-		clientService:     clientService,
 		storage:           storage,
 		protoClient:       protoClient,
 		telegramApi:       api,
@@ -79,11 +80,17 @@ func MustNewTelegramPresentation(
 		logErrorToSelf:    logErrorToSelf,
 		kandinskySupplier: kandinskySupplier,
 		ipLocator:         ipLocator,
+		dbRepository:      dbRepository,
 	}
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
 			Callback: presentation.injectContext, Outgoing: true,
+		},
+	)
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback: presentation.catchMessages, Outgoing: true,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(

@@ -3,9 +3,10 @@ package container
 import (
 	"context"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/service/ip_locator"
+	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"github.com/teadove/goteleout/internal/service/storage/redis"
+	"github.com/teadove/goteleout/internal/supplier/ip_locator"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 	"os"
 	"path/filepath"
@@ -16,7 +17,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram"
-	"github.com/teadove/goteleout/internal/service/client"
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/utils"
 )
@@ -51,8 +51,6 @@ func MustNewCombatContainer() Container {
 
 	persistentStorage := makeStorage(&shared.AppSettings)
 
-	clientService := client.MustNewClientService()
-
 	kandinskySupplier, err := kandinsky_supplier.New(
 		context.Background(),
 		shared.AppSettings.KandinskyKey,
@@ -62,10 +60,12 @@ func MustNewCombatContainer() Container {
 		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.create.kandinsky.supplier").Send()
 	}
 
-	locator := ip_locator.Service{}
+	locator := ip_locator.Supplier{}
+
+	dbRepository, err := db_repository.New(shared.AppSettings.Storage.MongoDbUrl)
+	utils.Check(err)
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(
-		&clientService,
 		shared.AppSettings.Telegram.AppID,
 		shared.AppSettings.Telegram.AppHash,
 		shared.AppSettings.Telegram.PhoneNumber,
@@ -74,6 +74,7 @@ func MustNewCombatContainer() Container {
 		shared.AppSettings.LogErrorToSelf,
 		kandinskySupplier,
 		&locator,
+		dbRepository,
 	)
 
 	container := Container{&telegramPresentation}

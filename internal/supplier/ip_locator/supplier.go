@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-type Service struct{}
+type Supplier struct{}
 
 type IpLocation struct {
 	Status  string `json:"status"`
@@ -30,7 +30,7 @@ type IpLocation struct {
 	Query       string  `json:"query,omitempty"`
 }
 
-func (r *Service) GetLocation(ctx context.Context, ip string) (IpLocation, error) {
+func (r *Supplier) GetLocation(ctx context.Context, ip string) (IpLocation, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://ip-api.com/json/%s", ip), nil)
 	if err != nil {
 		return IpLocation{}, errors.WithStack(err)

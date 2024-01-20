@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
@@ -18,6 +19,14 @@ type Input struct {
 type messageProcessor func(ctx *ext.Context, update *ext.Update, input *Input) error
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
+	_, ok := update.UpdateClass.(*tg.UpdateNewChannelMessage)
+	if !ok {
+		_, ok = update.UpdateClass.(*tg.UpdateNewMessage)
+		if !ok {
+			return nil
+		}
+	}
+
 	text := update.EffectiveMessage.Message.Message
 	if len(text) == 0 || !(text[0] == '!' || text[0] == '/') {
 		return nil

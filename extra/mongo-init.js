@@ -1,6 +1,6 @@
-db.createCollection("user")
-db.event.createIndex({ "tg_chat_id": 1, "user_id": 1 }, { "unique": true })
+db.createCollection("users")
+db.users.createIndex({ "tg_user_id": 1 }, { "unique": true })
+db.users.createIndex({ "tg_username": 1 }, { "unique": false })
 
-db.createCollection("user_in_chat")
-db.user_in_chat.createIndex({ "tg_user_id": 1 }, { "unique": true })
-db.user_in_chat.createIndex({ "tg_username": 1 }, { "unique": true })
+db.createCollection("messages")
+db.messages.createIndex({ "tg_chat_id": 1, "tg_user_id": 1 }, { "unique": false })
