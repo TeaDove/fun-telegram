@@ -36,7 +36,7 @@ func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Updat
 	}
 
 	if !ok {
-		_, err := ctx.Reply(update, "Err: insufficient privilege", nil)
+		_, err = ctx.Reply(update, "Err: insufficient privilege", nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}

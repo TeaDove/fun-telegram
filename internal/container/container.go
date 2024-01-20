@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/service/analitics"
+	"github.com/teadove/goteleout/internal/service/job"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"github.com/teadove/goteleout/internal/service/storage/redis"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
@@ -23,6 +25,7 @@ import (
 
 type Container struct {
 	Presentation *telegram.Presentation
+	JobService   *job.Service
 }
 
 func makeStorage(settings *shared.Settings) storage.Interface {
@@ -65,6 +68,9 @@ func MustNewCombatContainer() Container {
 	dbRepository, err := db_repository.New(shared.AppSettings.Storage.MongoDbUrl)
 	utils.Check(err)
 
+	analiticsService, err := analitics.New(dbRepository)
+	utils.Check(err)
+
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		shared.AppSettings.Telegram.AppID,
 		shared.AppSettings.Telegram.AppHash,
@@ -75,9 +81,13 @@ func MustNewCombatContainer() Container {
 		kandinskySupplier,
 		&locator,
 		dbRepository,
+		analiticsService,
 	)
 
-	container := Container{&telegramPresentation}
+	jobService, err := job.New(dbRepository)
+	utils.Check(err)
+
+	container := Container{&telegramPresentation, jobService}
 
 	return container
 }

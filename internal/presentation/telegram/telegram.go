@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 
@@ -39,7 +40,8 @@ type Presentation struct {
 	kandinskySupplier *kandinsky_supplier.Supplier
 	ipLocator         *ip_locator.Supplier
 
-	dbRepository *db_repository.Repository
+	dbRepository     *db_repository.Repository
+	analiticsService *analitics.Service
 
 	logErrorToSelf bool
 }
@@ -54,6 +56,7 @@ func MustNewTelegramPresentation(
 	kandinskySupplier *kandinsky_supplier.Supplier,
 	ipLocator *ip_locator.Supplier,
 	dbRepository *db_repository.Repository,
+	analiticsService *analitics.Service,
 ) Presentation {
 
 	protoClient, err := gotgproto.NewClient(
@@ -81,6 +84,7 @@ func MustNewTelegramPresentation(
 		kandinskySupplier: kandinskySupplier,
 		ipLocator:         ipLocator,
 		dbRepository:      dbRepository,
+		analiticsService:  analiticsService,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -113,6 +117,7 @@ func MustNewTelegramPresentation(
 		"kandinsky":     presentation.kandkinskyCommandHandler,
 		"disable":       presentation.disableCommandHandler,
 		"location":      presentation.locationCommandHandler,
+		"stats":         presentation.statsCommandHandler,
 	}
 
 	protoClient.Dispatcher.AddHandler(
