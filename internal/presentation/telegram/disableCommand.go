@@ -9,6 +9,19 @@ import (
 	"strconv"
 )
 
+func (r *Presentation) isEnabled(chatId int) (bool, error) {
+	_, err := r.storage.Load(strconv.Itoa(chatId))
+	if err != nil {
+		if errors.Is(err, storage.ErrKeyNotFound) {
+			return true, nil
+		} else {
+			return false, errors.WithStack(err)
+		}
+	}
+
+	return false, nil
+}
+
 func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok bool, err error) {
 	chatMembers, err := r.getMembers(ctx, update.EffectiveChat())
 	if err != nil {

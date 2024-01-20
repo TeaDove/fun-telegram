@@ -12,7 +12,15 @@ import (
 )
 
 func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error {
-	_, ok := update.UpdateClass.(*tg.UpdateNewChannelMessage)
+	ok, err := r.isEnabled(update.EffectiveMessage.GetID())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if !ok {
+		return nil
+	}
+
+	_, ok = update.UpdateClass.(*tg.UpdateNewChannelMessage)
 	if !ok {
 		_, ok = update.UpdateClass.(*tg.UpdateNewMessage)
 		if !ok {
@@ -35,7 +43,7 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 		return nil
 	}
 
-	err := r.dbRepository.MessageCreate(ctx, &db_repository.Message{
+	err = r.dbRepository.MessageCreate(ctx, &db_repository.Message{
 		TgChatID: update.EffectiveChat().GetID(),
 		TgUserId: update.EffectiveUser().GetID(),
 		Text:     update.EffectiveMessage.Text,

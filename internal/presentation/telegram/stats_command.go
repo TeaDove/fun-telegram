@@ -1,11 +1,13 @@
 package telegram
 
 import (
+	"fmt"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
 func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
@@ -44,11 +46,18 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	}
 
 	text := []styling.StyledTextOption{
-		styling.Plain("Chat report:\nFirst message in stats send at "),
+		styling.Plain(fmt.Sprintf("%s report:\n\nFirst message in stats send at ", utils.GetChatName(update.EffectiveChat()))),
 		styling.Code(report.FirstMessageAt.String()),
 	}
 
-	_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Album(
+	var requestBuilder *message.RequestBuilder
+	if input.Silent {
+		requestBuilder = ctx.Sender.Self()
+	} else {
+		ctx.Sender.To(update.EffectiveChat().GetInputPeer())
+	}
+
+	_, err = requestBuilder.Album(
 		ctx,
 		message.UploadedPhoto(popularWordsFile, text...),
 		album...,

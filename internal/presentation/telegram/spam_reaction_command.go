@@ -2,13 +2,11 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
-	"strconv"
-
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/tg"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/service/storage"
 )
@@ -23,15 +21,11 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return errors.WithStack(ErrPeerNotFound)
 	}
 
-	_, err := r.storage.Load(strconv.Itoa(int(chatId)))
+	ok, err := r.isEnabled(update.EffectiveMessage.GetID())
 	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
-			// Bot enabled
-		} else {
-			return errors.WithStack(err)
-		}
-	} else {
-		// Bot disable
+		return errors.WithStack(err)
+	}
+	if !ok {
 		return nil
 	}
 

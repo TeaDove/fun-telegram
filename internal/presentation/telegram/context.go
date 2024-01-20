@@ -2,22 +2,13 @@ package telegram
 
 import (
 	"github.com/celestix/gotgproto/ext"
-	"github.com/celestix/gotgproto/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
 func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error {
-	chatName := ""
-	switch v := update.EffectiveChat().(type) {
-	case *types.Channel:
-		chatName = v.Title
-	case *types.Chat:
-		chatName = v.Title
-	case *types.User:
-		chatName = v.Username
-	}
+	chatName := tgUtils.GetChatName(update.EffectiveChat())
 
 	ctx.Context = log.
 		With().
@@ -39,7 +30,7 @@ func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	const silentArgument = "Silent"
+	const silentArgument = "silent"
 
 	args := tgUtils.GetArguments(update.EffectiveMessage.Message.Message)
 	_, silent := args[silentArgument]

@@ -40,7 +40,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	}
 
 	args := tgUtils.GetArguments(text)
-	_, silent := args["Silent"]
+	_, silent := args["silent"]
 
 	input := Input{
 		Args:   args,
