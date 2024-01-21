@@ -64,7 +64,7 @@ func MustNewTelegramPresentation(
 	})
 
 	middlewares := []telegram.Middleware{
-		ratelimit.New(rate.Every(time.Millisecond*100), 10), waiter,
+		ratelimit.New(rate.Every(time.Millisecond*100), 30), waiter,
 	}
 
 	protoClient, err := gotgproto.NewClient(

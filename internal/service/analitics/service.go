@@ -51,7 +51,7 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"кстати", "хотя", "может", "тебя", "тоже", "без", "вас", "который", "зачем", "буду", "себе", "сделать",
 	"почему", "кажется", "больше", "просто", "o", "о", "by", "in", "ok", "of", "to", "and", "могу", "знаю", "the", "хочу",
 	"был", "себя", "тогда", "после", "такой", "сегодня", "быть", "всегда", "всех", "него", "сразу", "ж", "под", "ничего",
-	"этом", "ему", "много", "че", "чё")
+	"этом", "ему", "много", "че", "чё", "какой", "во", "щас", "были", "при", "этот", "типа", "ладно", "какой", "завтра")
 
 type AnaliseReport struct {
 	PopularWordsImage         []byte
@@ -61,6 +61,7 @@ type AnaliseReport struct {
 	MostToxicUsersImage       []byte
 
 	FirstMessageAt time.Time
+	MessagesCount  int
 }
 
 func PngToJpeg(image []byte) ([]byte, error) {
@@ -332,7 +333,10 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport,
 		return AnaliseReport{}, errors.WithStack(err)
 	}
 
-	report := AnaliseReport{FirstMessageAt: messages[len(messages)-1].CreatedAt}
+	report := AnaliseReport{
+		FirstMessageAt: messages[len(messages)-1].CreatedAt,
+		MessagesCount:  len(messages),
+	}
 
 	popularWordsImage, err := r.getPopularWords(messages)
 	if err != nil {

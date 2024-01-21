@@ -86,7 +86,7 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 
 	text := []styling.StyledTextOption{
 		styling.Plain(fmt.Sprintf("%s report:\n\nFirst message in stats send at ", utils.GetChatName(update.EffectiveChat()))),
-		styling.Code(report.FirstMessageAt.String()),
+		styling.Code(report.FirstMessageAt.String()), styling.Plain(fmt.Sprintf("\nMessages processed: %d", report.MessagesCount)),
 	}
 
 	var requestBuilder *message.RequestBuilder
