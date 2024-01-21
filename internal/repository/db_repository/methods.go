@@ -4,7 +4,9 @@ import (
 	"context"
 	errors "github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/teadove/goteleout/internal/shared"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -12,6 +14,23 @@ import (
 func (r *Repository) MessageCreate(ctx context.Context, message *Message) error {
 	err := r.messageCollection.CreateWithCtx(ctx, message)
 	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) MessageCreateOrNothingAndSetTime(ctx context.Context, message *Message) error {
+	message.UpdatedAt = time.Now().UTC()
+	_, err := r.messageCollection.InsertOne(ctx, &message)
+	if err != nil {
+		var mgerr mongo.WriteException
+		if errors.As(err, &mgerr) {
+			if mgerr.HasErrorCode(11000) {
+				return nil
+			}
+		}
+
 		return errors.WithStack(err)
 	}
 
@@ -50,11 +69,10 @@ func (r *Repository) UserUpsert(ctx context.Context, user *User) error {
 }
 
 func (r *Repository) MessageDeleteOld(ctx context.Context) error {
-	const messageTtl = 6 * 30 * 24 * time.Hour // 6 months
 
 	result, err := r.messageCollection.DeleteMany(ctx,
 		bson.D{{"created_at",
-			bson.D{{"$lt", time.Now().UTC().Add(-messageTtl)}},
+			bson.D{{"$lt", time.Now().UTC().Add(-shared.AppSettings.MessageTtl)}},
 		}})
 	if err != nil {
 		return errors.WithStack(err)
@@ -85,4 +103,19 @@ func (r *Repository) GetUsersById(ctx context.Context, usersId []int64) ([]User,
 	}
 
 	return users, nil
+}
+
+func (r *Repository) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {
+	var message Message
+	err := r.messageCollection.FirstWithCtx(
+		ctx,
+		bson.M{"tg_chat_id": chatId},
+		&message,
+		options.FindOne().SetSort(bson.D{{"created_at", 1}}),
+	)
+	if err != nil {
+		return Message{}, errors.WithStack(err)
+	}
+
+	return message, nil
 }

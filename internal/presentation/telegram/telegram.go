@@ -118,6 +118,7 @@ func MustNewTelegramPresentation(
 		"disable":       presentation.disableCommandHandler,
 		"location":      presentation.locationCommandHandler,
 		"stats":         presentation.statsCommandHandler,
+		"upload_stats":  presentation.uploadStatsCommandHandler,
 	}
 
 	protoClient.Dispatcher.AddHandler(

@@ -10,6 +10,7 @@ type Message struct {
 	TgChatID int64 `bson:"tg_chat_id"`
 	TgUserId int64 `bson:"tg_user_id"`
 	Text     string
+	TgId     int `bson:"tg_id"`
 }
 
 type User struct {

@@ -30,7 +30,9 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"на", "за", "они", "она", "он", "то", "от", "бы", "если", "ты", "ну", "нету", "была",
 	"там", "ли", "или", "да", "к", "у", "все", "даже", "есть", "для", "давай", "же", "надо",
 	"конечно", "которые", "было", "те", "свою", "мне", "вообще", "по", "где", "кто", "его", "из",
-	"можно", "либо", "куда", "уже", "только", "самые", "должны", "пока", "их")
+	"можно", "либо", "куда", "уже", "только", "самые", "должны", "пока", "их", "как", "так", "со", "чем", "про",
+	"чо", "очень", "еще", "ещё", "так", "до", "нет", "про", "вот", "ни", "когда", "чтобы", "потом", "сколько", "будет",
+	"тут", "этого", "точно", "хоть", "понял", "раз")
 
 type AnaliseReport struct {
 	PopularWordsImage []byte
@@ -172,9 +174,13 @@ func (r *Service) chatterBox(ctx context.Context, messages []db_repository.Messa
 
 	values := make([]chart.Value, 0, 10)
 	for _, user := range users {
+		userName, ok := idToName[user]
+		if !ok {
+			userName = "unknown"
+		}
 		values = append(values, chart.Value{
 			Value: float64(userToCount[user]),
-			Label: idToName[user],
+			Label: userName,
 		})
 	}
 	if len(values) <= 1 {

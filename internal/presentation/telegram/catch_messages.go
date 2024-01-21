@@ -47,6 +47,7 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 		TgChatID: update.EffectiveChat().GetID(),
 		TgUserId: update.EffectiveUser().GetID(),
 		Text:     update.EffectiveMessage.Text,
+		TgId:     update.EffectiveMessage.GetID(),
 	})
 	if err != nil {
 		return errors.WithStack(err)

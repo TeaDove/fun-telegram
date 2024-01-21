@@ -2,6 +2,7 @@ package shared
 
 import (
 	"path/filepath"
+	"time"
 
 	"github.com/caarlos0/env/v7"
 	"github.com/joho/godotenv"
@@ -30,11 +31,12 @@ type Storage struct {
 }
 
 type Settings struct {
-	LogErrorToSelf  bool     `env:"log_error_to_self" envDefault:"false"`
-	Telegram        telegram `envPrefix:"telegram__"`
-	Storage         Storage  `envPrefix:"storage__"`
-	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
-	LogLevel        string   `env:"log_level"         envDefault:"debug"`
+	LogErrorToSelf  bool          `env:"log_error_to_self" envDefault:"false"`
+	Telegram        telegram      `envPrefix:"telegram__"`
+	Storage         Storage       `envPrefix:"storage__"`
+	FileStoragePath string        `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
+	LogLevel        string        `env:"log_level"         envDefault:"debug"`
+	MessageTtl      time.Duration `env:"message_ttl" envDefault:"4320h"` // 6 months
 
 	KandinskyKey    string `env:"kandinsky_key"`
 	KandinskySecret string `env:"kandinsky_secret"`
