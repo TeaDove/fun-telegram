@@ -2,10 +2,8 @@ package analitics
 
 import (
 	"bytes"
-	"context"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
-	"github.com/teadove/goteleout/internal/utils"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
 	"sort"
@@ -18,7 +16,7 @@ type toxicLevel struct {
 	Percent    float64
 }
 
-func (r *Service) getMostToxicUsers(ctx context.Context, messages []db_repository.Message) ([]byte, error) {
+func (r *Service) getMostToxicUsers(messages []db_repository.Message, getter nameGetter) ([]byte, error) {
 	const maxUsers = 20
 
 	userToToxic := make(map[int64]*toxicLevel, 100)
@@ -60,28 +58,14 @@ func (r *Service) getMostToxicUsers(ctx context.Context, messages []db_repositor
 		return userToToxic[users[i]].Percent > userToToxic[users[j]].Percent
 	})
 
-	tgUsers, err := r.dbRepository.GetUsersById(ctx, users)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	idToName := make(map[int64]string, len(tgUsers))
-	for _, user := range tgUsers {
-		idToName[user.TgUserId] = user.TgName
-	}
-
 	values := make([]chart.Value, 0, 10)
 	if len(users) > maxUsers {
 		users = users[:maxUsers]
 	}
 	for _, user := range users {
-		userName, ok := idToName[user]
-		if !ok {
-			userName = utils.Unknown
-		}
 		values = append(values, chart.Value{
 			Value: userToToxic[user].Percent,
-			Label: userName,
+			Label: getter.Get(user),
 		})
 	}
 
@@ -91,7 +75,7 @@ func (r *Service) getMostToxicUsers(ctx context.Context, messages []db_repositor
 
 	var buffer bytes.Buffer
 
-	err = barChart.Render(chart.PNG, &buffer)
+	err := barChart.Render(chart.PNG, &buffer)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

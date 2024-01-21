@@ -77,7 +77,6 @@ func MustNewCombatContainer() Container {
 		shared.AppSettings.Telegram.PhoneNumber,
 		shared.AppSettings.Telegram.SessionFullPath,
 		persistentStorage,
-		shared.AppSettings.LogErrorToSelf,
 		kandinskySupplier,
 		&locator,
 		dbRepository,
@@ -87,7 +86,7 @@ func MustNewCombatContainer() Container {
 	jobService, err := job.New(dbRepository)
 	utils.Check(err)
 
-	container := Container{&telegramPresentation, jobService}
+	container := Container{telegramPresentation, jobService}
 
 	return container
 }

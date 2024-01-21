@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
+	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/query"
@@ -137,10 +138,10 @@ func (r *Presentation) uploadMessageToRepository(ctx *ext.Context, wg *sync.Wait
 	zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
 }
 
-func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, update *ext.Update) {
+func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, chat types.EffectiveChat) {
 	defer wg.Done()
 
-	chatMembers, err := r.getMembers(ctx, update.EffectiveChat())
+	chatMembers, err := r.getMembers(ctx, chat)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.get.members").Send()
 		return
@@ -169,7 +170,9 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, up
 }
 
 func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
-	maxElapsed := time.Hour * 10
+	const maxElapsed = time.Hour * 10
+	const maxCount = 10_000
+
 	ok, err := r.checkFromAdmin(ctx, update)
 	if err != nil {
 		return errors.WithStack(err)
@@ -210,7 +213,7 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go r.uploadMembers(ctx, &wg, update)
+	go r.uploadMembers(ctx, &wg, update.EffectiveChat())
 	var lastDate time.Time
 
 	for {
@@ -267,6 +270,10 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 			}
 			if time.Now().Sub(startedAt) > maxElapsed {
 				zerolog.Ctx(ctx).Info().Str("status", "iterating.too.long").Send()
+				break
+			}
+			if count > maxCount {
+				zerolog.Ctx(ctx).Info().Str("status", "iterating.too.much").Send()
 				break
 			}
 

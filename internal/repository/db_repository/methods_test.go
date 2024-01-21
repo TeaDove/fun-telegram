@@ -179,3 +179,12 @@ func TestIntegration_DbRepository_GetUserById_Ok(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "teadove", user.TgName)
 }
+
+func TestIntegration_DbRepository_GetUsersByChatId_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	_, err := r.GetUsersByChatId(ctx, 1825059942)
+	assert.NoError(t, err)
+}

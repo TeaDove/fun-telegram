@@ -8,7 +8,6 @@ import (
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
-	"github.com/teadove/goteleout/internal/utils"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
 	"image/jpeg"
@@ -158,7 +157,7 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 	return jpgImg, nil
 }
 
-func (r *Service) getChatterBoxes(ctx context.Context, messages []db_repository.Message) ([]byte, error) {
+func (r *Service) getChatterBoxes(messages []db_repository.Message, getter nameGetter) ([]byte, error) {
 	const maxUsers = 20
 
 	userToCount := make(map[int64]int, 100)
@@ -180,25 +179,11 @@ func (r *Service) getChatterBoxes(ctx context.Context, messages []db_repository.
 		users = users[:maxUsers]
 	}
 
-	tgUsers, err := r.dbRepository.GetUsersById(ctx, users)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	idToName := make(map[int64]string, len(tgUsers))
-	for _, user := range tgUsers {
-		idToName[user.TgUserId] = user.TgName
-	}
-
 	values := make([]chart.Value, 0, 10)
 	for _, user := range users {
-		userName, ok := idToName[user]
-		if !ok {
-			userName = utils.Unknown
-		}
 		values = append(values, chart.Value{
 			Value: float64(userToCount[user]),
-			Label: userName,
+			Label: getter.Get(user),
 		})
 	}
 	if len(values) <= 1 {
@@ -211,7 +196,7 @@ func (r *Service) getChatterBoxes(ctx context.Context, messages []db_repository.
 
 	var popularWordsBuffer bytes.Buffer
 
-	err = barChart.Render(chart.PNG, &popularWordsBuffer)
+	err := barChart.Render(chart.PNG, &popularWordsBuffer)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -342,6 +327,11 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport,
 		return AnaliseReport{}, nil
 	}
 
+	getter, err := r.getNameGetter(ctx, chatId)
+	if err != nil {
+		return AnaliseReport{}, errors.WithStack(err)
+	}
+
 	report := AnaliseReport{FirstMessageAt: messages[len(messages)-1].CreatedAt}
 
 	popularWordsImage, err := r.getPopularWords(messages)
@@ -351,7 +341,7 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport,
 
 	report.PopularWordsImage = popularWordsImage
 
-	chatterBoxesImage, err := r.getChatterBoxes(ctx, messages)
+	chatterBoxesImage, err := r.getChatterBoxes(messages, getter)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
@@ -372,7 +362,7 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport,
 
 	report.ChatDateDistributionImage = chatDateDistributionImage
 
-	mostToxicUsersImage, err := r.getMostToxicUsers(ctx, messages)
+	mostToxicUsersImage, err := r.getMostToxicUsers(messages, getter)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}

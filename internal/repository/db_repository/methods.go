@@ -102,6 +102,25 @@ func (r *Repository) GetUsersById(ctx context.Context, usersId []int64) ([]User,
 	return users, nil
 }
 
+func (r *Repository) GetUsersByChatId(ctx context.Context, chatId int64) ([]User, error) {
+	userIds, err := r.messageCollection.Distinct(ctx, "tg_user_id", bson.M{"tg_chat_id": chatId})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	usersIdsConcrete := make([]int64, 0, len(userIds))
+	for _, userId := range userIds {
+		userIdConcrete, ok := userId.(int64)
+		if !ok {
+			return nil, errors.New("non int64 type")
+		}
+
+		usersIdsConcrete = append(usersIdsConcrete, userIdConcrete)
+	}
+
+	return r.GetUsersById(ctx, usersIdsConcrete)
+}
+
 func (r *Repository) GetUserById(ctx context.Context, userId int64) (User, error) {
 	var user User
 

@@ -1,20 +1,25 @@
 package telegram
 
 import (
-	"fmt"
+	"context"
+	"github.com/gotd/contrib/middleware/floodwait"
+	"github.com/gotd/contrib/middleware/ratelimit"
+	"github.com/gotd/td/telegram"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
+	"time"
+
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
+	"golang.org/x/time/rate"
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
-	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/teadove/goteleout/internal/service/storage"
@@ -29,7 +34,6 @@ var (
 type Presentation struct {
 	// Unused, but may be usefully later
 	//  telegramClient  *telegram.Client
-	telegramSender  *message.Sender
 	telegramApi     *tg.Client
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
@@ -42,8 +46,6 @@ type Presentation struct {
 
 	dbRepository     *db_repository.Repository
 	analiticsService *analitics.Service
-
-	logErrorToSelf bool
 }
 
 func MustNewTelegramPresentation(
@@ -52,12 +54,18 @@ func MustNewTelegramPresentation(
 	telegramPhoneNumber string,
 	sessionFullPath string,
 	storage storage.Interface,
-	logErrorToSelf bool,
 	kandinskySupplier *kandinsky_supplier.Supplier,
 	ipLocator *ip_locator.Supplier,
 	dbRepository *db_repository.Repository,
 	analiticsService *analitics.Service,
-) Presentation {
+) *Presentation {
+	waiter := floodwait.NewWaiter().WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
+		zerolog.Ctx(ctx).Warn().Str("status", "flood.waiting").Dur("dur", wait.Duration).Send()
+	})
+
+	middlewares := []telegram.Middleware{
+		ratelimit.New(rate.Every(time.Millisecond*100), 10), waiter,
+	}
 
 	protoClient, err := gotgproto.NewClient(
 		telegramAppID,
@@ -69,6 +77,12 @@ func MustNewTelegramPresentation(
 			InMemory:         false,
 			DisableCopyright: true,
 			Session:          sessionMaker.SqliteSession(sessionFullPath),
+			Middlewares:      middlewares,
+			RunMiddleware: func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
+				return origRun(ctx, func(ctx context.Context) error {
+					return waiter.Run(ctx, f)
+				})
+			},
 		})
 	utils.Check(err)
 
@@ -78,9 +92,7 @@ func MustNewTelegramPresentation(
 		storage:           storage,
 		protoClient:       protoClient,
 		telegramApi:       api,
-		telegramSender:    message.NewSender(api),
 		telegramManager:   peers.Options{}.Build(api),
-		logErrorToSelf:    logErrorToSelf,
 		kandinskySupplier: kandinskySupplier,
 		ipLocator:         ipLocator,
 		dbRepository:      dbRepository,
@@ -137,7 +149,7 @@ func MustNewTelegramPresentation(
 
 	dp.Error = presentation.errorHandler
 
-	return presentation
+	return &presentation
 }
 
 func (r *Presentation) errorHandler(
@@ -152,33 +164,14 @@ func (r *Presentation) errorHandler(
 		Interface("update", update).
 		Send()
 
-	if r.logErrorToSelf {
-		_, err := ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{
-			Silent:  true,
-			Message: fmt.Sprintf("Error occurred while processing update:\n\n%s", errorString),
-		})
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		return nil
-	}
-
 	return nil
 }
 
 func (r *Presentation) Run() error {
-	ctx := r.protoClient.CreateContext()
-
-	_, err := ctx.SendMessage(
-		ctx.Self.ID,
-		&tg.MessagesSendMessageRequest{Message: "Fun telegram initialized!"},
-	)
+	err := r.protoClient.Idle()
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
-	err = r.protoClient.Idle()
-
-	return err
+	return nil
 }
