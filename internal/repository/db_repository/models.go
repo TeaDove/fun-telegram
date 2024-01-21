@@ -19,4 +19,5 @@ type User struct {
 	TgUserId   int64  `bson:"tg_user_id"`
 	TgUsername string `bson:"tg_username"`
 	TgName     string `bson:"tg_name"`
+	IsBot      bool   `bson:"is_bot"`
 }

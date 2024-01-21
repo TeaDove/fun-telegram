@@ -6,46 +6,62 @@ import (
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/teadove/goteleout/internal/utils"
+	"strings"
+	"unicode"
 )
 
 func GetNameFromPeerUser(user *peers.User) string {
-	name, nameOk := user.FirstName()
-	lastName, lastNameOk := user.LastName()
+	tgUser := tg.User{}
 
-	if nameOk {
-		if lastNameOk {
-			return fmt.Sprintf("%s %s", name, lastName)
-		}
+	firstName, ok := user.FirstName()
+	if ok {
+		tgUser.SetFirstName(firstName)
+	}
 
-		return name
+	lastName, ok := user.LastName()
+	if ok {
+		tgUser.SetLastName(lastName)
 	}
 
 	username, ok := user.Username()
 	if ok {
-		return username
+		tgUser.SetUsername(username)
 	}
 
-	return utils.Undefined
+	return GetNameFromTgUser(&tgUser)
 }
 
 func GetNameFromTgUser(user *tg.User) string {
+	var result string
+
 	name, nameOk := user.GetFirstName()
 	lastName, lastNameOk := user.GetLastName()
 
 	if nameOk {
 		if lastNameOk {
-			return fmt.Sprintf("%s %s", name, lastName)
+			result = fmt.Sprintf("%s %s", name, lastName)
 		}
 
-		return name
+		result = name
 	}
 
 	username, ok := user.GetUsername()
 	if ok {
-		return username
+		result = username
 	}
 
-	return utils.Undefined
+	if result == "" {
+		result = utils.Undefined
+	}
+
+	result = strings.Map(func(r rune) rune {
+		if unicode.IsGraphic(r) {
+			return r
+		}
+		return -1
+	}, result)
+
+	return result
 }
 
 func GetChatName(chat types.EffectiveChat) string {

@@ -102,6 +102,17 @@ func (r *Repository) GetUsersById(ctx context.Context, usersId []int64) ([]User,
 	return users, nil
 }
 
+func (r *Repository) GetUserById(ctx context.Context, userId int64) (User, error) {
+	var user User
+
+	err := r.userCollection.FirstWithCtx(ctx, bson.M{"tg_user_id": userId}, &user)
+	if err != nil {
+		return User{}, errors.WithStack(err)
+	}
+
+	return user, nil
+}
+
 func (r *Repository) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {
 	var message Message
 
@@ -116,4 +127,13 @@ func (r *Repository) GetLastMessage(ctx context.Context, chatId int64) (Message,
 	}
 
 	return message, nil
+}
+
+func (r *Repository) CheckUserExists(ctx context.Context, userId int64) (bool, error) {
+	count, err := r.userCollection.CountDocuments(ctx, bson.M{"tg_user_id": userId})
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	return count == 1, nil
 }

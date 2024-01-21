@@ -67,9 +67,11 @@ func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Updat
 				return errors.WithStack(err)
 			}
 
-			_, err = ctx.Reply(update, "Bot disabled in this chat", nil)
-			if err != nil {
-				return errors.WithStack(err)
+			if !input.Silent {
+				_, err = ctx.Reply(update, "Bot disabled in this chat", nil)
+				if err != nil {
+					return errors.WithStack(err)
+				}
 			}
 		}
 
@@ -81,9 +83,11 @@ func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Updat
 		return errors.WithStack(err)
 	}
 
-	_, err = ctx.Reply(update, "Bot enabled in this chat", nil)
-	if err != nil {
-		return errors.WithStack(err)
+	if !input.Silent {
+		_, err = ctx.Reply(update, "Bot enabled in this chat", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
 	}
 
 	return nil

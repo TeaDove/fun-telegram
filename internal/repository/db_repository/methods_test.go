@@ -131,3 +131,51 @@ func TestIntegration_DbRepository_MessageCreateOrNothingAndSetTime_Ok(t *testing
 	assert.NoError(t, err)
 	assert.Equal(t, "2", msg.Text)
 }
+
+func TestIntegration_DbRepository_CheckUserExists_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+	err := r.UserUpsert(ctx, &User{
+		TgUserId:   id,
+		TgUsername: "teadove",
+		TgName:     "teadove",
+	})
+	require.NoError(t, err)
+
+	ok, err := r.CheckUserExists(ctx, id)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+}
+
+func TestIntegration_DbRepository_CheckUserExists_False(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+
+	ok, err := r.CheckUserExists(ctx, id)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+}
+
+func TestIntegration_DbRepository_GetUserById_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+	err := r.UserUpsert(ctx, &User{
+		TgUserId:   id,
+		TgUsername: "teadove",
+		TgName:     "teadove",
+	})
+	require.NoError(t, err)
+
+	user, err := r.GetUserById(ctx, id)
+	assert.NoError(t, err)
+	assert.Equal(t, "teadove", user.TgName)
+}

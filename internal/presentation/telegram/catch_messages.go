@@ -7,8 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
-	"strings"
-	"unicode"
 )
 
 func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error {
@@ -39,6 +37,16 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 		return nil
 	}
 
+	err = r.dbRepository.UserUpsert(ctx, &db_repository.User{
+		TgUserId:   update.EffectiveUser().GetID(),
+		TgUsername: update.EffectiveUser().Username,
+		TgName:     utils.GetNameFromTgUser(update.EffectiveUser()),
+		IsBot:      update.EffectiveUser().Bot,
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	if update.EffectiveUser().Bot {
 		return nil
 	}
@@ -48,23 +56,6 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 		TgUserId: update.EffectiveUser().GetID(),
 		Text:     update.EffectiveMessage.Text,
 		TgId:     update.EffectiveMessage.GetID(),
-	})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	tgName := utils.GetNameFromTgUser(update.EffectiveUser())
-	tgNameCleaned := strings.Map(func(r rune) rune {
-		if unicode.IsGraphic(r) {
-			return r
-		}
-		return -1
-	}, tgName)
-
-	err = r.dbRepository.UserUpsert(ctx, &db_repository.User{
-		TgUserId:   update.EffectiveUser().GetID(),
-		TgUsername: update.EffectiveUser().Username,
-		TgName:     tgNameCleaned,
 	})
 	if err != nil {
 		return errors.WithStack(err)

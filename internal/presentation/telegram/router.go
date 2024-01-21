@@ -5,6 +5,7 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"strconv"
@@ -79,6 +80,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	err = executor(ctx, update, &input)
 	if err != nil {
+		log.Error().Stack().Err(err).Str("status", "failed.to.process.command").Send()
 		return errors.WithStack(err)
 	}
 

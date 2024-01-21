@@ -1,11 +1,13 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/query"
+	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
@@ -15,6 +17,7 @@ import (
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/shared"
+	"sync"
 	"time"
 )
 
@@ -77,6 +80,63 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	return nil
 }
 
+func (r *Presentation) uploadToRepository(ctx *ext.Context, wg *sync.WaitGroup, update *ext.Update, elem *messages.Elem) {
+	defer wg.Done()
+
+	msg, ok := elem.Msg.(*tg.Message)
+	if !ok {
+		return
+	}
+
+	msgFrom, ok := msg.FromID.(*tg.PeerUser)
+	if !ok {
+		return
+	}
+
+	err := r.dbRepository.MessageCreateOrNothingAndSetTime(ctx, &db_repository.Message{
+		DefaultModel: mgm.DefaultModel{
+			DateFields: mgm.DateFields{CreatedAt: time.Unix(int64(msg.Date), 0)},
+		},
+		TgChatID: update.EffectiveChat().GetID(),
+		TgUserId: msgFrom.UserID,
+		Text:     msg.Message,
+		TgId:     msg.ID,
+	})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.upload.message.to.repository").Send()
+		return
+	}
+}
+
+func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, update *ext.Update) {
+	defer wg.Done()
+
+	chatMembers, err := r.getMembers(ctx, update.EffectiveChat())
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.get.members").Send()
+		return
+	}
+
+	for _, chatMember := range chatMembers {
+		user := chatMember.User()
+		_, isBot := user.ToBot()
+
+		username, _ := user.Username()
+		err = r.dbRepository.UserUpsert(ctx, &db_repository.User{
+			TgUserId:   user.ID(),
+			TgUsername: username,
+			TgName:     utils.GetNameFromPeerUser(&user),
+			IsBot:      isBot,
+		})
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.insert.user").Send()
+			return
+		}
+	}
+
+	zerolog.Ctx(ctx).Info().Str("status", "users.uploaded").Int("count", len(chatMembers)).Send()
+}
+
 func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	maxElapsed := time.Hour * 10
 	ok, err := r.checkFromAdmin(ctx, update)
@@ -110,10 +170,17 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 	}
 	zerolog.Ctx(ctx).Info().Str("status", "stats.upload.begin").Int("offset", offset).Send()
 
-	historyIter := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer()).Iter()
-	historyIter.OffsetID(offset)
+	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
+	historyQuery.BatchSize(100)
+	historyQuery.OffsetID(offset)
+	historyIter := historyQuery.Iter()
 	startedAt := time.Now()
 	count := 0
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go r.uploadMembers(ctx, &wg, update)
+	var lastDate time.Time
 
 	for {
 		ok = historyIter.Next(ctx)
@@ -125,26 +192,41 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 				return nil
 			}
 
+			lastDate = time.Unix(int64(msg.Date), 0)
+
 			count++
-			msgFrom, ok := msg.FromID.(*tg.PeerUser)
-			if !ok {
-				return nil
+
+			wg.Add(1)
+			go r.uploadToRepository(ctx, &wg, update, &elem)
+
+			if count%50 == 0 {
+				time.Sleep(time.Second)
+				zerolog.Ctx(ctx).Info().Str("status", "messages.batch.uploaded").Int("count", count).Send()
+
+				if !input.Silent {
+					_, err = ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+						Peer: update.EffectiveChat().GetInputPeer(),
+						ID:   barMessageId,
+						Message: fmt.Sprintf(
+							"⚙️ Uploading messages\n\n"+
+								"Amount uploaded: %d\n"+
+								"Seconds elapsed: %f\n"+
+								"Offset: %d\n"+
+								"LastDate: %s",
+							count,
+							time.Now().Sub(startedAt).Seconds(),
+							offset,
+							lastDate.String(),
+						),
+					})
+					if err != nil {
+						zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
+					}
+				}
+
 			}
 
-			err = r.dbRepository.MessageCreateOrNothingAndSetTime(ctx, &db_repository.Message{
-				DefaultModel: mgm.DefaultModel{
-					DateFields: mgm.DateFields{CreatedAt: time.Unix(int64(msg.Date), 0)},
-				},
-				TgChatID: update.EffectiveChat().GetID(),
-				TgUserId: msgFrom.UserID,
-				Text:     msg.Message,
-				TgId:     msg.ID,
-			})
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			if !time.Unix(int64(msg.Date), 0).After(queryTill) {
+			if !lastDate.After(queryTill) {
 				zerolog.Ctx(ctx).Info().Str("status", "last.in.period.message.found").Send()
 				break
 			}
@@ -152,54 +234,35 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 				zerolog.Ctx(ctx).Info().Str("status", "iterating.too.long").Send()
 				break
 			}
-		} else {
-			err = historyIter.Err()
-			if err != nil {
-				dur, ok := tgerr.AsFloodWait(err)
-				if ok {
-					if !input.Silent {
-						_, err = ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
-							Peer: update.EffectiveChat().GetInputPeer(),
-							ID:   barMessageId,
-							Message: fmt.Sprintf(
-								"⚙️ Uploading messages\n\n"+
-									"Amount uploaded: %d\n"+
-									"Seconds elapsed: %f\n"+
-									"Flood wait duration: %f\n"+
-									"Offset: %d",
-								count,
-								time.Now().Sub(startedAt).Seconds(),
-								dur.Seconds(),
-								offset,
-							),
-						})
-						if err != nil {
-							zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
-						}
-					}
 
-					zerolog.Ctx(ctx).
-						Info().
-						Str("status", "sleeping.because.of.flood.wait").
-						Dur("dur", dur).
-						Int("offset", offset).
-						Send()
-					time.Sleep(dur + time.Second)
-
-					historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
-					historyQuery.OffsetID(offset)
-					historyIter = historyQuery.Iter()
-
-					continue
-				}
-				return errors.WithStack(err)
-			} else {
-				zerolog.Ctx(ctx).Info().Str("status", "all.messages.found").Send()
-				break
-			}
+			continue
 		}
+
+		err = historyIter.Err()
+		if err == nil {
+			zerolog.Ctx(ctx).Info().Str("status", "all.messages.found").Send()
+			break
+		}
+
+		dur, ok := tgerr.AsFloodWait(err)
+		if ok {
+			zerolog.Ctx(ctx).
+				Info().
+				Str("status", "sleeping.because.of.flood.wait").
+				Dur("dur", dur).
+				Int("offset", offset).
+				Send()
+			time.Sleep(dur + time.Second)
+
+			historyQuery.OffsetID(offset)
+			historyIter = historyQuery.Iter()
+
+			continue
+		}
+		return errors.WithStack(err)
 	}
 
+	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
 
 	if !input.Silent {
@@ -209,9 +272,11 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 			Message: fmt.Sprintf(
 				"Messages uploaded!\n\n"+
 					"Amount: %d\n"+
-					"Seconds elapsed: %f\n",
+					"Seconds elapsed: %f\n"+
+					"LastDate: %s",
 				count,
 				time.Now().Sub(startedAt).Seconds(),
+				lastDate.String(),
 			),
 		})
 		if err != nil {
