@@ -13,6 +13,7 @@ func GetUser(ctx *ext.Context, userId int64) (*tg.User, error) {
 	if peer.ID == 0 {
 		return nil, errors.WithStack(mtp_errors.ErrPeerNotFound)
 	}
+
 	if peer.Type == storage.TypeUser.GetInt() {
 		users, err := ctx.Raw.UsersGetUsers(ctx, []tg.InputUserClass{&tg.InputUser{
 			UserID:     peer.ID,
@@ -21,9 +22,11 @@ func GetUser(ctx *ext.Context, userId int64) (*tg.User, error) {
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
 		if len(users) != 1 {
 			return nil, errors.WithStack(mtp_errors.ErrPeerNotFound)
 		}
+
 		user, ok := users[0].(*tg.User)
 		if !ok {
 			return nil, errors.WithStack(mtp_errors.ErrNotUser)
@@ -37,6 +40,7 @@ func GetUser(ctx *ext.Context, userId int64) (*tg.User, error) {
 
 func GetUserFromPeer(ctx *ext.Context, peer tg.InputPeerClass) (*tg.User, error) {
 	var peerId, peerAccessHash int64
+
 	peerUser, ok := peer.(*tg.InputPeerUser)
 	if ok {
 		peerId = peerUser.UserID
@@ -62,9 +66,11 @@ func GetUserFromPeer(ctx *ext.Context, peer tg.InputPeerClass) (*tg.User, error)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
 	if len(users) != 1 {
 		return nil, errors.WithStack(mtp_errors.ErrPeerNotFound)
 	}
+
 	user, ok := users[0].(*tg.User)
 	if !ok {
 		return nil, errors.WithStack(mtp_errors.ErrNotUser)
