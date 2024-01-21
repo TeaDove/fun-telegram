@@ -78,7 +78,7 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 }
 
 func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
-	maxElapsed := time.Minute * 10
+	maxElapsed := time.Hour * 10
 	ok, err := r.checkFromAdmin(ctx, update)
 	if err != nil {
 		return errors.WithStack(err)
