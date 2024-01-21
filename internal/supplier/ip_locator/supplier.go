@@ -41,6 +41,8 @@ func (r *Supplier) GetLocation(ctx context.Context, ip string) (IpLocation, erro
 		return IpLocation{}, errors.WithStack(err)
 	}
 
+	defer resp.Body.Close()
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return IpLocation{}, errors.WithStack(err)

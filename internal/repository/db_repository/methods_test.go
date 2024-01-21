@@ -58,7 +58,7 @@ func TestIntegration_DbRepository_DeleteOldMessages_Ok(t *testing.T) {
 	t.Parallel()
 	r := getRepository(t)
 
-	err := r.MessageDeleteOld(utils.GetModuleCtx("repository"))
+	_, err := r.MessageDeleteOld(utils.GetModuleCtx("repository"))
 	assert.NoError(t, err)
 }
 

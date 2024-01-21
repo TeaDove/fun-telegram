@@ -5,6 +5,7 @@ import (
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
+	"github.com/teadove/goteleout/internal/utils"
 )
 
 func GetNameFromPeerUser(user *peers.User) string {
@@ -24,7 +25,7 @@ func GetNameFromPeerUser(user *peers.User) string {
 		return username
 	}
 
-	return "undefined"
+	return utils.Undefined
 }
 
 func GetNameFromTgUser(user *tg.User) string {
@@ -44,7 +45,7 @@ func GetNameFromTgUser(user *tg.User) string {
 		return username
 	}
 
-	return "undefined"
+	return utils.Undefined
 }
 
 func GetChatName(chat types.EffectiveChat) string {
@@ -57,5 +58,5 @@ func GetChatName(chat types.EffectiveChat) string {
 		return v.Username
 	}
 
-	return "undefined"
+	return utils.Undefined
 }

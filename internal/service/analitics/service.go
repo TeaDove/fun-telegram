@@ -7,6 +7,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/utils"
 	"github.com/wcharczuk/go-chart/v2"
 	"image/jpeg"
 	"image/png"
@@ -33,7 +34,8 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"можно", "либо", "куда", "уже", "только", "самые", "должны", "пока", "их", "как", "так", "со", "чем", "про",
 	"чо", "очень", "еще", "ещё", "так", "до", "нет", "про", "вот", "ни", "когда", "чтобы", "потом", "сколько", "будет",
 	"тут", "этого", "точно", "хоть", "понял", "раз", "мы", "прям", "меня", "потому", "что-то", "нас", "через", "вы",
-	"теперь", "тебе", "поэтому", "лучше", "почти")
+	"теперь", "тебе", "поэтому", "лучше", "почти", "вроде", "делать", "больше", "всё", "сейчас", "такое", "них",
+	"кстати", "хотя", "может", "тебя", "тоже", "без", "вас", "который", "зачем", "буду", "себе")
 
 type AnaliseReport struct {
 	PopularWordsImage []byte
@@ -177,7 +179,7 @@ func (r *Service) chatterBox(ctx context.Context, messages []db_repository.Messa
 	for _, user := range users {
 		userName, ok := idToName[user]
 		if !ok {
-			userName = "unknown"
+			userName = utils.Unknown
 		}
 		values = append(values, chart.Value{
 			Value: float64(userToCount[user]),

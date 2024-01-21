@@ -12,7 +12,9 @@ import (
 
 type Service struct {
 	dbRepository *db_repository.Repository
-	ctx          context.Context
+
+	// nolint: containedctx
+	ctx context.Context
 }
 
 func New(dbRepository *db_repository.Repository) (*Service, error) {
@@ -33,8 +35,10 @@ func New(dbRepository *db_repository.Repository) (*Service, error) {
 }
 
 func (r *Service) DeleteOldMessages() {
-	err := r.dbRepository.MessageDeleteOld(r.ctx)
+	count, err := r.dbRepository.MessageDeleteOld(r.ctx)
 	if err != nil {
 		zerolog.Ctx(r.ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.delete.old.messages").Send()
 	}
+
+	zerolog.Ctx(r.ctx).Info().Str("status", "old.messages.deleted").Int64("count", count).Send()
 }
