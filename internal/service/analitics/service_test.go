@@ -2,6 +2,7 @@ package analitics
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/shared"
@@ -12,6 +13,17 @@ import (
 	"testing"
 )
 
+func draw(t *testing.T, name string, imageBytes []byte) {
+	img, _, err := image.Decode(bytes.NewReader(imageBytes))
+	require.NoError(t, err)
+
+	out, err := os.Create(fmt.Sprintf("./%s.jpeg", name))
+	defer out.Close()
+
+	err = jpeg.Encode(out, img, nil)
+	require.NoError(t, err)
+}
+
 func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	dbRepository, err := db_repository.New(shared.AppSettings.Storage.MongoDbUrl)
 	require.NoError(t, err)
@@ -19,26 +31,10 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	require.NoError(t, err)
 	ctx := utils.GetModuleCtx("tests")
 
-	report, err := r.AnaliseChat(ctx, 1178533048) //1779431332
+	report, err := r.AnaliseChat(ctx, 1350141926) //1779431332
 	require.NoError(t, err)
 
-	img, _, err := image.Decode(bytes.NewReader(report.PopularWordsImage))
-	require.NoError(t, err)
-
-	out, err := os.Create("./PopularWordsImage.jpeg")
-	defer out.Close()
-
-	err = jpeg.Encode(out, img, nil)
-	require.NoError(t, err)
-
-	imgChatter, _, err := image.Decode(bytes.NewReader(report.ChatterBoxesImage))
-	require.NoError(t, err)
-
-	outChatter, err := os.Create("./ChatterBoxesImage.jpeg")
-	defer outChatter.Close()
-
-	err = jpeg.Encode(outChatter, imgChatter, nil)
-	require.NoError(t, err)
-
-	utils.SendInterface(report.FirstMessageAt)
+	draw(t, "PopularWordsImage", report.PopularWordsImage)
+	draw(t, "ChatterBoxesImage", report.ChatterBoxesImage)
+	draw(t, "ChatTimeDistribution", report.ChatTimeDistribution)
 }

@@ -56,6 +56,15 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		album = append(album, message.UploadedPhoto(chatterBoxesFile))
 	}
 
+	if report.ChatTimeDistribution != nil {
+		chatterBoxesFile, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatTimeDistribution)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		album = append(album, message.UploadedPhoto(chatterBoxesFile))
+	}
+
 	text := []styling.StyledTextOption{
 		styling.Plain(fmt.Sprintf("%s report:\n\nFirst message in stats send at ", utils.GetChatName(update.EffectiveChat()))),
 		styling.Code(report.FirstMessageAt.String()),
@@ -106,6 +115,8 @@ func (r *Presentation) uploadToRepository(ctx *ext.Context, wg *sync.WaitGroup, 
 		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.upload.message.to.repository").Send()
 		return
 	}
+
+	zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
 }
 
 func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, update *ext.Update) {
@@ -183,13 +194,17 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 	var lastDate time.Time
 
 	for {
+		zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
 		ok = historyIter.Next(ctx)
 		if ok {
+			zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
+
 			elem := historyIter.Value()
 			offset = elem.Msg.GetID()
 			msg, ok := elem.Msg.(*tg.Message)
 			if !ok {
-				return nil
+				zerolog.Ctx(ctx).Trace().Str("status", "not.an.message").Send()
+				continue
 			}
 
 			lastDate = time.Unix(int64(msg.Date), 0)
@@ -210,7 +225,7 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 						Message: fmt.Sprintf(
 							"⚙️ Uploading messages\n\n"+
 								"Amount uploaded: %d\n"+
-								"Seconds elapsed: %f\n"+
+								"Seconds elapsed: %.2f\n"+
 								"Offset: %d\n"+
 								"LastDate: %s",
 							count,
@@ -235,6 +250,7 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 				break
 			}
 
+			zerolog.Ctx(ctx).Trace().Str("status", "elem.processed").Send()
 			continue
 		}
 
@@ -272,7 +288,7 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 			Message: fmt.Sprintf(
 				"Messages uploaded!\n\n"+
 					"Amount: %d\n"+
-					"Seconds elapsed: %f\n"+
+					"Seconds elapsed: %.2f\n"+
 					"LastDate: %s",
 				count,
 				time.Now().Sub(startedAt).Seconds(),

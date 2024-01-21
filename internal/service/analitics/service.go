@@ -36,12 +36,14 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"тут", "этого", "точно", "хоть", "понял", "раз", "мы", "прям", "меня", "потому", "что-то", "нас", "через", "вы",
 	"теперь", "тебе", "поэтому", "лучше", "почти", "вроде", "делать", "больше", "всё", "сейчас", "такое", "них",
 	"кстати", "хотя", "может", "тебя", "тоже", "без", "вас", "который", "зачем", "буду", "себе", "сделать",
-	"почему", "кажется", "больше", "просто", "o", "о", "by", "in", "ok", "могу", "знаю", "the", "хочу", "был", "себя", "тогда")
+	"почему", "кажется", "больше", "просто", "o", "о", "by", "in", "ok", "of", "to", "and", "могу", "знаю", "the", "хочу",
+	"был", "себя", "тогда", "после")
 
 type AnaliseReport struct {
-	PopularWordsImage []byte
-	ChatterBoxesImage []byte
-	FirstMessageAt    time.Time
+	PopularWordsImage    []byte
+	ChatterBoxesImage    []byte
+	ChatTimeDistribution []byte
+	FirstMessageAt       time.Time
 }
 
 func PngToJpeg(image []byte) ([]byte, error) {
@@ -83,7 +85,7 @@ func getBarChart() chart.BarChart {
 	}
 }
 
-func (r *Service) popularWords(messages []db_repository.Message) ([]byte, error) {
+func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, error) {
 	const maxWords = 20
 
 	wordsToCount := make(map[string]int, 100)
@@ -141,7 +143,7 @@ func (r *Service) popularWords(messages []db_repository.Message) ([]byte, error)
 	return jpgImg, nil
 }
 
-func (r *Service) chatterBox(ctx context.Context, messages []db_repository.Message) ([]byte, error) {
+func (r *Service) getChatterBoxes(ctx context.Context, messages []db_repository.Message) ([]byte, error) {
 	const maxUsers = 20
 
 	userToCount := make(map[int64]int, 100)
@@ -210,6 +212,62 @@ func (r *Service) chatterBox(ctx context.Context, messages []db_repository.Messa
 	return jpgImg, nil
 }
 
+func (r *Service) getChatTimeDistribution(ctx context.Context, messages []db_repository.Message) ([]byte, error) {
+	const minuteRate = 30
+	timeToCount := make(map[float64]int, 100)
+	for _, message := range messages {
+		messageTime := float64(message.CreatedAt.Hour()) + float64(message.CreatedAt.Minute()/minuteRate*minuteRate)/60
+		_, ok := timeToCount[messageTime]
+		if ok {
+			timeToCount[messageTime]++
+		} else {
+			timeToCount[messageTime] = 1
+		}
+	}
+	times := make([]float64, 0, len(timeToCount))
+	for key := range timeToCount {
+		times = append(times, key)
+	}
+	sort.SliceStable(times, func(i, j int) bool {
+		return times[i] > times[j]
+	})
+
+	var values chart.ContinuousSeries
+	values.XValues = make([]float64, 0, len(timeToCount))
+	values.YValues = make([]float64, 0, len(timeToCount))
+
+	for _, chatTime := range times {
+		values.XValues = append(values.XValues, chatTime)
+		values.YValues = append(values.YValues, float64(timeToCount[chatTime]))
+	}
+
+	chartDrawn := chart.Chart{
+		Title:  "Message count distribution by time UTC+0",
+		Series: []chart.Series{values},
+		Width:  1000,
+		Height: 1000,
+		Background: chart.Style{
+			Padding: chart.Box{
+				Top: 40,
+			},
+		},
+	}
+
+	var chartBuffer bytes.Buffer
+
+	err := chartDrawn.Render(chart.PNG, &chartBuffer)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	jpgImg, err := PngToJpeg(chartBuffer.Bytes())
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return jpgImg, nil
+}
+
 func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport, error) {
 	messages, err := r.dbRepository.GetMessagesByChat(ctx, chatId)
 	if err != nil {
@@ -222,19 +280,26 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport,
 
 	report := AnaliseReport{FirstMessageAt: messages[len(messages)-1].CreatedAt}
 
-	popularWordsImage, err := r.popularWords(messages)
+	popularWordsImage, err := r.getPopularWords(messages)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
 
 	report.PopularWordsImage = popularWordsImage
 
-	chatterBoxesImage, err := r.chatterBox(ctx, messages)
+	chatterBoxesImage, err := r.getChatterBoxes(ctx, messages)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
 
 	report.ChatterBoxesImage = chatterBoxesImage
+
+	chatTimeDistributionImage, err := r.getChatTimeDistribution(ctx, messages)
+	if err != nil {
+		return AnaliseReport{}, errors.WithStack(err)
+	}
+
+	report.ChatTimeDistribution = chatTimeDistributionImage
 
 	return report, nil
 }
