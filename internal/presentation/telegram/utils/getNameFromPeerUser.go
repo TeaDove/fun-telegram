@@ -31,35 +31,38 @@ func GetNameFromPeerUser(user *peers.User) string {
 	return GetNameFromTgUser(&tgUser)
 }
 
-func GetNameFromTgUser(user *tg.User) string {
-	var result string
-
-	name, nameOk := user.GetFirstName()
-	lastName, lastNameOk := user.GetLastName()
-
-	if nameOk {
-		if lastNameOk {
-			result = fmt.Sprintf("%s %s", name, lastName)
-		}
-
-		result = name
-	}
-
-	username, ok := user.GetUsername()
-	if ok {
-		result = username
-	}
-
-	if result == "" {
-		result = utils.Undefined
-	}
-
-	result = strings.Map(func(r rune) rune {
-		if unicode.IsGraphic(r) {
+func trimUnprintable(v string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsPrint(r) {
 			return r
 		}
 		return -1
-	}, result)
+	}, v)
+}
+
+func GetNameFromTgUser(user *tg.User) string {
+	var result string
+
+	name, ok := user.GetFirstName()
+	if ok && strings.TrimSpace(name) != "" {
+		lastName, ok := user.GetLastName()
+		if ok {
+			result = fmt.Sprintf("%s %s", name, lastName)
+		} else {
+			result = name
+		}
+	}
+
+	result = trimUnprintable(result)
+
+	if strings.TrimSpace(result) == "" {
+		username, ok := user.GetUsername()
+		if ok {
+			result = username
+		} else {
+			result = utils.Undefined
+		}
+	}
 
 	return result
 }

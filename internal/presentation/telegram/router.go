@@ -80,7 +80,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	err = executor(ctx, update, &input)
 	if err != nil {
-		log.Error().Stack().Err(err).Str("status", "failed.to.process.command").Send()
+		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.process.command").Send()
 		return errors.WithStack(err)
 	}
 

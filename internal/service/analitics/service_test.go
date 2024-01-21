@@ -24,11 +24,17 @@ func draw(t *testing.T, name string, imageBytes []byte) {
 	require.NoError(t, err)
 }
 
-func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
+func getService(t *testing.T) *Service {
 	dbRepository, err := db_repository.New(shared.AppSettings.Storage.MongoDbUrl)
 	require.NoError(t, err)
 	r, err := New(dbRepository)
 	require.NoError(t, err)
+
+	return r
+}
+
+func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
+	r := getService(t)
 	ctx := utils.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, 1350141926) //1779431332
@@ -36,5 +42,7 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 
 	draw(t, "PopularWordsImage", report.PopularWordsImage)
 	draw(t, "ChatterBoxesImage", report.ChatterBoxesImage)
-	draw(t, "ChatTimeDistribution", report.ChatTimeDistribution)
+	draw(t, "ChatTimeDistributionImage", report.ChatTimeDistributionImage)
+	draw(t, "ChatDateDistributionImage", report.ChatDateDistributionImage)
+	draw(t, "MostToxicUsersImage", report.MostToxicUsersImage)
 }

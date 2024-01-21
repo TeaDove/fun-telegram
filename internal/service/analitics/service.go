@@ -5,10 +5,12 @@ import (
 	"context"
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/utils"
 	"github.com/wcharczuk/go-chart/v2"
+	"golang.org/x/exp/maps"
 	"image/jpeg"
 	"image/png"
 	"net/http"
@@ -19,10 +21,22 @@ import (
 
 type Service struct {
 	dbRepository *db_repository.Repository
+
+	toxicityExp *regexp2.Regexp
 }
 
 func New(dbRepository *db_repository.Repository) (*Service, error) {
 	r := Service{dbRepository: dbRepository}
+
+	exp, err := regexp2.Compile(
+		`^((у|[нз]а|(хитро|не)?вз?[ыьъ]|с[ьъ]|(и|ра)[зс]ъ?|(о[тб]|под)[ьъ]?|(.\B)+?[оаеи])?-?([её]б(?!о[рй])|и[пб][ае][тц]).*?|(н[иеа]|[дп]о|ра[зс]|з?а|с(ме)?|о(т|дно)?|апч)?-?х[уy]([яйиеёю]|ли(?!ган)).*?|(в[зы]|(три|два|четыре)жды|(н|сук)а)?-?[б6]л(я(?!(х|ш[кн]|мб)[ауеыио]).*?|[еэ][дт]ь?)|(ра[сз]|[зн]а|[со]|вы?|п(р[ои]|од)|и[зс]ъ?|[ао]т)?п[иеё]зд.*?|(за)?п[ие]д[аое]?р((ас)?(и(ли)?[нщктл]ь?)?|(о(ч[еи])?)?к|юг)[ауеы]?|манд([ауеы]|ой|[ао]вошь?(е?к[ауе])?|юк(ов|[ауи])?)|муд([аио].*?|е?н([ьюия]|ей))|мля([тд]ь)?|лять|([нз]а|по)х|м[ао]л[ао]фь[яию]|(жоп|чмо|гнид)[а-я]*|г[ао]ндон|[а-я]*(с[рс]ать|хрен|хер|дрист|дроч|минет|говн|шлюх|г[а|о]вн)[а-я]*|мраз(ь|ота)|сук[а-я])|cock|fuck(er|ing)?$`,
+		0,
+	)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	r.toxicityExp = exp
 
 	return &r, nil
 }
@@ -37,13 +51,17 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"теперь", "тебе", "поэтому", "лучше", "почти", "вроде", "делать", "больше", "всё", "сейчас", "такое", "них",
 	"кстати", "хотя", "может", "тебя", "тоже", "без", "вас", "который", "зачем", "буду", "себе", "сделать",
 	"почему", "кажется", "больше", "просто", "o", "о", "by", "in", "ok", "of", "to", "and", "могу", "знаю", "the", "хочу",
-	"был", "себя", "тогда", "после")
+	"был", "себя", "тогда", "после", "такой", "сегодня", "быть", "всегда", "всех", "него", "сразу", "ж", "под", "ничего",
+	"этом", "ему", "много", "че", "чё")
 
 type AnaliseReport struct {
-	PopularWordsImage    []byte
-	ChatterBoxesImage    []byte
-	ChatTimeDistribution []byte
-	FirstMessageAt       time.Time
+	PopularWordsImage         []byte
+	ChatterBoxesImage         []byte
+	ChatTimeDistributionImage []byte
+	ChatDateDistributionImage []byte
+	MostToxicUsersImage       []byte
+
+	FirstMessageAt time.Time
 }
 
 func PngToJpeg(image []byte) ([]byte, error) {
@@ -91,7 +109,7 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 	wordsToCount := make(map[string]int, 100)
 	for _, message := range messages {
 		for _, word := range strings.Fields(message.Text) {
-			word = strings.Trim(strings.ToLower(word), "\n.,)(-/_?!* ")
+			word = strings.Trim(strings.ToLower(word), "\n.,)(-—/_?!* ")
 			if word == "" || len(word) < 2 || serviceWords.Contains(word) {
 				continue
 			}
@@ -105,10 +123,7 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 		}
 	}
 
-	words := make([]string, 0, len(wordsToCount))
-	for key := range wordsToCount {
-		words = append(words, key)
-	}
+	words := maps.Keys(wordsToCount)
 	sort.SliceStable(words, func(i, j int) bool {
 		return wordsToCount[words[i]] > wordsToCount[words[j]]
 	})
@@ -157,10 +172,7 @@ func (r *Service) getChatterBoxes(ctx context.Context, messages []db_repository.
 		}
 	}
 
-	users := make([]int64, 0, len(userToCount))
-	for key := range userToCount {
-		users = append(users, key)
-	}
+	users := maps.Keys(userToCount)
 	sort.SliceStable(users, func(i, j int) bool {
 		return userToCount[users[i]] > userToCount[users[j]]
 	})
@@ -212,7 +224,7 @@ func (r *Service) getChatterBoxes(ctx context.Context, messages []db_repository.
 	return jpgImg, nil
 }
 
-func (r *Service) getChatTimeDistribution(ctx context.Context, messages []db_repository.Message) ([]byte, error) {
+func (r *Service) getChatTimeDistribution(messages []db_repository.Message) ([]byte, error) {
 	const minuteRate = 30
 	timeToCount := make(map[float64]int, 100)
 	for _, message := range messages {
@@ -224,10 +236,8 @@ func (r *Service) getChatTimeDistribution(ctx context.Context, messages []db_rep
 			timeToCount[messageTime] = 1
 		}
 	}
-	times := make([]float64, 0, len(timeToCount))
-	for key := range timeToCount {
-		times = append(times, key)
-	}
+
+	times := maps.Keys(timeToCount)
 	sort.SliceStable(times, func(i, j int) bool {
 		return times[i] > times[j]
 	})
@@ -243,6 +253,60 @@ func (r *Service) getChatTimeDistribution(ctx context.Context, messages []db_rep
 
 	chartDrawn := chart.Chart{
 		Title:  "Message count distribution by time UTC+0",
+		Series: []chart.Series{values},
+		Width:  1000,
+		Height: 1000,
+		Background: chart.Style{
+			Padding: chart.Box{
+				Top: 40,
+			},
+		},
+	}
+
+	var chartBuffer bytes.Buffer
+
+	err := chartDrawn.Render(chart.PNG, &chartBuffer)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	jpgImg, err := PngToJpeg(chartBuffer.Bytes())
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return jpgImg, nil
+}
+
+func (r *Service) getChatDateDistribution(messages []db_repository.Message) ([]byte, error) {
+	timeToCount := make(map[time.Time]int, 100)
+	for _, message := range messages {
+		messageDate := time.Date(message.CreatedAt.Year(), message.CreatedAt.Month(), message.CreatedAt.Day()/3*3, 0, 0, 0, 0, message.CreatedAt.Location())
+
+		_, ok := timeToCount[messageDate]
+		if ok {
+			timeToCount[messageDate]++
+		} else {
+			timeToCount[messageDate] = 1
+		}
+	}
+
+	times := maps.Keys(timeToCount)
+	sort.SliceStable(times, func(i, j int) bool {
+		return times[i].After(times[j])
+	})
+
+	var values chart.TimeSeries
+	values.XValues = make([]time.Time, 0, len(timeToCount))
+	values.YValues = make([]float64, 0, len(timeToCount))
+
+	for _, chatTime := range times {
+		values.XValues = append(values.XValues, chatTime)
+		values.YValues = append(values.YValues, float64(timeToCount[chatTime]))
+	}
+
+	chartDrawn := chart.Chart{
+		Title:  "Message count distribution by date",
 		Series: []chart.Series{values},
 		Width:  1000,
 		Height: 1000,
@@ -294,12 +358,26 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport,
 
 	report.ChatterBoxesImage = chatterBoxesImage
 
-	chatTimeDistributionImage, err := r.getChatTimeDistribution(ctx, messages)
+	chatTimeDistributionImage, err := r.getChatTimeDistribution(messages)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
 
-	report.ChatTimeDistribution = chatTimeDistributionImage
+	report.ChatTimeDistributionImage = chatTimeDistributionImage
+
+	chatDateDistributionImage, err := r.getChatDateDistribution(messages)
+	if err != nil {
+		return AnaliseReport{}, errors.WithStack(err)
+	}
+
+	report.ChatDateDistributionImage = chatDateDistributionImage
+
+	mostToxicUsersImage, err := r.getMostToxicUsers(ctx, messages)
+	if err != nil {
+		return AnaliseReport{}, errors.WithStack(err)
+	}
+
+	report.MostToxicUsersImage = mostToxicUsersImage
 
 	return report, nil
 }

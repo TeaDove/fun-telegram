@@ -48,21 +48,39 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	album := make([]message.MultiMediaOption, 0, 10)
 
 	if report.ChatterBoxesImage != nil {
-		chatterBoxesFile, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatterBoxesImage)
+		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatterBoxesImage)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		album = append(album, message.UploadedPhoto(chatterBoxesFile))
+		album = append(album, message.UploadedPhoto(file))
 	}
 
-	if report.ChatTimeDistribution != nil {
-		chatterBoxesFile, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatTimeDistribution)
+	if report.MostToxicUsersImage != nil {
+		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.MostToxicUsersImage)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		album = append(album, message.UploadedPhoto(chatterBoxesFile))
+		album = append(album, message.UploadedPhoto(file))
+	}
+
+	if report.ChatTimeDistributionImage != nil {
+		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatTimeDistributionImage)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		album = append(album, message.UploadedPhoto(file))
+	}
+
+	if report.ChatDateDistributionImage != nil {
+		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatDateDistributionImage)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		album = append(album, message.UploadedPhoto(file))
 	}
 
 	text := []styling.StyledTextOption{
@@ -89,7 +107,7 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	return nil
 }
 
-func (r *Presentation) uploadToRepository(ctx *ext.Context, wg *sync.WaitGroup, update *ext.Update, elem *messages.Elem) {
+func (r *Presentation) uploadMessageToRepository(ctx *ext.Context, wg *sync.WaitGroup, update *ext.Update, elem *messages.Elem) {
 	defer wg.Done()
 
 	msg, ok := elem.Msg.(*tg.Message)
@@ -133,16 +151,18 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, up
 		_, isBot := user.ToBot()
 
 		username, _ := user.Username()
-		err = r.dbRepository.UserUpsert(ctx, &db_repository.User{
+		repositoryUser := &db_repository.User{
 			TgUserId:   user.ID(),
 			TgUsername: username,
 			TgName:     utils.GetNameFromPeerUser(&user),
 			IsBot:      isBot,
-		})
+		}
+		err = r.dbRepository.UserUpsert(ctx, repositoryUser)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.insert.user").Send()
 			return
 		}
+		zerolog.Ctx(ctx).Debug().Str("status", "user.uploaded").Interface("user", repositoryUser).Send()
 	}
 
 	zerolog.Ctx(ctx).Info().Str("status", "users.uploaded").Int("count", len(chatMembers)).Send()
@@ -212,7 +232,7 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 			count++
 
 			wg.Add(1)
-			go r.uploadToRepository(ctx, &wg, update, &elem)
+			go r.uploadMessageToRepository(ctx, &wg, update, &elem)
 
 			if count%50 == 0 {
 				time.Sleep(time.Second)
