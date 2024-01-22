@@ -3,9 +3,7 @@ package telegram
 import (
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
-	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/message/styling"
-	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
@@ -25,12 +23,18 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 		stylingOptions,
 		styling.Plain(fmt.Sprintf("Ping requested by @%s\n\n", requestedUser.Username)),
 	)
-	compileMention := func(p members.Member) error {
-		user := p.User()
+
+	chatMembers, err := r.getMembers(ctx, update.EffectiveChat())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	for _, chatMember := range chatMembers {
+		user := chatMember.User()
 
 		_, isBot := user.ToBot()
 		if isBot {
-			return nil
+			continue
 		}
 
 		count += 1
@@ -50,34 +54,6 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 				styling.MentionName(name, user.InputUser()),
 			}...)
 		}
-
-		return nil
-	}
-
-	switch t := update.EffectiveChat().(type) {
-	case *types.Chat:
-		chat := r.telegramManager.Chat(t.Raw())
-		chatMembers := members.Chat(chat)
-
-		err := chatMembers.ForEach(ctx, compileMention)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	case *types.Channel:
-		chat := r.telegramManager.Channel(t.Raw())
-		chatMembers := members.Channel(chat)
-
-		err := chatMembers.ForEach(ctx, compileMention)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	default:
-		_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		return nil
 	}
 
 	if count == 0 {
@@ -92,7 +68,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 		stylingOptions = append(stylingOptions, styling.Plain("\n\nMax user count exceeded, only pinging 40 people"))
 	}
 
-	_, err := ctx.Reply(update, stylingOptions, nil)
+	_, err = ctx.Reply(update, stylingOptions, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}

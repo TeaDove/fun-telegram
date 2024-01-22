@@ -2,12 +2,11 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
-
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/tg"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/service/storage"
 )
@@ -16,14 +15,18 @@ func compileSpamVictimKey(chatId int64, userId int64) string {
 	return fmt.Sprintf("spam:victim:%d:%d", chatId, userId)
 }
 
-func compileSpamDisableKey(chatId int64) string {
-	return fmt.Sprintf("spam:disable:%d", chatId)
-}
-
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
-	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+	chatId := update.EffectiveChat().GetID()
 	if chatId == 0 {
 		return errors.WithStack(ErrPeerNotFound)
+	}
+
+	ok, err := r.isEnabled(update.EffectiveMessage.GetID())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if !ok {
+		return nil
 	}
 
 	reactionsBuf, err := r.storage.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
@@ -67,17 +70,6 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *t
 	if chatId == 0 {
 		if !input.Silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		return nil
-	}
-
-	if r.storage.Contains(compileSpamDisableKey(chatId)) {
-		if !input.Silent {
-			_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -130,17 +122,6 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUt
 	const maxReactionCount = 3
 
 	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
-	if r.storage.Contains(compileSpamDisableKey(chatId)) {
-		if !input.Silent {
-			_, err := ctx.Reply(update, "Err: spam_reaction is disabled in this chat", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		return nil
-	}
-
 	if chatId == 0 {
 		if !input.Silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)

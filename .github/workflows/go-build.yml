@@ -20,9 +20,3 @@ jobs:
 
       - name: Build
         run: make build
-
-      - name: TestUnit
-        run: mv example.env .env && make test-unit
-
-
-

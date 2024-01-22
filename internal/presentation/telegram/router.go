@@ -2,8 +2,10 @@ package telegram
 
 import (
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"strconv"
@@ -16,6 +18,14 @@ type messageProcessor struct {
 }
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
+	_, ok := update.UpdateClass.(*tg.UpdateNewChannelMessage)
+	if !ok {
+		_, ok = update.UpdateClass.(*tg.UpdateNewMessage)
+		if !ok {
+			return nil
+		}
+	}
+
 	text := update.EffectiveMessage.Message.Message
 	if len(text) == 0 || !(text[0] == '!' || text[0] == '/') {
 		return nil
@@ -63,6 +73,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	err = route.executor(ctx, update, &opts)
 	if err != nil {
+		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.process.command").Send()
 		return errors.WithStack(err)
 	}
 
