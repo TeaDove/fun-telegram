@@ -109,6 +109,7 @@ func (r *Repository) GetUsersByChatId(ctx context.Context, chatId int64) ([]User
 	}
 
 	usersIdsConcrete := make([]int64, 0, len(userIds))
+
 	for _, userId := range userIds {
 		userIdConcrete, ok := userId.(int64)
 		if !ok {
