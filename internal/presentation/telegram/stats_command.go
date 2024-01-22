@@ -100,6 +100,15 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		album = append(album, message.UploadedPhoto(file))
 	}
 
+	if report.ChatTimeDistributionByUserImage != nil {
+		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatTimeDistributionByUserImage)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		album = append(album, message.UploadedPhoto(file))
+	}
+
 	text := []styling.StyledTextOption{
 		styling.Plain(fmt.Sprintf("%s report:\n\nFirst message in stats send at ", utils.GetChatName(update.EffectiveChat()))),
 		styling.Code(report.FirstMessageAt.String()), styling.Plain(fmt.Sprintf("\nMessages processed: %d", report.MessagesCount)),

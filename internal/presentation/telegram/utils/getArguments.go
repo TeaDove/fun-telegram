@@ -76,7 +76,7 @@ func GetOpt(text string, flags ...OptFlag) (input Input) {
 
 	words := stripWords(text)
 
-	if len(words) == 1 {
+	if len(words) <= 1 {
 		return input
 	}
 	for _, word := range words[1:] {

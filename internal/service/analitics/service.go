@@ -54,11 +54,12 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"этом", "ему", "много", "че", "чё", "какой", "во", "щас", "были", "при", "этот", "типа", "ладно", "какой", "завтра")
 
 type AnaliseReport struct {
-	PopularWordsImage         []byte
-	ChatterBoxesImage         []byte
-	ChatTimeDistributionImage []byte
-	ChatDateDistributionImage []byte
-	MostToxicUsersImage       []byte
+	PopularWordsImage               []byte
+	ChatterBoxesImage               []byte
+	ChatTimeDistributionImage       []byte
+	ChatDateDistributionImage       []byte
+	MostToxicUsersImage             []byte
+	ChatTimeDistributionByUserImage []byte
 
 	FirstMessageAt time.Time
 	MessagesCount  int
@@ -264,6 +265,13 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int) (Analis
 	}
 
 	report.MostToxicUsersImage = mostToxicUsersImage
+
+	chatTimeDistributionByUserImage, err := r.getChatTimeDistributionByUser(messages, getter, tz)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to compile toxic users")
+	}
+
+	report.ChatTimeDistributionByUserImage = chatTimeDistributionByUserImage
 
 	return report, nil
 }

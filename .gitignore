@@ -170,3 +170,4 @@ dmypy.json
 /internal/service/analitics/ChatTimeDistributionImage.jpeg
 /internal/service/analitics/ChatDateDistributionImage.jpeg
 /internal/service/analitics/MostToxicUsersImage.jpeg
+/internal/service/analitics/ChatTimeDistributionByUserImage.jpeg

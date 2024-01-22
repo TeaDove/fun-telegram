@@ -23,9 +23,13 @@ func getChart() chart.Chart {
 	}
 }
 
-func (r *Service) getChatTimeDistributionByUser(messages []db_repository.Message, tz int) ([]byte, error) {
-	const minuteRate = 30
+func (r *Service) getChatTimeDistributionByUser(messages []db_repository.Message, getter nameGetter, tz int) ([]byte, error) {
+	const (
+		minuteRate = 30
+		maxUsers   = 10
+	)
 	timeToCount := make(map[int64]map[float64]int, 100)
+	userToMessages := make(map[int64]int, 100)
 	for _, message := range messages {
 		message.CreatedAt = message.CreatedAt.Add(time.Hour * time.Duration(tz))
 		messageTime := float64(message.CreatedAt.Hour()) + float64(message.CreatedAt.Minute()/minuteRate*minuteRate)/60
@@ -42,26 +46,47 @@ func (r *Service) getChatTimeDistributionByUser(messages []db_repository.Message
 		} else {
 			timeToCount[userId] = map[float64]int{messageTime: 1}
 		}
+
+		_, ok = userToMessages[userId]
+		if ok {
+			userToMessages[userId]++
+		} else {
+			userToMessages[userId] = 1
+		}
 	}
 
 	chartDrawn := getChart()
 	chartDrawn.Title = fmt.Sprintf("Message count distribution by time UTC+%d", tz)
+	chartDrawn.Series = make([]chart.Series, 0, maxUsers)
 
-	times := maps.Keys(timeToCount)
-	sort.SliceStable(times, func(i, j int) bool {
-		return times[i] > times[j]
+	users := maps.Keys(userToMessages)
+	sort.SliceStable(users, func(i, j int) bool {
+		return users[i] > users[j]
 	})
-
-	var values chart.ContinuousSeries
-	values.XValues = make([]float64, 0, len(timeToCount))
-	values.YValues = make([]float64, 0, len(timeToCount))
-
-	for _, chatTime := range times {
-		values.XValues = append(values.XValues, chatTime)
-		values.YValues = append(values.YValues, float64(timeToCount[chatTime]))
+	if len(users) > maxUsers {
+		users = users[:maxUsers]
 	}
 
-	chartDrawn.Series = []chart.Series{values}
+	for _, userId := range users {
+		var values chart.ContinuousSeries
+		values.Name = getter.Get(userId)
+		values.XValues = make([]float64, 0, len(timeToCount))
+		values.YValues = make([]float64, 0, len(timeToCount))
+
+		times := maps.Keys(timeToCount[userId])
+		sort.SliceStable(times, func(i, j int) bool {
+			return times[i] > times[j]
+		})
+
+		for _, chatTime := range times {
+			values.XValues = append(values.XValues, chatTime)
+			values.YValues = append(values.YValues, float64(timeToCount[userId][chatTime]))
+		}
+
+		chartDrawn.Series = append(chartDrawn.Series, values)
+	}
+
+	chartDrawn.Elements = []chart.Renderable{chart.Legend(&chartDrawn)}
 
 	var chartBuffer bytes.Buffer
 

@@ -45,4 +45,5 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	draw(t, "ChatTimeDistributionImage", report.ChatTimeDistributionImage)
 	draw(t, "ChatDateDistributionImage", report.ChatDateDistributionImage)
 	draw(t, "MostToxicUsersImage", report.MostToxicUsersImage)
+	draw(t, "ChatTimeDistributionByUserImage", report.ChatTimeDistributionByUserImage)
 }
