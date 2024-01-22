@@ -209,9 +209,11 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 		}
 	}
 
-	var barChatId int64
-	barMessageId := 0
-	var barPeer tg.InputPeerClass
+	var (
+		barChatId    int64
+		barMessageId int
+		barPeer      tg.InputPeerClass
+	)
 	if !input.Silent {
 		barMessage, err := ctx.Reply(update, "⚙️ Uploading messages", nil)
 		if err != nil {
