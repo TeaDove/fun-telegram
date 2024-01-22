@@ -30,12 +30,7 @@ func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	const silentArgument = "silent"
-
-	args := tgUtils.GetArguments(update.EffectiveMessage.Message.Message)
-	_, silent := args[silentArgument]
-
-	if !silent {
+	if !tgUtils.GetOpt(update.EffectiveMessage.Message.Message).Silent {
 		return nil
 	}
 

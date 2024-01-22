@@ -4,6 +4,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
 var helpMessage = []styling.StyledTextOption{
@@ -24,7 +25,7 @@ var helpMessage = []styling.StyledTextOption{
 	styling.Plain("/location [address] - get description by ip address or domain\n\n"),
 }
 
-func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	_, err := ctx.Reply(update, helpMessage, nil)
 	if err != nil {
 		return errors.WithStack(err)

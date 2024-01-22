@@ -8,14 +8,24 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 )
 
-const defaultPrompt = "Anime girl with plush blue bear"
+const (
+	defaultPrompt         = "Anime girl with plush blue bear"
+	defaultStyle          = ""
+	defaultNegativePrompt = "lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad prop ortions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature"
+)
+
+var (
+	FlagNegativePrompt = tgUtils.OptFlag{Long: "negative", Short: "n"}
+	FlagStyle          = tgUtils.OptFlag{Long: "style", Short: "s"}
+)
 
 // kandkinskyCommandHandler
 // nolint: cyclop
-func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	if r.kandinskySupplier == nil {
 		_, err := ctx.Reply(update, "Err: kandinsky supplier is currently disabled", nil)
 		if err != nil {
@@ -27,20 +37,32 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 
 	var kandinskyInput kandinsky_supplier.RequestGenerationInput
 
-	if len(update.EffectiveMessage.Message.Message) < 11 {
+	if input.Text == "" {
 		kandinskyInput.Prompt = defaultPrompt
 	} else {
-		kandinskyInput.Prompt = update.EffectiveMessage.Message.Message[11:]
+		kandinskyInput.Prompt = input.Text
 	}
 
-	// TODO add style and negativePrompt
+	if negative, ok := input.Ops[FlagNegativePrompt.Long]; ok {
+		kandinskyInput.NegativePromptUnclip = negative
+	} else {
+		kandinskyInput.NegativePromptUnclip = defaultNegativePrompt
+	}
+
+	if style, ok := input.Ops[FlagStyle.Long]; ok {
+		kandinskyInput.Style = style
+	} else {
+		kandinskyInput.Style = defaultStyle
+	}
 
 	requestedUser := update.EffectiveUser()
 
 	imageAnnotation := fmt.Sprintf(
-		"Image requested by %s\n\nPrompt: %s\n\n",
+		"Image requested by %s\n\nPrompt: %s\nStyle: %s\nNegative prompt: %s",
 		requestedUser.Username,
 		kandinskyInput.Prompt,
+		kandinskyInput.Style,
+		kandinskyInput.NegativePromptUnclip,
 	)
 
 	msg, err := ctx.Reply(

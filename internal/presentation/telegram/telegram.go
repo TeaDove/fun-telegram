@@ -7,6 +7,7 @@ import (
 	"github.com/gotd/td/telegram"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
@@ -121,16 +122,16 @@ func MustNewTelegramPresentation(
 	)
 
 	presentation.router = map[string]messageProcessor{
-		"echo":          presentation.echoCommandHandler,
-		"help":          presentation.helpCommandHandler,
-		"get_me":        presentation.getMeCommandHandler,
-		"ping":          presentation.pingCommandHandler,
-		"spam_reaction": presentation.spamReactionCommandHandler,
-		"kandinsky":     presentation.kandkinskyCommandHandler,
-		"disable":       presentation.disableCommandHandler,
-		"location":      presentation.locationCommandHandler,
-		"stats":         presentation.statsCommandHandler,
-		"upload_stats":  presentation.uploadStatsCommandHandler,
+		"echo":          {presentation.echoCommandHandler, []tgUtils.OptFlag{}},
+		"help":          {presentation.helpCommandHandler, []tgUtils.OptFlag{}},
+		"get_me":        {presentation.getMeCommandHandler, []tgUtils.OptFlag{}},
+		"ping":          {presentation.pingCommandHandler, []tgUtils.OptFlag{}},
+		"spam_reaction": {presentation.spamReactionCommandHandler, []tgUtils.OptFlag{FlagStop}},
+		"kandinsky":     {presentation.kandkinskyCommandHandler, []tgUtils.OptFlag{FlagNegativePrompt, FlagStyle}},
+		"disable":       {presentation.disableCommandHandler, []tgUtils.OptFlag{}},
+		"location":      {presentation.locationCommandHandler, []tgUtils.OptFlag{}},
+		"stats":         {presentation.statsCommandHandler, []tgUtils.OptFlag{FlagTZ}},
+		"upload_stats":  {presentation.uploadStatsCommandHandler, []tgUtils.OptFlag{}},
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -148,6 +149,7 @@ func MustNewTelegramPresentation(
 	}
 
 	dp.Error = presentation.errorHandler
+	dp.Panic = presentation.panicHandler
 
 	return &presentation
 }
@@ -165,6 +167,19 @@ func (r *Presentation) errorHandler(
 		Send()
 
 	return nil
+}
+
+func (r *Presentation) panicHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	errorString string,
+) {
+	zerolog.Ctx(ctx.Context).Error().
+		Stack().
+		Err(errors.New(errorString)).
+		Str("status", "panic.while.processing.update").
+		Interface("update", update).
+		Send()
 }
 
 func (r *Presentation) Run() error {
