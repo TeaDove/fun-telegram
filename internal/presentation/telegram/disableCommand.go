@@ -43,7 +43,7 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 		userMember.Status() == members.Creator, nil
 }
 
-func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	ok, err := r.checkFromAdmin(ctx, update)
 	if err != nil {
 		return errors.WithStack(err)

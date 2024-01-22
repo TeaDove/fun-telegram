@@ -18,11 +18,16 @@ import (
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/shared"
+	"strconv"
 	"sync"
 	"time"
 )
 
-func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+var (
+	FlagTZ = utils.OptFlag{Long: "tz", Short: "t"}
+)
+
+func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
 	ok, err := r.checkFromAdmin(ctx, update)
 	if err != nil {
 		return errors.WithStack(err)
@@ -34,7 +39,18 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		}
 	}
 
-	report, err := r.analiticsService.AnaliseChat(ctx, update.EffectiveChat().GetID())
+	var tz int64 = 0
+	if tzFlag, ok := input.Ops[FlagTZ.Long]; ok {
+		tz, err = strconv.ParseInt(tzFlag, 10, 64)
+		if err != nil {
+			_, err = ctx.Reply(update, "Err: failed to parse tz argument to int", nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+	}
+
+	report, err := r.analiticsService.AnaliseChat(ctx, update.EffectiveChat().GetID(), int(tz))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -169,7 +185,7 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, ch
 	zerolog.Ctx(ctx).Info().Str("status", "users.uploaded").Int("count", len(chatMembers)).Send()
 }
 
-func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
 	const maxElapsed = time.Hour * 10
 	const maxCount = 10_000
 

@@ -202,64 +202,13 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUt
 	return nil
 }
 
-// nolint: cyclop
-func (r *Presentation) disableSpam(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
-	if !update.EffectiveUser().Self {
-		if !input.Silent {
-			_, err := ctx.Reply(update, "Err: disable can be done only by owner of bot", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-	}
-
-	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
-	key := compileSpamDisableKey(chatId)
-	// Warning, not thread safe but I don't care
-	contains := r.storage.Contains(key)
-	if contains {
-		err := r.storage.Delete(key)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		if !input.Silent {
-			_, err = ctx.Reply(update, "Ok: reactions were enabled in chat", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		return nil
-	}
-
-	err := r.storage.Save(key, []byte{})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if !input.Silent {
-		_, err = ctx.Reply(update, "Ok: reactions were disabled in chat", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
-}
-
 var (
-	FlagStop    = tgUtils.OptFlag{Long: "stop", Short: "s"}
-	FlagDisable = tgUtils.OptFlag{Long: "disable", Short: "d"}
+	FlagStop = tgUtils.OptFlag{Long: "stop", Short: "s"}
 )
 
 func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
 	if _, ok := input.Ops[FlagStop.Long]; ok {
 		return r.deleteSpam(ctx, update, input)
-	}
-
-	if _, ok := input.Ops[FlagDisable.Long]; ok {
-		return r.disableSpam(ctx, update, input)
 	}
 
 	return r.addSpam(ctx, update, input)

@@ -210,10 +210,11 @@ func (r *Service) getChatterBoxes(messages []db_repository.Message, getter nameG
 	return jpgImg, nil
 }
 
-func (r *Service) getChatTimeDistribution(messages []db_repository.Message) ([]byte, error) {
+func (r *Service) getChatTimeDistribution(messages []db_repository.Message, tz int) ([]byte, error) {
 	const minuteRate = 30
 	timeToCount := make(map[float64]int, 100)
 	for _, message := range messages {
+		message.CreatedAt = message.CreatedAt.Add(time.Hour * time.Duration(tz))
 		messageTime := float64(message.CreatedAt.Hour()) + float64(message.CreatedAt.Minute()/minuteRate*minuteRate)/60
 		_, ok := timeToCount[messageTime]
 		if ok {
@@ -318,7 +319,7 @@ func (r *Service) getChatDateDistribution(messages []db_repository.Message) ([]b
 	return jpgImg, nil
 }
 
-func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport, error) {
+func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int) (AnaliseReport, error) {
 	messages, err := r.dbRepository.GetMessagesByChat(ctx, chatId)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
@@ -352,7 +353,7 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64) (AnaliseReport,
 
 	report.ChatterBoxesImage = chatterBoxesImage
 
-	chatTimeDistributionImage, err := r.getChatTimeDistribution(messages)
+	chatTimeDistributionImage, err := r.getChatTimeDistribution(messages, tz)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/teadove/goteleout/internal/utils"
 	"strings"
 )
 
@@ -62,7 +61,6 @@ func stripWords(text string) []string {
 }
 
 func GetOpt(text string, flags ...OptFlag) (input Input) {
-	utils.SendInterface(text, flags)
 	const longHypenByte = 226
 
 	flags = append(flags, FlagSilent)
@@ -78,6 +76,9 @@ func GetOpt(text string, flags ...OptFlag) (input Input) {
 
 	words := stripWords(text)
 
+	if len(words) == 1 {
+		return input
+	}
 	for _, word := range words[1:] {
 		if len(word) == 0 || len(word) == 1 || !(word[0] == '-' || word[0] == longHypenByte) {
 			textBuilder.WriteString(" " + word)

@@ -13,8 +13,8 @@ import (
 )
 
 type messageProcessor struct {
-	flags    []tgUtils.OptFlag
 	executor func(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error
+	flags    []tgUtils.OptFlag
 }
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {

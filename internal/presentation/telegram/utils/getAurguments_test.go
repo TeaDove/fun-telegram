@@ -2,7 +2,6 @@ package utils
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/teadove/goteleout/internal/utils"
 	"testing"
 )
 
@@ -59,7 +58,6 @@ func TestUnit_StripWords_QuotesNotFromStart_Ok(t *testing.T) {
 
 func TestUnit_GetArguments_LongDash_Ok(t *testing.T) {
 	input := GetOpt("!ping —silent")
-	utils.SendInterface(input)
 
 	assert.True(t, input.Silent)
 }
