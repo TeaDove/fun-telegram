@@ -187,7 +187,7 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, ch
 
 func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
 	const maxElapsed = time.Hour * 10
-	const maxCount = 10_000
+	const maxCount = 50_000
 
 	ok, err := r.checkFromAdmin(ctx, update)
 	if err != nil {

@@ -62,11 +62,24 @@ func (r *Service) getMostToxicUsers(messages []db_repository.Message, getter nam
 	if len(users) > maxUsers {
 		users = users[:maxUsers]
 	}
+	if len(users) <= 1 {
+		return nil, nil
+	}
+	hasNoneZero := false
+
 	for _, user := range users {
 		values = append(values, chart.Value{
 			Value: userToToxic[user].Percent,
 			Label: getter.Get(user),
 		})
+
+		if userToToxic[user].Percent > 0 {
+			hasNoneZero = true
+		}
+	}
+
+	if !hasNoneZero {
+		return nil, nil
 	}
 
 	barChart := getBarChart()
