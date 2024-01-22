@@ -209,7 +209,9 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 		}
 	}
 
+	var barChatId int64
 	barMessageId := 0
+	var barPeer tg.InputPeerClass
 	if !input.Silent {
 		barMessage, err := ctx.Reply(update, "⚙️ Uploading messages", nil)
 		if err != nil {
@@ -217,6 +219,17 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 		}
 
 		barMessageId = barMessage.ID
+		barChatId = update.EffectiveChat().GetID()
+		barPeer = update.EffectiveChat().GetInputPeer()
+	} else {
+		barMessage, err := ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{Message: "⚙️ Uploading messages"})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		barMessageId = barMessage.ID
+		barChatId = ctx.Self.ID
+		barPeer = ctx.Self.AsInputPeer()
 	}
 
 	queryTill := time.Now().UTC().Add(-shared.AppSettings.MessageTtl)
@@ -266,25 +279,23 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 				time.Sleep(time.Second)
 				zerolog.Ctx(ctx).Info().Str("status", "messages.batch.uploaded").Int("count", count).Send()
 
-				if !input.Silent {
-					_, err = ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
-						Peer: update.EffectiveChat().GetInputPeer(),
-						ID:   barMessageId,
-						Message: fmt.Sprintf(
-							"⚙️ Uploading messages\n\n"+
-								"Amount uploaded: %d\n"+
-								"Seconds elapsed: %.2f\n"+
-								"Offset: %d\n"+
-								"LastDate: %s",
-							count,
-							time.Now().Sub(startedAt).Seconds(),
-							offset,
-							lastDate.String(),
-						),
-					})
-					if err != nil {
-						zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
-					}
+				_, err = ctx.EditMessage(barChatId, &tg.MessagesEditMessageRequest{
+					Peer: barPeer,
+					ID:   barMessageId,
+					Message: fmt.Sprintf(
+						"⚙️ Uploading messages\n\n"+
+							"Amount uploaded: %d\n"+
+							"Seconds elapsed: %.2f\n"+
+							"Offset: %d\n"+
+							"LastDate: %s",
+						count,
+						time.Now().Sub(startedAt).Seconds(),
+						offset,
+						lastDate.String(),
+					),
+				})
+				if err != nil {
+					zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
 				}
 
 			}
@@ -333,23 +344,21 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
 
-	if !input.Silent {
-		_, err = ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
-			Peer: update.EffectiveChat().GetInputPeer(),
-			ID:   barMessageId,
-			Message: fmt.Sprintf(
-				"Messages uploaded!\n\n"+
-					"Amount: %d\n"+
-					"Seconds elapsed: %.2f\n"+
-					"LastDate: %s",
-				count,
-				time.Now().Sub(startedAt).Seconds(),
-				lastDate.String(),
-			),
-		})
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
-		}
+	_, err = ctx.EditMessage(barChatId, &tg.MessagesEditMessageRequest{
+		Peer: barPeer,
+		ID:   barMessageId,
+		Message: fmt.Sprintf(
+			"Messages uploaded!\n\n"+
+				"Amount: %d\n"+
+				"Seconds elapsed: %.2f\n"+
+				"LastDate: %s",
+			count,
+			time.Now().Sub(startedAt).Seconds(),
+			lastDate.String(),
+		),
+	})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
 	}
 
 	return nil
