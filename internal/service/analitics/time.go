@@ -134,6 +134,7 @@ func (r *Service) getChatTimeDistribution(messages []db_repository.Message, tz i
 	chartDrawn := getChart()
 	chartDrawn.Title = fmt.Sprintf("Message count distribution by time UTC+%d", tz)
 	chartDrawn.Series = []chart.Series{values}
+	chartDrawn.Elements = []chart.Renderable{chart.Legend(&chartDrawn)}
 
 	var chartBuffer bytes.Buffer
 
@@ -179,7 +180,12 @@ func (r *Service) getChatDateDistribution(messages []db_repository.Message) ([]b
 
 	chartDrawn := getChart()
 	chartDrawn.Title = "Message count distribution by date"
-	chartDrawn.Series = []chart.Series{values}
+	chartDrawn.Series = []chart.Series{values, &chart.PolynomialRegressionSeries{
+		Degree:      3,
+		InnerSeries: values,
+		Name:        "PolynomialRegression",
+	}}
+	chartDrawn.Elements = []chart.Renderable{chart.Legend(&chartDrawn)}
 
 	var chartBuffer bytes.Buffer
 

@@ -266,12 +266,12 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int) (Analis
 
 	report.MostToxicUsersImage = mostToxicUsersImage
 
-	chatTimeDistributionByUserImage, err := r.getChatTimeDistributionByUser(messages, getter, tz)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile toxic users")
-	}
-
-	report.ChatTimeDistributionByUserImage = chatTimeDistributionByUserImage
+	//chatTimeDistributionByUserImage, err := r.getChatTimeDistributionByUser(messages, getter, tz)
+	//if err != nil {
+	//	return AnaliseReport{}, errors.Wrap(err, "failed to compile toxic users")
+	//}
+	//
+	//report.ChatTimeDistributionByUserImage = chatTimeDistributionByUserImage
 
 	return report, nil
 }
