@@ -25,17 +25,27 @@ func getChart() chart.Chart {
 
 func (r *Service) getChatTimeDistributionByUser(messages []db_repository.Message, tz int) ([]byte, error) {
 	const minuteRate = 30
-	timeToCount := make(map[float64]int, 100)
+	timeToCount := make(map[int64]map[float64]int, 100)
 	for _, message := range messages {
 		message.CreatedAt = message.CreatedAt.Add(time.Hour * time.Duration(tz))
 		messageTime := float64(message.CreatedAt.Hour()) + float64(message.CreatedAt.Minute()/minuteRate*minuteRate)/60
-		_, ok := timeToCount[messageTime]
+		userId := message.TgUserId
+
+		timeMap, ok := timeToCount[userId]
 		if ok {
-			timeToCount[messageTime]++
+			_, ok = timeMap[messageTime]
+			if ok {
+				timeMap[messageTime]++
+			} else {
+				timeMap[messageTime] = 1
+			}
 		} else {
-			timeToCount[messageTime] = 1
+			timeToCount[userId] = map[float64]int{messageTime: 1}
 		}
 	}
+
+	chartDrawn := getChart()
+	chartDrawn.Title = fmt.Sprintf("Message count distribution by time UTC+%d", tz)
 
 	times := maps.Keys(timeToCount)
 	sort.SliceStable(times, func(i, j int) bool {
@@ -51,8 +61,6 @@ func (r *Service) getChatTimeDistributionByUser(messages []db_repository.Message
 		values.YValues = append(values.YValues, float64(timeToCount[chatTime]))
 	}
 
-	chartDrawn := getChart()
-	chartDrawn.Title = fmt.Sprintf("Message count distribution by time UTC+%d", tz)
 	chartDrawn.Series = []chart.Series{values}
 
 	var chartBuffer bytes.Buffer
