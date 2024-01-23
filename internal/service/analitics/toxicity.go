@@ -22,16 +22,17 @@ func (r *Service) getMostToxicUsers(messages []db_repository.Message, getter nam
 	userToToxic := make(map[int64]*toxicLevel, 100)
 	for _, message := range messages {
 		for _, word := range strings.Fields(message.Text) {
-			word = strings.Trim(strings.ToLower(word), "\n.,)(-—/_?!* ")
-			if word == "" || len(word) < 2 || serviceWords.Contains(word) {
+			word, ok := r.filterService(word)
+			if !ok {
 				continue
 			}
+
 			isToxic, err := r.IsToxicWord(word)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
 
-			_, ok := userToToxic[message.TgUserId]
+			_, ok = userToToxic[message.TgUserId]
 			if ok {
 				userToToxic[message.TgUserId].AllWords++
 				if isToxic {

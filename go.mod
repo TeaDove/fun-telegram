@@ -26,6 +26,8 @@ require (
 	gioui.org/x v0.2.0 // indirect
 	git.sr.ht/~sbinet/gg v0.5.0 // indirect
 	github.com/AnimeKaizoku/cacher v1.0.1 // indirect
+	github.com/aaaton/golem/v4 v4.0.1 // indirect
+	github.com/aaaton/golem/v4/dicts/ru v0.0.0-20221121100719-34023a0c192d // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/andybalholm/stroke v0.0.0-20221221101821-bd29b49d73f0 // indirect
 	github.com/campoy/embedmd v1.0.0 // indirect

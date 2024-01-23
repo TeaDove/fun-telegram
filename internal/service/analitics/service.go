@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/aaaton/golem/v4"
+	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
@@ -22,6 +23,7 @@ type Service struct {
 	dbRepository *db_repository.Repository
 
 	toxicityExp *regexp2.Regexp
+	lemmatizer  *golem.Lemmatizer
 }
 
 func New(dbRepository *db_repository.Repository) (*Service, error) {
@@ -37,21 +39,15 @@ func New(dbRepository *db_repository.Repository) (*Service, error) {
 
 	r.toxicityExp = exp
 
+	lemmatizer, err := golem.New(ru.New())
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	r.lemmatizer = lemmatizer
+
 	return &r, nil
 }
-
-var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "это", "с", "я",
-	"на", "за", "они", "она", "он", "то", "от", "бы", "если", "ты", "ну", "нету", "была",
-	"там", "ли", "или", "да", "к", "у", "все", "даже", "есть", "для", "давай", "же", "надо",
-	"конечно", "которые", "было", "те", "свою", "мне", "вообще", "по", "где", "кто", "его", "из",
-	"можно", "либо", "куда", "уже", "только", "самые", "должны", "пока", "их", "как", "так", "со", "чем", "про",
-	"чо", "очень", "еще", "ещё", "так", "до", "нет", "про", "вот", "ни", "когда", "чтобы", "потом", "сколько", "будет",
-	"тут", "этого", "точно", "хоть", "понял", "раз", "мы", "прям", "меня", "потому", "что-то", "нас", "через", "вы",
-	"теперь", "тебе", "поэтому", "лучше", "почти", "вроде", "делать", "больше", "всё", "сейчас", "такое", "них",
-	"кстати", "хотя", "может", "тебя", "тоже", "без", "вас", "который", "зачем", "буду", "себе", "сделать",
-	"почему", "кажется", "больше", "просто", "o", "о", "by", "in", "ok", "of", "to", "and", "могу", "знаю", "the", "хочу",
-	"был", "себя", "тогда", "после", "такой", "сегодня", "быть", "всегда", "всех", "него", "сразу", "ж", "под", "ничего",
-	"этом", "ему", "много", "че", "чё", "какой", "во", "щас", "были", "при", "этот", "типа", "ладно", "какой", "завтра")
 
 type AnaliseReport struct {
 	PopularWordsImage         []byte
@@ -109,12 +105,12 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 	wordsToCount := make(map[string]int, 100)
 	for _, message := range messages {
 		for _, word := range strings.Fields(message.Text) {
-			word = strings.Trim(strings.ToLower(word), "\n.,)(-—/_?!* ")
-			if word == "" || len(word) < 2 || serviceWords.Contains(word) {
+			word, ok := r.filterService(word)
+			if !ok {
 				continue
 			}
 
-			_, ok := wordsToCount[word]
+			_, ok = wordsToCount[word]
 			if ok {
 				wordsToCount[word]++
 			} else {

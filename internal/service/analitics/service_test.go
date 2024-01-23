@@ -37,7 +37,7 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	r := getService(t)
 	ctx := utils.GetModuleCtx("tests")
 
-	report, err := r.AnaliseChat(ctx, 1178533048, 3) //1779431332 1350141926
+	report, err := r.AnaliseChat(ctx, 1825059942, 3) //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
 	draw(t, "PopularWordsImage", report.PopularWordsImage)
