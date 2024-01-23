@@ -11,7 +11,6 @@ import (
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
-	"github.com/gotd/td/tgerr"
 	"github.com/kamva/mgm/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -93,15 +92,6 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 
 	if report.ChatDateDistributionImage != nil {
 		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatDateDistributionImage)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		album = append(album, message.UploadedPhoto(file))
-	}
-
-	if report.ChatTimeDistributionByUserImage != nil {
-		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatTimeDistributionByUserImage)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -320,27 +310,13 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 		}
 
 		err = historyIter.Err()
-		if err == nil {
-			zerolog.Ctx(ctx).Info().Str("status", "all.messages.found").Send()
-			break
+		if err != nil {
+			return errors.WithStack(err)
 		}
 
-		dur, ok := tgerr.AsFloodWait(err)
-		if ok {
-			zerolog.Ctx(ctx).
-				Info().
-				Str("status", "sleeping.because.of.flood.wait").
-				Dur("dur", dur).
-				Int("offset", offset).
-				Send()
-			time.Sleep(dur + time.Second)
+		zerolog.Ctx(ctx).Info().Str("status", "all.messages.found").Send()
+		break
 
-			historyQuery.OffsetID(offset)
-			historyIter = historyQuery.Iter()
-
-			continue
-		}
-		return errors.WithStack(err)
 	}
 
 	wg.Wait()

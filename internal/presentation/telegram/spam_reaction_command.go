@@ -21,7 +21,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return errors.WithStack(ErrPeerNotFound)
 	}
 
-	ok, err := r.isEnabled(update.EffectiveMessage.GetID())
+	ok, err := r.isEnabled(update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}

@@ -10,8 +10,8 @@ import (
 	"strconv"
 )
 
-func (r *Presentation) isEnabled(chatId int) (bool, error) {
-	_, err := r.storage.Load(strconv.Itoa(chatId))
+func (r *Presentation) isEnabled(chatId int64) (bool, error) {
+	_, err := r.storage.Load(strconv.Itoa(int(chatId)))
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return true, nil

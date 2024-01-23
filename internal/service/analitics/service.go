@@ -54,12 +54,11 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"этом", "ему", "много", "че", "чё", "какой", "во", "щас", "были", "при", "этот", "типа", "ладно", "какой", "завтра")
 
 type AnaliseReport struct {
-	PopularWordsImage               []byte
-	ChatterBoxesImage               []byte
-	ChatTimeDistributionImage       []byte
-	ChatDateDistributionImage       []byte
-	MostToxicUsersImage             []byte
-	ChatTimeDistributionByUserImage []byte
+	PopularWordsImage         []byte
+	ChatterBoxesImage         []byte
+	ChatTimeDistributionImage []byte
+	ChatDateDistributionImage []byte
+	MostToxicUsersImage       []byte
 
 	FirstMessageAt time.Time
 	MessagesCount  int
@@ -160,26 +159,7 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 }
 
 func (r *Service) getChatterBoxes(messages []db_repository.Message, getter nameGetter) ([]byte, error) {
-	const maxUsers = 20
-
-	userToCount := make(map[int64]int, 100)
-	for _, message := range messages {
-		wordsCount := len(strings.Fields(message.Text))
-		_, ok := userToCount[message.TgUserId]
-		if ok {
-			userToCount[message.TgUserId] += wordsCount
-		} else {
-			userToCount[message.TgUserId] = wordsCount
-		}
-	}
-
-	users := maps.Keys(userToCount)
-	sort.SliceStable(users, func(i, j int) bool {
-		return userToCount[users[i]] > userToCount[users[j]]
-	})
-	if len(users) > maxUsers {
-		users = users[:maxUsers]
-	}
+	users, userToCount := getChatterBoxes(messages, 20)
 
 	values := make([]chart.Value, 0, 10)
 	for _, user := range users {

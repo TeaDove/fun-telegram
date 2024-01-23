@@ -10,15 +10,6 @@ import (
 )
 
 func (r *Presentation) locationCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
-	//if len(update.EffectiveMessage.Message.Message) < 10 {
-	//	_, err := ctx.Reply(update, "Err: need too pass ip v4/v6 address or domain", nil)
-	//	if err != nil {
-	//		return errors.WithStack(err)
-	//	}
-	//}
-
-	//ipAddress := update.EffectiveMessage.Message.Message[10:]
-
 	location, err := r.ipLocator.GetLocation(ctx, input.Text)
 	if err != nil {
 		_, err = ctx.Reply(update, fmt.Sprintf("Err: %s", location.Message), nil)

@@ -10,7 +10,7 @@ import (
 )
 
 func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error {
-	ok, err := r.isEnabled(update.EffectiveMessage.GetID())
+	ok, err := r.isEnabled(update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}
