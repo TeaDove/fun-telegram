@@ -2,28 +2,23 @@ package telegram
 
 import (
 	"context"
-	"github.com/gotd/contrib/middleware/floodwait"
-	"github.com/gotd/contrib/middleware/ratelimit"
-	"github.com/gotd/td/telegram"
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
-	"github.com/teadove/goteleout/internal/service/analitics"
-	"github.com/teadove/goteleout/internal/supplier/ip_locator"
-	"time"
-
-	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
-	"golang.org/x/time/rate"
-
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
+	"github.com/gotd/contrib/middleware/floodwait"
+	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
+	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/supplier/ip_locator"
+	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 	"github.com/teadove/goteleout/internal/utils"
 )
 
@@ -64,9 +59,10 @@ func MustNewTelegramPresentation(
 		zerolog.Ctx(ctx).Warn().Str("status", "flood.waiting").Dur("dur", wait.Duration).Send()
 	})
 
-	middlewares := []telegram.Middleware{
-		ratelimit.New(rate.Every(time.Millisecond*100), 30), waiter,
-	}
+	// ratelimit.New(rate.Every(time.Millisecond*100), 30)
+	// ratelimiter
+
+	middlewares := []telegram.Middleware{waiter}
 
 	protoClient, err := gotgproto.NewClient(
 		telegramAppID,
