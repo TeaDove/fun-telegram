@@ -21,6 +21,11 @@ type telegram struct {
 	PhoneNumber     string `env:"phone_number,required"`
 	SessionPath     string `env:"session_storage_path"  envDefault:"telegram-session.json"`
 	SessionFullPath string
+
+	FloodWaiterEnabled bool          `env:"flood_waiter_enabled" envDefault:"true"`
+	RateLimiterEnabled bool          `env:"rate_limiter_enabled" envDefault:"true"`
+	RateLimiterRate    time.Duration `env:"rate_limiter_rate" envDefault:"100ms"`
+	RateLimiterLimit   int           `env:"rate_limiter_rate" envDefault:"100"`
 }
 
 type Storage struct {

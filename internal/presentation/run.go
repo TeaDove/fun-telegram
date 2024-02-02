@@ -1,6 +1,7 @@
 package presentation
 
 import (
+	"context"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/container"
 	"github.com/teadove/goteleout/internal/utils"
@@ -27,7 +28,7 @@ func Run() {
 
 	log.Info().Str("status", "starting.application").Send()
 
-	err := container.MustNewCombatContainer().Presentation.Run()
+	err := container.MustNewCombatContainer(context.Background()).Presentation.Run()
 
 	utils.Check(err)
 }

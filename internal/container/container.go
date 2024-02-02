@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
@@ -44,13 +45,15 @@ func makeStorage(settings *shared.Settings) storage.Interface {
 	}
 }
 
-func MustNewCombatContainer() Container {
+func MustNewCombatContainer(ctx context.Context) Container {
 	level, err := zerolog.ParseLevel(shared.AppSettings.LogLevel)
 	utils.Check(err)
 
 	zerolog.SetGlobalLevel(level)
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	ctx = log.With().Str("instance.id", uuid.New().String()).Ctx(ctx).Logger().WithContext(ctx)
 
 	persistentStorage := makeStorage(&shared.AppSettings)
 
@@ -72,10 +75,7 @@ func MustNewCombatContainer() Container {
 	utils.Check(err)
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(
-		shared.AppSettings.Telegram.AppID,
-		shared.AppSettings.Telegram.AppHash,
-		shared.AppSettings.Telegram.PhoneNumber,
-		shared.AppSettings.Telegram.SessionFullPath,
+		ctx,
 		persistentStorage,
 		kandinskySupplier,
 		&locator,
@@ -83,7 +83,7 @@ func MustNewCombatContainer() Container {
 		analiticsService,
 	)
 
-	jobService, err := job.New(dbRepository)
+	jobService, err := job.New(ctx, dbRepository)
 	utils.Check(err)
 
 	container := Container{telegramPresentation, jobService}

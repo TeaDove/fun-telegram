@@ -8,6 +8,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/gotd/contrib/middleware/floodwait"
+	"github.com/gotd/contrib/middleware/ratelimit"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
@@ -17,9 +18,12 @@ import (
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 	"github.com/teadove/goteleout/internal/utils"
+	"golang.org/x/time/rate"
+	"time"
 )
 
 var (
@@ -45,41 +49,58 @@ type Presentation struct {
 }
 
 func MustNewTelegramPresentation(
-	telegramAppID int,
-	telegramAppHash string,
-	telegramPhoneNumber string,
-	sessionFullPath string,
+	ctx context.Context,
 	storage storage.Interface,
 	kandinskySupplier *kandinsky_supplier.Supplier,
 	ipLocator *ip_locator.Supplier,
 	dbRepository *db_repository.Repository,
 	analiticsService *analitics.Service,
 ) *Presentation {
-	waiter := floodwait.NewWaiter().WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
-		zerolog.Ctx(ctx).Warn().Str("status", "flood.waiting").Dur("dur", wait.Duration).Send()
-	})
+	middlewares := make([]telegram.Middleware, 0, 2)
 
-	// ratelimit.New(rate.Every(time.Millisecond*100), 30)
-	// ratelimiter
+	if shared.AppSettings.Telegram.RateLimiterEnabled {
+		middlewares = append(middlewares, ratelimit.New(
+			rate.Every(shared.AppSettings.Telegram.RateLimiterRate),
+			shared.AppSettings.Telegram.RateLimiterLimit))
+	}
 
-	middlewares := []telegram.Middleware{waiter}
+	var runMiddleware func(
+		origRun func(ctx context.Context, f func(ctx context.Context) error) (err error),
+		ctx context.Context,
+		f func(ctx context.Context) (err error),
+	) (err error)
+
+	if shared.AppSettings.Telegram.FloodWaiterEnabled {
+		waiter := floodwait.
+			NewWaiter().
+			WithMaxWait(time.Minute * 5).
+			WithMaxRetries(20).
+			WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
+				zerolog.Ctx(ctx).Warn().Str("status", "flood.waiting").Dur("dur", wait.Duration).Send()
+			})
+
+		middlewares = append(middlewares, waiter)
+		runMiddleware = func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
+			return origRun(ctx, func(ctx context.Context) error {
+				return waiter.Run(ctx, f)
+			})
+		}
+
+	}
 
 	protoClient, err := gotgproto.NewClient(
-		telegramAppID,
-		telegramAppHash,
+		shared.AppSettings.Telegram.AppID,
+		shared.AppSettings.Telegram.AppHash,
 		gotgproto.ClientType{
-			Phone: telegramPhoneNumber,
+			Phone: shared.AppSettings.Telegram.PhoneNumber,
 		},
 		&gotgproto.ClientOpts{
+			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
-			Session:          sessionMaker.SqliteSession(sessionFullPath),
+			Session:          sessionMaker.SqliteSession(shared.AppSettings.Telegram.SessionFullPath),
 			Middlewares:      middlewares,
-			RunMiddleware: func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
-				return origRun(ctx, func(ctx context.Context) error {
-					return waiter.Run(ctx, f)
-				})
-			},
+			RunMiddleware:    runMiddleware,
 		})
 	utils.Check(err)
 

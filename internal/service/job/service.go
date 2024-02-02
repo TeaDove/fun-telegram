@@ -17,8 +17,8 @@ type Service struct {
 	ctx context.Context
 }
 
-func New(dbRepository *db_repository.Repository) (*Service, error) {
-	r := Service{dbRepository: dbRepository, ctx: utils.GetModuleCtx("job")}
+func New(ctx context.Context, dbRepository *db_repository.Repository) (*Service, error) {
+	r := Service{dbRepository: dbRepository, ctx: utils.AddModuleCtx(ctx, "job")}
 
 	scheduler := gocron.NewScheduler(time.UTC)
 

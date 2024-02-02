@@ -267,7 +267,7 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 			wg.Add(1)
 			go r.uploadMessageToRepository(ctx, &wg, update, &elem)
 
-			if count%50 == 0 {
+			if count%100 == 0 {
 				time.Sleep(time.Second)
 				zerolog.Ctx(ctx).Info().Str("status", "messages.batch.uploaded").Int("count", count).Send()
 
