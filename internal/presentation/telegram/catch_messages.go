@@ -7,9 +7,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/shared"
 )
 
 func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error {
+	if !shared.AppSettings.Telegram.SaveAllMessages {
+		return nil
+	}
+
 	ok, err := r.isEnabled(update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)

@@ -26,6 +26,7 @@ type telegram struct {
 	RateLimiterEnabled bool          `env:"rate_limiter_enabled" envDefault:"true"`
 	RateLimiterRate    time.Duration `env:"rate_limiter_rate" envDefault:"100ms"`
 	RateLimiterLimit   int           `env:"rate_limiter_rate" envDefault:"100"`
+	SaveAllMessages    bool          `env:"save_all_messages" envDefault:"false"`
 }
 
 type Storage struct {
