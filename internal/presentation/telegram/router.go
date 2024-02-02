@@ -5,9 +5,9 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"strings"
+	"time"
 )
 
 type messageProcessor struct {
@@ -54,18 +54,33 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
+	t0 := time.Now().UTC()
 	zerolog.Ctx(ctx.Context).
 		Info().
-		Str("status", "executing.command").
+		Str("status", "executing.command.begin").
 		Interface("input", opts).
 		Str("command", firstWord).
 		Send()
 
 	err = route.executor(ctx, update, &opts)
+	elapsed := time.Now().UTC().Sub(t0)
+
 	if err != nil {
-		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.process.command").Send()
+		zerolog.Ctx(ctx.Context).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.process.command").
+			Dur("elapsed", elapsed).
+			Send()
 		return errors.WithStack(err)
 	}
+
+	zerolog.Ctx(ctx.Context).
+		Info().
+		Str("status", "executing.command.done").
+		Dur("elapsed", elapsed).
+		Send()
 
 	return nil
 }
