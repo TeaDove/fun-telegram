@@ -122,6 +122,10 @@ func (r *Service) getChatDateDistribution(messages []db_repository.Message) ([]b
 		values.YValues = append(values.YValues, float64(timeToCount[chatTime]))
 	}
 
+	if len(values.XValues) < 4 {
+		return nil, nil
+	}
+
 	chartDrawn := getChart()
 	chartDrawn.Title = "Message count distribution by date"
 	chartDrawn.Series = []chart.Series{values, &chart.PolynomialRegressionSeries{

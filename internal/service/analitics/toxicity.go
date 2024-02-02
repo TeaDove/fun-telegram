@@ -22,7 +22,7 @@ func (r *Service) getMostToxicUsers(messages []db_repository.Message, getter nam
 	userToToxic := make(map[int64]*toxicLevel, 100)
 	for _, message := range messages {
 		for _, word := range strings.Fields(message.Text) {
-			word, ok := r.filterService(word)
+			word, ok := r.filterAndLemma(word)
 			if !ok {
 				continue
 			}

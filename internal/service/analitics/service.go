@@ -103,19 +103,23 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 	const maxWords = 20
 
 	wordsToCount := make(map[string]int, 100)
+	lemmaToWordToCount := make(map[string]map[string]int, 100)
 	for _, message := range messages {
 		for _, word := range strings.Fields(message.Text) {
-			word, ok := r.filterService(word)
+			lemma, ok := r.filterAndLemma(word)
 			if !ok {
 				continue
 			}
 
-			_, ok = wordsToCount[word]
+			wordsToCount[lemma]++
+
+			_, ok = lemmaToWordToCount[lemma]
 			if ok {
-				wordsToCount[word]++
+				lemmaToWordToCount[lemma][word]++
 			} else {
-				wordsToCount[word] = 1
+				lemmaToWordToCount[lemma] = map[string]int{word: 1}
 			}
+
 		}
 	}
 
@@ -128,10 +132,23 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 	if len(words) > maxWords {
 		words = words[:maxWords]
 	}
+
+	lemmaToOrigin := make(map[string]string, len(words))
+	for _, word := range words {
+		popularWord, popularWordCount := "", 0
+		for originalWord, originalWordCount := range lemmaToWordToCount[word] {
+			if originalWordCount > popularWordCount {
+				popularWord, popularWordCount = originalWord, originalWordCount
+			}
+		}
+
+		lemmaToOrigin[word] = popularWord
+	}
+
 	for _, word := range words {
 		values = append(values, chart.Value{
 			Value: float64(wordsToCount[word]),
-			Label: word,
+			Label: lemmaToOrigin[word],
 		})
 	}
 

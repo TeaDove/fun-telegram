@@ -17,16 +17,24 @@ var serviceWords = mapset.NewSet("в", "и", "не", "а", "но", "что", "э
 	"почему", "кажется", "больше", "просто", "o", "о", "by", "in", "ok", "of", "to", "and", "могу", "знаю", "the", "хочу",
 	"был", "себя", "тогда", "после", "такой", "сегодня", "быть", "всегда", "всех", "него", "сразу", "ж", "под", "ничего",
 	"этом", "ему", "много", "че", "чё", "какой", "во", "щас", "были", "при", "этот", "типа", "ладно", "какой", "завтра",
-	"весь", "тот", "простой")
+	"весь", "тот", "простой", "уж")
 
-func (r *Service) lemma(word string) string {
-	return r.lemmatizer.Lemma(strings.Trim(strings.ToLower(word), "\n.,)(-—/_?!* "))
-}
+var lemmaToLemma = map[string]string{"житься": "нет"}
 
-func (r *Service) filterService(word string) (string, bool) {
-	word = r.lemma(word)
-	if word == "" || len(word) < 2 || serviceWords.Contains(word) {
-		return word, false
+func (r *Service) filterAndLemma(word string) (string, bool) {
+	word = strings.Trim(strings.ToLower(word), "\n.,)(-—/_?!* ")
+	if word == "" || len(word) < 3 {
+		return "", false
+	}
+
+	word = r.lemmatizer.Lemma(word)
+	if serviceWords.Contains(word) {
+		return "", false
+	}
+
+	convertedWord, ok := lemmaToLemma[word]
+	if ok {
+		return convertedWord, true
 	}
 
 	return word, true
