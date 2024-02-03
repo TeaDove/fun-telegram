@@ -6,6 +6,8 @@ import (
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
+	"golang.org/x/exp/maps"
+	"slices"
 )
 
 var helpMessage = []styling.StyledTextOption{
@@ -30,7 +32,11 @@ func (r *Presentation) setHelpMessage() {
 	helpMessage = make([]styling.StyledTextOption, 0, 20)
 	helpMessage = append(helpMessage, styling.Plain("Available commands:\n\n"))
 
-	for commandName, command := range r.router {
+	keys := maps.Keys(r.router)
+	slices.Sort(keys)
+
+	for _, commandName := range keys {
+		command := r.router[commandName]
 		helpMessage = append(helpMessage, styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, command.description)))
 		if command.requireAdmin {
 			helpMessage = append(helpMessage, styling.Plain("requires admin rights\n"))
