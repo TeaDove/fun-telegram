@@ -1,5 +1,5 @@
 version: '3.9'
-name: fun-telegram
+
 services:
   client:
     restart: always
