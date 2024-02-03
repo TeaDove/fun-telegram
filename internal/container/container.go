@@ -2,7 +2,6 @@ package container
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
@@ -52,8 +51,6 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	zerolog.SetGlobalLevel(level)
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
-	ctx = log.With().Str("instance.id", uuid.New().String()).Ctx(ctx).Logger().WithContext(ctx)
 
 	persistentStorage := makeStorage(&shared.AppSettings)
 

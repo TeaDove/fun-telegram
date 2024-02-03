@@ -27,7 +27,7 @@ func (r *Service) getMostToxicUsers(messages []db_repository.Message, getter nam
 				continue
 			}
 
-			isToxic, err := r.IsToxicWord(word)
+			isToxic, err := r.IsToxic(word)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -102,11 +102,27 @@ func (r *Service) getMostToxicUsers(messages []db_repository.Message, getter nam
 	return jpgImg, nil
 }
 
-func (r *Service) IsToxicWord(word string) (bool, error) {
+func (r *Service) IsToxic(word string) (bool, error) {
 	match, err := r.toxicityExp.MatchString(word)
 	if err != nil {
 		return false, errors.WithStack(err)
 	}
 
 	return match, nil
+}
+
+func (r *Service) IsToxicSentence(words string) (bool, error) {
+	sentence := strings.Fields(strings.TrimSpace(strings.ToLower(words)))
+	for _, word := range sentence {
+		match, err := r.toxicityExp.MatchString(word)
+		if err != nil {
+			return false, errors.WithStack(err)
+		}
+
+		if match {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

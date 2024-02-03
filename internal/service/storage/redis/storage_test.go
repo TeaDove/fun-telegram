@@ -77,3 +77,30 @@ func TestIntegration_RedisStorage_Delete_Ok(t *testing.T) {
 	ok := storage.Contains(k)
 	assert.False(t, ok)
 }
+
+func TestIntegration_RedisStorage_Toggle_Ok(t *testing.T) {
+	t.Parallel()
+	storage := getStorage()
+
+	k := randomString()
+
+	ok, err := storage.GetToggle(k)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+
+	ok, err = storage.Toggle(k)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+
+	ok, err = storage.GetToggle(k)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+
+	ok, err = storage.Toggle(k)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+
+	ok, err = storage.GetToggle(k)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+}

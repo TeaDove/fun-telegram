@@ -9,6 +9,8 @@ import (
 	"github.com/teadove/goteleout/internal/service/storage"
 )
 
+var emptyBytes = []byte{}
+
 type Storage struct {
 	rbs redis.Client
 }
@@ -21,7 +23,6 @@ func MustNew(host string) *Storage {
 	})}
 }
 
-// TODO move add context
 func (r *Storage) Load(k string) ([]byte, error) {
 	cmd := r.rbs.Get(context.Background(), k)
 	if cmd.Err() != nil {
@@ -74,4 +75,40 @@ func (r *Storage) Delete(k string) error {
 	}
 
 	return nil
+}
+
+func (r *Storage) Toggle(k string) (bool, error) {
+	_, err := r.Load(k)
+	if err != nil {
+		if !errors.Is(err, storage.ErrKeyNotFound) {
+			return false, errors.WithStack(err)
+		}
+
+		err = r.Save(k, emptyBytes)
+		if err != nil {
+			return false, errors.WithStack(err)
+		}
+
+		return false, nil
+	}
+
+	err = r.Delete(k)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	return true, nil
+}
+
+func (r *Storage) GetToggle(k string) (bool, error) {
+	_, err := r.Load(k)
+	if err != nil {
+		if !errors.Is(err, storage.ErrKeyNotFound) {
+			return false, errors.WithStack(err)
+		}
+
+		return false, nil
+	}
+
+	return true, nil
 }

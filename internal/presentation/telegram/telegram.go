@@ -206,12 +206,24 @@ func MustNewTelegramPresentation(
 			executor:    presentation.banCommandHandler,
 			description: "bans or unbans user from using this bot globally",
 		},
+		"toxic": {
+			executor:    presentation.toxicFinderCommandHandler,
+			description: "find toxic words and screem about them",
+		},
 	}
 	presentation.setHelpMessage()
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
 			Callback:      presentation.spamReactionMessageHandler,
+			Filters:       nil,
+			UpdateFilters: nil,
+			Outgoing:      true,
+		},
+	)
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.toxicFinderMessagesProcessor,
 			Filters:       nil,
 			UpdateFilters: nil,
 			Outgoing:      true,
@@ -276,7 +288,7 @@ func (r *Presentation) Ping(ctx context.Context) error {
 }
 
 func (r *Presentation) ApiHealth(w http.ResponseWriter, req *http.Request) {
-	ctx := req.Context()
+	ctx := utils.GetModuleCtx("health")
 	log := zerolog.Ctx(ctx).With().Str("remote.addr", req.RemoteAddr).Logger()
 	ctx = log.WithContext(ctx)
 
@@ -290,4 +302,6 @@ func (r *Presentation) ApiHealth(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Error().Stack().Err(err).Str("status", "failed.to.write.response").Send()
 	}
+
+	log.Debug().Str("status", "health.check.ok").Send()
 }

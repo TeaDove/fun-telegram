@@ -80,3 +80,26 @@ func (r *Storage) Contains(k string) bool {
 
 	return ok
 }
+
+func (r *Storage) Toggle(k string) (bool, error) {
+	r.mappingMu.Lock()
+	defer r.mappingMu.Unlock()
+
+	_, ok := r.mapping[k]
+	if ok {
+		delete(r.mapping, k)
+	} else {
+		r.mapping[k] = []byte{}
+	}
+
+	return ok, nil
+}
+
+func (r *Storage) GetToggle(k string) (bool, error) {
+	r.mappingMu.Lock()
+	defer r.mappingMu.Unlock()
+
+	_, ok := r.mapping[k]
+
+	return ok, nil
+}

@@ -18,7 +18,7 @@ func compileSpamVictimKey(chatId int64, userId int64) string {
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
 	chatId := update.EffectiveChat().GetID()
 	if chatId == 0 {
-		return errors.WithStack(ErrPeerNotFound)
+		return nil
 	}
 
 	ok, err := r.isEnabled(update.EffectiveChat().GetID())

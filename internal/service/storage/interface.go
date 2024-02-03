@@ -11,4 +11,9 @@ type Interface interface {
 	Save(k string, t []byte) error
 	Contains(k string) bool
 	Delete(k string) error
+	// Toggle
+	// Toggles k
+	// Returns true, if k WAS toggled on
+	Toggle(k string) (bool, error)
+	GetToggle(k string) (bool, error)
 }
