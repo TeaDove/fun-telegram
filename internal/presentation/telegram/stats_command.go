@@ -24,7 +24,7 @@ import (
 
 const (
 	maxUploadCount        = 200_000
-	defaultUploadCount    = 50_000
+	defaultUploadCount    = 10_000
 	maxUploadQueryAge     = time.Hour * 24 * 365
 	defaultUploadQueryAge = time.Hour * 24 * 30 * 2
 )

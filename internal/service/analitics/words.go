@@ -169,6 +169,7 @@ var serviceWords = mapset.NewSet(
 	"тот",
 	"простой",
 	"уж",
+
 )
 
 var lemmaToLemma = map[string]string{"житься": "нет"}
