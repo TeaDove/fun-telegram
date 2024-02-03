@@ -207,8 +207,9 @@ func MustNewTelegramPresentation(
 			description: "bans or unbans user from using this bot globally",
 		},
 		"toxic": {
-			executor:    presentation.toxicFinderCommandHandler,
-			description: "find toxic words and screem about them",
+			executor:     presentation.toxicFinderCommandHandler,
+			description:  "find toxic words and screem about them",
+			requireAdmin: true,
 		},
 	}
 	presentation.setHelpMessage()
@@ -291,6 +292,8 @@ func (r *Presentation) ApiHealth(w http.ResponseWriter, req *http.Request) {
 	ctx := utils.GetModuleCtx("health")
 	log := zerolog.Ctx(ctx).With().Str("remote.addr", req.RemoteAddr).Logger()
 	ctx = log.WithContext(ctx)
+	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
 
 	err := r.Ping(ctx)
 	if err != nil {
@@ -304,4 +307,15 @@ func (r *Presentation) ApiHealth(w http.ResponseWriter, req *http.Request) {
 	}
 
 	log.Debug().Str("status", "health.check.ok").Send()
+}
+
+func filterNonNewMessages(update *ext.Update) bool {
+	switch update.UpdateClass.(type) {
+	case *tg.UpdateNewChannelMessage:
+		return true
+	case *tg.UpdateNewMessage:
+		return true
+	default:
+		return false
+	}
 }

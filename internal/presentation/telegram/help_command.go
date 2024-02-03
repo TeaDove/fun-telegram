@@ -10,27 +10,13 @@ import (
 	"slices"
 )
 
-var helpMessage = []styling.StyledTextOption{
-	styling.Plain("Available commands:\n\n"),
-	styling.Plain("/help"), styling.Plain(" - get this message\n\n"),
-	styling.Plain("/ping"), styling.Plain(" - ping all users\n\n"),
-	styling.Plain("/get_me"), styling.Plain(" - get id, username of requested user and group\n\n"),
-	styling.Plain(
-		"/spam_reaction [stop] [disable]",
-	), styling.Plain(" - if replied to message with reaction, will spam this reaction to replied user.\n" +
-		"[stop] - stop spamming.\n" +
-		"[disable] - toggle spam_reaction in this chat\n\n"),
-	styling.Plain(
-		"/kandinsky",
-	), styling.Plain(" - generate image via "), styling.TextURL("kandinsky", "https://www.sberbank.com/promo/kandinsky/"),
-	styling.Plain("\n\n"),
-	styling.Plain("/disable - fully disable bot in this chat\n\n"),
-	styling.Plain("/location [address] - get description by ip address or domain\n\n"),
-}
-
 func (r *Presentation) setHelpMessage() {
-	helpMessage = make([]styling.StyledTextOption, 0, 20)
-	helpMessage = append(helpMessage, styling.Plain("Available commands:\n\n"))
+	helpMessage := make([]styling.StyledTextOption, 0, 20)
+	helpMessage = append(helpMessage,
+		styling.Plain("Bot created by @TeaDove\nSource code: "),
+		styling.TextURL("fun-telegram", "https://github.com/TeaDove/fun-telegram"),
+		styling.Plain("\nAvailable commands:\n\n"),
+	)
 
 	keys := maps.Keys(r.router)
 	slices.Sort(keys)
