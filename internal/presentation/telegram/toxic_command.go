@@ -3,6 +3,7 @@ package telegram
 import (
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
@@ -34,7 +35,7 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 		return nil
 	}
 
-	isToxic, err := r.analiticsService.IsToxicSentence(update.EffectiveMessage.Text)
+	word, isToxic, err := r.analiticsService.IsToxicSentence(update.EffectiveMessage.Text)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -43,7 +44,7 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 		return nil
 	}
 
-	_, err = ctx.Reply(update, "!ALERT! TOXIC MESSAGE FOUND", nil)
+	_, err = ctx.Reply(update, []styling.StyledTextOption{styling.Plain("!ALERT! TOXIC MESSAGE FOUND"), styling.Blockquote(word)}, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}

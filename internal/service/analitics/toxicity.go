@@ -111,18 +111,18 @@ func (r *Service) IsToxic(word string) (bool, error) {
 	return match, nil
 }
 
-func (r *Service) IsToxicSentence(words string) (bool, error) {
+func (r *Service) IsToxicSentence(words string) (string, bool, error) {
 	sentence := strings.Fields(strings.TrimSpace(strings.ToLower(words)))
 	for _, word := range sentence {
 		match, err := r.toxicityExp.MatchString(word)
 		if err != nil {
-			return false, errors.WithStack(err)
+			return "", false, errors.WithStack(err)
 		}
 
 		if match {
-			return true, nil
+			return word, true, nil
 		}
 	}
 
-	return false, nil
+	return "", false, nil
 }
