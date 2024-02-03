@@ -28,7 +28,9 @@ func Run() {
 
 	log.Info().Str("status", "starting.application").Send()
 
-	err := container.MustNewCombatContainer(context.Background()).Presentation.Run()
+	presentation := container.MustNewCombatContainer(context.Background()).Presentation
+	go healthServer(presentation)
 
+	err := presentation.Run()
 	utils.Check(err)
 }

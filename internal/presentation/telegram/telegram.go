@@ -24,6 +24,8 @@ import (
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 	"github.com/teadove/goteleout/internal/utils"
 	"golang.org/x/time/rate"
+	"io"
+	"net/http"
 	"time"
 )
 
@@ -90,6 +92,10 @@ func MustNewTelegramPresentation(
 
 	}
 
+	//zapLogger, err := zap.NewDevelopment()
+	//zapLogger.WithOptions()
+	//utils.Check(err)
+
 	protoClient, err := gotgproto.NewClient(
 		shared.AppSettings.Telegram.AppID,
 		shared.AppSettings.Telegram.AppHash,
@@ -97,6 +103,7 @@ func MustNewTelegramPresentation(
 			Phone: shared.AppSettings.Telegram.PhoneNumber,
 		},
 		&gotgproto.ClientOpts{
+			//Logger:           zapLogger,
 			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
@@ -257,4 +264,30 @@ func (r *Presentation) Run() error {
 	}
 
 	return nil
+}
+
+func (r *Presentation) Ping(ctx context.Context) error {
+	err := r.protoClient.Ping(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to ping telegram")
+	}
+
+	return nil
+}
+
+func (r *Presentation) ApiHealth(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	log := zerolog.Ctx(ctx).With().Str("remote.addr", req.RemoteAddr).Logger()
+	ctx = log.WithContext(ctx)
+
+	err := r.Ping(ctx)
+	if err != nil {
+		log.Error().Stack().Err(err).Str("status", "failed.to.ping.telegram").Send()
+		return
+	}
+
+	_, err = io.WriteString(w, "ok")
+	if err != nil {
+		log.Error().Stack().Err(err).Str("status", "failed.to.write.response").Send()
+	}
 }
