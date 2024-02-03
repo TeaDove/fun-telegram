@@ -7,7 +7,7 @@ import (
 )
 
 func (r *Presentation) replyIfNotSilent(ctx *ext.Context, update *ext.Update, input *tgUtils.Input, text any) error {
-	if !input.Silent {
+	if input.Silent {
 		return nil
 	}
 
