@@ -8,6 +8,7 @@ import (
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/shared"
+	"strings"
 )
 
 func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error {
@@ -44,7 +45,7 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 
 	err = r.dbRepository.UserUpsert(ctx, &db_repository.User{
 		TgUserId:   update.EffectiveUser().GetID(),
-		TgUsername: update.EffectiveUser().Username,
+		TgUsername: strings.ToLower(update.EffectiveUser().Username),
 		TgName:     utils.GetNameFromTgUser(update.EffectiveUser()),
 		IsBot:      update.EffectiveUser().Bot,
 	})

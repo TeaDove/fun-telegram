@@ -98,7 +98,16 @@ func (r *Service) getChatTimeDistribution(messages []db_repository.Message, tz i
 func (r *Service) getChatDateDistribution(messages []db_repository.Message) ([]byte, error) {
 	timeToCount := make(map[time.Time]int, 100)
 	for _, message := range messages {
-		messageDate := time.Date(message.CreatedAt.Year(), message.CreatedAt.Month(), message.CreatedAt.Day()/3*3, 0, 0, 0, 0, message.CreatedAt.Location())
+		messageDate := time.Date(
+			message.CreatedAt.Year(),
+			message.CreatedAt.Month(),
+			message.CreatedAt.Day()/3*3,
+			0,
+			0,
+			0,
+			0,
+			message.CreatedAt.Location(),
+		)
 
 		_, ok := timeToCount[messageDate]
 		if ok {

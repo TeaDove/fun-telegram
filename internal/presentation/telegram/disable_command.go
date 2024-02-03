@@ -4,10 +4,10 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"strconv"
+	"strings"
 )
 
 func (r *Presentation) isEnabled(chatId int64) (bool, error) {
@@ -21,6 +21,19 @@ func (r *Presentation) isEnabled(chatId int64) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (r *Presentation) isBanned(username string) (bool, error) {
+	_, err := r.storage.Load(compileBanKey(strings.ToLower(username)))
+	if err != nil {
+		if errors.Is(err, storage.ErrKeyNotFound) {
+			return false, nil
+		} else {
+			return false, errors.WithStack(err)
+		}
+	}
+
+	return true, nil
 }
 
 func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok bool, err error) {
@@ -44,23 +57,9 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 }
 
 func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
-	ok, err := r.checkFromAdmin(ctx, update)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if !ok {
-		_, err = ctx.Reply(update, "Err: insufficient privilege", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		zerolog.Ctx(ctx).Info().Str("status", "attempt.to.enable.bot.by.non.admin").Send()
-	}
-
 	chatId := strconv.Itoa(int(update.EffectiveChat().GetID()))
 
-	_, err = r.storage.Load(chatId)
+	_, err := r.storage.Load(chatId)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			err = r.storage.Save(chatId, []byte("1"))

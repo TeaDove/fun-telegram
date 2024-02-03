@@ -165,9 +165,5 @@ dmypy.json
 .aws-sam
 .terragrunt-cache
 .terraform
-/internal/service/analitics/PopularWordsImage.jpeg
-/internal/service/analitics/ChatterBoxesImage.jpeg
-/internal/service/analitics/ChatTimeDistributionImage.jpeg
-/internal/service/analitics/ChatDateDistributionImage.jpeg
-/internal/service/analitics/MostToxicUsersImage.jpeg
-/internal/service/analitics/ChatTimeDistributionByUserImage.jpeg
+
+/internal/service/analitics/*.jpeg

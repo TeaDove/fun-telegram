@@ -37,12 +37,22 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	r := getService(t)
 	ctx := utils.GetModuleCtx("tests")
 
-	report, err := r.AnaliseChat(ctx, 1825059942, 3) //1779431332 1350141926 1178533048
+	report, err := r.AnaliseChat(ctx, 1825059942, 3, "") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
-	draw(t, "PopularWordsImage", report.PopularWordsImage)
-	draw(t, "ChatterBoxesImage", report.ChatterBoxesImage)
-	draw(t, "ChatTimeDistributionImage", report.ChatTimeDistributionImage)
-	draw(t, "ChatDateDistributionImage", report.ChatDateDistributionImage)
-	draw(t, "MostToxicUsersImage", report.MostToxicUsersImage)
+	for idx, reportImage := range report.Images {
+		draw(t, fmt.Sprintf("%d", idx), reportImage)
+	}
+}
+
+func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
+	r := getService(t)
+	ctx := utils.GetModuleCtx("tests")
+
+	report, err := r.AnaliseChat(ctx, 1825059942, 3, "TeaDove") //1779431332 1350141926 1178533048
+	require.NoError(t, err)
+
+	for idx, reportImage := range report.Images {
+		draw(t, fmt.Sprintf("%d", idx), reportImage)
+	}
 }

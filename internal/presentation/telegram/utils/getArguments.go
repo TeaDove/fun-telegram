@@ -5,8 +5,9 @@ import (
 )
 
 type OptFlag struct {
-	Short string
-	Long  string
+	Short       string
+	Long        string
+	Description string
 }
 
 type Input struct {

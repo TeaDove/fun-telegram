@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
@@ -25,8 +26,35 @@ var helpMessage = []styling.StyledTextOption{
 	styling.Plain("/location [address] - get description by ip address or domain\n\n"),
 }
 
+func (r *Presentation) setHelpMessage() {
+	helpMessage = make([]styling.StyledTextOption, 0, 20)
+	helpMessage = append(helpMessage, styling.Plain("Available commands:\n\n"))
+
+	for commandName, command := range r.router {
+		helpMessage = append(helpMessage, styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, command.description)))
+		if command.requireAdmin {
+			helpMessage = append(helpMessage, styling.Plain("requires admin rights\n"))
+		}
+
+		if len(command.flags) == 0 {
+			helpMessage = append(helpMessage, styling.Plain("\n"))
+			continue
+		}
+
+		for _, flag := range command.flags {
+			helpMessage = append(
+				helpMessage,
+				styling.Plain(fmt.Sprintf("%s/%s - %s\n", flag.Long, flag.Short, flag.Description)),
+			)
+		}
+		helpMessage = append(helpMessage, styling.Plain("\n"))
+	}
+
+	r.helpMessage = helpMessage
+}
+
 func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
-	_, err := ctx.Reply(update, helpMessage, nil)
+	_, err := ctx.Reply(update, r.helpMessage, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}

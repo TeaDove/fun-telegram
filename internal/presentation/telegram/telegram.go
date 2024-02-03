@@ -10,6 +10,7 @@ import (
 	"github.com/gotd/contrib/middleware/floodwait"
 	"github.com/gotd/contrib/middleware/ratelimit"
 	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
@@ -46,6 +47,7 @@ type Presentation struct {
 
 	dbRepository     *db_repository.Repository
 	analiticsService *analitics.Service
+	helpMessage      []styling.StyledTextOption
 }
 
 func MustNewTelegramPresentation(
@@ -139,17 +141,66 @@ func MustNewTelegramPresentation(
 	)
 
 	presentation.router = map[string]messageProcessor{
-		"echo":          {presentation.echoCommandHandler, []tgUtils.OptFlag{}},
-		"help":          {presentation.helpCommandHandler, []tgUtils.OptFlag{}},
-		"get_me":        {presentation.getMeCommandHandler, []tgUtils.OptFlag{}},
-		"ping":          {presentation.pingCommandHandler, []tgUtils.OptFlag{}},
-		"spam_reaction": {presentation.spamReactionCommandHandler, []tgUtils.OptFlag{FlagStop}},
-		"kandinsky":     {presentation.kandkinskyCommandHandler, []tgUtils.OptFlag{FlagNegativePrompt, FlagStyle}},
-		"disable":       {presentation.disableCommandHandler, []tgUtils.OptFlag{}},
-		"location":      {presentation.locationCommandHandler, []tgUtils.OptFlag{}},
-		"stats":         {presentation.statsCommandHandler, []tgUtils.OptFlag{FlagTZ}},
-		"upload_stats":  {presentation.uploadStatsCommandHandler, []tgUtils.OptFlag{}},
+		"echo": {
+			executor:    presentation.echoCommandHandler,
+			description: "echoes with same message",
+			flags:       []tgUtils.OptFlag{},
+		},
+		"help": {
+			executor:    presentation.helpCommandHandler,
+			description: "get this message",
+			flags:       []tgUtils.OptFlag{},
+		},
+		"get_me": {
+			executor:    presentation.getMeCommandHandler,
+			description: "get id, username of requested user and group",
+			flags:       []tgUtils.OptFlag{},
+		},
+		"ping": {
+			executor:     presentation.pingCommandHandler,
+			description:  "ping all users",
+			flags:        []tgUtils.OptFlag{},
+			requireAdmin: true,
+		},
+		"spam_reaction": {
+			executor:    presentation.spamReactionCommandHandler,
+			description: "if replied to message with reaction, will spam this reaction to replied user",
+			flags:       []tgUtils.OptFlag{FlagStop},
+		},
+		"kandinsky": {
+			executor:    presentation.kandkinskyCommandHandler,
+			description: "generate image via kandinsky",
+			flags:       []tgUtils.OptFlag{FlagNegativePrompt, FlagStyle},
+		},
+		"disable": {
+			executor:     presentation.disableCommandHandler,
+			description:  "disables or enabled bot in this chat",
+			flags:        []tgUtils.OptFlag{},
+			requireAdmin: true,
+		},
+		"location": {
+			executor:    presentation.locationCommandHandler,
+			description: "get description by ip address or domain",
+			flags:       []tgUtils.OptFlag{},
+		},
+		"stats": {
+			executor:     presentation.statsCommandHandler,
+			description:  "returns stats of this chat",
+			flags:        []tgUtils.OptFlag{FlagTZ, FlagStatsUsername},
+			requireAdmin: true,
+		},
+		"upload_stats": {
+			executor:     presentation.uploadStatsCommandHandler,
+			description:  "uploads stats from this chat",
+			flags:        []tgUtils.OptFlag{FlagRemove, FlagCount, FlagDay},
+			requireAdmin: true,
+		},
+		"ban": {
+			executor:    presentation.banCommandHandler,
+			description: "bans or unbans user from using this bot globally",
+		},
 	}
+	presentation.setHelpMessage()
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{

@@ -22,8 +22,11 @@ func New(ctx context.Context, dbRepository *db_repository.Repository) (*Service,
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
+	tomorrow := time.Now().UTC()
+	tomorrowNight := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day()+1, 0, 0, 0, 0, tomorrow.Location())
+
 	_, err := scheduler.
-		Every(24 * time.Hour).
+		Every(24 * time.Hour).StartAt(tomorrowNight).
 		Do(r.DeleteOldMessages)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create scheduler")
@@ -31,13 +34,20 @@ func New(ctx context.Context, dbRepository *db_repository.Repository) (*Service,
 
 	scheduler.StartAsync()
 
+	go r.DeleteOldMessages()
+
 	return &r, nil
 }
 
 func (r *Service) DeleteOldMessages() {
 	count, err := r.dbRepository.MessageDeleteOld(r.ctx)
 	if err != nil {
-		zerolog.Ctx(r.ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.delete.old.messages").Send()
+		zerolog.Ctx(r.ctx).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.delete.old.messages").
+			Send()
 	}
 
 	zerolog.Ctx(r.ctx).Info().Str("status", "old.messages.deleted").Int64("count", count).Send()

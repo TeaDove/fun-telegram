@@ -11,8 +11,10 @@ import (
 )
 
 type messageProcessor struct {
-	executor func(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error
-	flags    []tgUtils.OptFlag
+	executor     func(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error
+	description  string
+	requireAdmin bool
+	flags        []tgUtils.OptFlag
 }
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
@@ -52,6 +54,35 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			Send()
 
 		return nil
+	}
+
+	ok, err = r.isBanned(update.EffectiveUser().Username)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if ok {
+		_, err = ctx.Reply(update, "Err: you are banned from using this bot", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		return nil
+	}
+
+	if route.requireAdmin {
+		ok, err = r.checkFromAdmin(ctx, update)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if !ok {
+			_, err = ctx.Reply(update, "Err: insufficient privilege", nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			return nil
+		}
 	}
 
 	t0 := time.Now().UTC()

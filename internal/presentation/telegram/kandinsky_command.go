@@ -19,8 +19,8 @@ const (
 )
 
 var (
-	FlagNegativePrompt = tgUtils.OptFlag{Long: "negative", Short: "n"}
-	FlagStyle          = tgUtils.OptFlag{Long: "style", Short: "s"}
+	FlagNegativePrompt = tgUtils.OptFlag{Long: "negative", Short: "n", Description: "adds negative prompt"}
+	FlagStyle          = tgUtils.OptFlag{Long: "style", Short: "s", Description: "sets image style"}
 )
 
 // kandkinskyCommandHandler

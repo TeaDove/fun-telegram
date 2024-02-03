@@ -203,7 +203,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUt
 }
 
 var (
-	FlagStop = tgUtils.OptFlag{Long: "stop", Short: "s"}
+	FlagStop = tgUtils.OptFlag{Long: "stop", Short: "s", Description: "stops spamming reactions"}
 )
 
 func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {

@@ -1,21 +1,12 @@
 package analitics
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"github.com/aaaton/golem/v4"
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
-	"github.com/wcharczuk/go-chart/v2"
-	"golang.org/x/exp/maps"
-	"image/jpeg"
-	"image/png"
-	"net/http"
-	"sort"
-	"strings"
 	"time"
 )
 
@@ -50,161 +41,49 @@ func New(dbRepository *db_repository.Repository) (*Service, error) {
 }
 
 type AnaliseReport struct {
-	PopularWordsImage         []byte
-	ChatterBoxesImage         []byte
-	ChatTimeDistributionImage []byte
-	ChatDateDistributionImage []byte
-	MostToxicUsersImage       []byte
+	Images [][]byte
 
 	FirstMessageAt time.Time
 	MessagesCount  int
 }
 
-func PngToJpeg(image []byte) ([]byte, error) {
-	contentType := http.DetectContentType(image)
-
-	switch contentType {
-	case "image/png":
-		// Decode the PNG image bytes
-		img, err := png.Decode(bytes.NewReader(image))
-
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		buf := new(bytes.Buffer)
-
-		if err = jpeg.Encode(buf, img, nil); err != nil {
-			return nil, err
-		}
-
-		return buf.Bytes(), nil
+func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
+	messages, err := r.dbRepository.GetMessagesByChatAndUsername(ctx, chatId, username)
+	if err != nil {
+		return AnaliseReport{}, errors.WithStack(err)
 	}
 
-	return nil, errors.Errorf("unable to convert %#v to jpeg", contentType)
+	report := AnaliseReport{
+		Images:         make([][]byte, 0, 6),
+		FirstMessageAt: messages[len(messages)-1].CreatedAt,
+		MessagesCount:  len(messages),
+	}
+
+	reportImage, err := r.getPopularWords(messages)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to compile popular words")
+	}
+
+	report.Images = append(report.Images, reportImage)
+
+	reportImage, err = r.getChatTimeDistribution(messages, tz)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat time distribution")
+	}
+
+	report.Images = append(report.Images, reportImage)
+
+	reportImage, err = r.getChatDateDistribution(messages)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
+	}
+
+	report.Images = append(report.Images, reportImage)
+
+	return report, nil
 }
 
-func getBarChart() chart.BarChart {
-	return chart.BarChart{
-		ColorPalette: chart.AlternateColorPalette,
-		Width:        1000,
-		Height:       1000,
-		Background: chart.Style{
-			Padding: chart.Box{
-				Top: 40,
-			},
-		},
-		BarWidth: 30,
-		XAxis:    chart.Style{TextRotationDegrees: -90, FontSize: 13, TextHorizontalAlign: 7},
-	}
-}
-
-func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, error) {
-	const maxWords = 20
-
-	wordsToCount := make(map[string]int, 100)
-	lemmaToWordToCount := make(map[string]map[string]int, 100)
-	for _, message := range messages {
-		for _, word := range strings.Fields(message.Text) {
-			lemma, ok := r.filterAndLemma(word)
-			if !ok {
-				continue
-			}
-
-			wordsToCount[lemma]++
-
-			_, ok = lemmaToWordToCount[lemma]
-			if ok {
-				lemmaToWordToCount[lemma][word]++
-			} else {
-				lemmaToWordToCount[lemma] = map[string]int{word: 1}
-			}
-
-		}
-	}
-
-	words := maps.Keys(wordsToCount)
-	sort.SliceStable(words, func(i, j int) bool {
-		return wordsToCount[words[i]] > wordsToCount[words[j]]
-	})
-
-	values := make([]chart.Value, 0, 10)
-	if len(words) > maxWords {
-		words = words[:maxWords]
-	}
-
-	lemmaToOrigin := make(map[string]string, len(words))
-	for _, word := range words {
-		popularWord, popularWordCount := "", 0
-		for originalWord, originalWordCount := range lemmaToWordToCount[word] {
-			if originalWordCount > popularWordCount {
-				popularWord, popularWordCount = originalWord, originalWordCount
-			}
-		}
-
-		lemmaToOrigin[word] = popularWord
-	}
-
-	for _, word := range words {
-		values = append(values, chart.Value{
-			Value: float64(wordsToCount[word]),
-			Label: lemmaToOrigin[word],
-		})
-	}
-
-	barChart := getBarChart()
-	barChart.Title = fmt.Sprintf("%d popular words", len(words))
-	barChart.Bars = values
-
-	var popularWordsBuffer bytes.Buffer
-
-	err := barChart.Render(chart.PNG, &popularWordsBuffer)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return jpgImg, nil
-}
-
-func (r *Service) getChatterBoxes(messages []db_repository.Message, getter nameGetter) ([]byte, error) {
-	users, userToCount := getChatterBoxes(messages, 20)
-
-	values := make([]chart.Value, 0, 10)
-	for _, user := range users {
-		values = append(values, chart.Value{
-			Value: float64(userToCount[user]),
-			Label: getter.Get(user),
-		})
-	}
-	if len(values) <= 1 {
-		return nil, nil
-	}
-
-	barChart := getBarChart()
-	barChart.Title = fmt.Sprintf("%d most chatter-boxes by amount of words", len(users))
-	barChart.Bars = values
-
-	var popularWordsBuffer bytes.Buffer
-
-	err := barChart.Render(chart.PNG, &popularWordsBuffer)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return jpgImg, nil
-}
-
-func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int) (AnaliseReport, error) {
+func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (AnaliseReport, error) {
 	messages, err := r.dbRepository.GetMessagesByChat(ctx, chatId)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
@@ -220,51 +99,80 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int) (Analis
 	}
 
 	report := AnaliseReport{
+		Images:         make([][]byte, 0, 6),
 		FirstMessageAt: messages[len(messages)-1].CreatedAt,
 		MessagesCount:  len(messages),
 	}
 
-	popularWordsImage, err := r.getPopularWords(messages)
+	reportImage, err := r.getPopularWords(messages)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile popular words")
 	}
 
-	report.PopularWordsImage = popularWordsImage
+	if reportImage != nil {
+		report.Images = append(report.Images, reportImage)
+	}
 
-	chatterBoxesImage, err := r.getChatterBoxes(messages, getter)
+	reportImage, err = r.getChatterBoxes(messages, getter)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chatterboxes")
 	}
 
-	report.ChatterBoxesImage = chatterBoxesImage
+	if reportImage != nil {
+		report.Images = append(report.Images, reportImage)
+	}
 
-	chatTimeDistributionImage, err := r.getChatTimeDistribution(messages, tz)
+	reportImage, err = r.getChatTimeDistribution(messages, tz)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat time distribution")
 	}
 
-	report.ChatTimeDistributionImage = chatTimeDistributionImage
+	if reportImage != nil {
+		report.Images = append(report.Images, reportImage)
+	}
 
-	chatDateDistributionImage, err := r.getChatDateDistribution(messages)
+	reportImage, err = r.getChatDateDistribution(messages)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
 	}
 
-	report.ChatDateDistributionImage = chatDateDistributionImage
+	if reportImage != nil {
+		report.Images = append(report.Images, reportImage)
+	}
 
-	mostToxicUsersImage, err := r.getMostToxicUsers(messages, getter)
+	reportImage, err = r.getMostToxicUsers(messages, getter)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile toxic users")
 	}
 
-	report.MostToxicUsersImage = mostToxicUsersImage
-
-	//chatTimeDistributionByUserImage, err := r.getChatTimeDistributionByUser(messages, getter, tz)
-	//if err != nil {
-	//	return AnaliseReport{}, errors.Wrap(err, "failed to compile toxic users")
-	//}
-	//
-	//report.ChatTimeDistributionByUserImage = chatTimeDistributionByUserImage
+	if reportImage != nil {
+		report.Images = append(report.Images, reportImage)
+	}
 
 	return report, nil
+}
+
+func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
+	if username != "" {
+		return r.analiseUserChat(ctx, chatId, tz, username)
+	}
+	return r.analiseWholeChat(ctx, chatId, tz)
+}
+
+func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (int64, error) {
+	count, err := r.dbRepository.DeleteMessagesByChat(ctx, chatId)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to delete messages")
+	}
+
+	return count, nil
+}
+
+func (r *Service) DeleteAllMessages(ctx context.Context) (int64, error) {
+	count, err := r.dbRepository.DeleteAllMessages(ctx)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to delete messages")
+	}
+
+	return count, nil
 }

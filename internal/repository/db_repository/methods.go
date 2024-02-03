@@ -2,6 +2,8 @@ package db_repository
 
 import (
 	"context"
+	"github.com/kamva/mgm/v3/builder"
+	"github.com/kamva/mgm/v3/operator"
 	errors "github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/shared"
 	"go.mongodb.org/mongo-driver/bson"
@@ -91,6 +93,37 @@ func (r *Repository) GetMessagesByChat(ctx context.Context, chatId int64) ([]Mes
 	return messages, nil
 }
 
+func (r *Repository) GetMessagesByChatAndUsername(
+	ctx context.Context,
+	chatId int64,
+	username string,
+) ([]Message, error) {
+	messages := make([]Message, 0, 100)
+
+	err := r.messageCollection.SimpleAggregateWithCtx(
+		ctx,
+		&messages,
+		builder.Lookup(r.userCollection.Name(), "tg_user_id", "tg_user_id", "user"),
+		bson.M{
+			operator.Project: bson.M{
+				"username":   "$user.tg_username",
+				"text":       1,
+				"tg_chat_id": 1,
+				"tg_id":      1,
+				"created_at": 1,
+				"updated_at": 1,
+			},
+		},
+		bson.M{operator.Unwind: "$username"},
+		bson.M{operator.Match: bson.M{"username": username, "tg_chat_id": chatId}},
+	)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return messages, nil
+}
+
 func (r *Repository) GetUsersById(ctx context.Context, usersId []int64) ([]User, error) {
 	users := make([]User, 0, len(usersId))
 
@@ -156,4 +189,22 @@ func (r *Repository) CheckUserExists(ctx context.Context, userId int64) (bool, e
 	}
 
 	return count == 1, nil
+}
+
+func (r *Repository) DeleteMessagesByChat(ctx context.Context, chatId int64) (int64, error) {
+	result, err := r.messageCollection.DeleteMany(ctx, bson.M{"tg_chat_id": chatId})
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+
+	return result.DeletedCount, nil
+}
+
+func (r *Repository) DeleteAllMessages(ctx context.Context) (int64, error) {
+	result, err := r.messageCollection.DeleteMany(ctx, bson.M{})
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+
+	return result.DeletedCount, nil
 }

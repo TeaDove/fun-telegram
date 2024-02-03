@@ -188,3 +188,34 @@ func TestIntegration_DbRepository_GetUsersByChatId_Ok(t *testing.T) {
 	_, err := r.GetUsersByChatId(ctx, 1825059942)
 	assert.NoError(t, err)
 }
+
+func TestIntegration_DbRepository_GetMessagesByChatAndUsername_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	_, err := r.GetMessagesByChatAndUsername(ctx, 1825059942, "TeaDove")
+	assert.NoError(t, err)
+}
+
+func TestIntegration_DbRepository_DeleteMessagesByChat_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+	err := r.MessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1})
+	require.NoError(t, err)
+	err = r.MessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 2})
+	require.NoError(t, err)
+	err = r.MessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 3})
+	require.NoError(t, err)
+	err = r.MessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 4})
+	require.NoError(t, err)
+	err = r.MessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 5})
+	require.NoError(t, err)
+
+	count, err := r.DeleteMessagesByChat(ctx, id)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(5), count)
+}

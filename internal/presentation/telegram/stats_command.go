@@ -16,28 +16,48 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
-	"github.com/teadove/goteleout/internal/shared"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
 
-var (
-	FlagTZ = utils.OptFlag{Long: "tz", Short: "t"}
+const (
+	maxUploadCount        = 200_000
+	defaultUploadCount    = 50_000
+	maxUploadQueryAge     = time.Hour * 24 * 365
+	defaultUploadQueryAge = time.Hour * 24 * 30 * 2
 )
 
-func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
-	ok, err := r.checkFromAdmin(ctx, update)
-	if err != nil {
-		return errors.WithStack(err)
+var (
+	FlagTZ = utils.OptFlag{
+		Long:        "tz",
+		Short:       "t",
+		Description: "offsets all time-based stats by timezone utc offset",
 	}
-	if !ok {
-		_, err = ctx.Reply(update, "Err: insufficient privilege", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
+	FlagStatsUsername = utils.OptFlag{
+		Long:        "username",
+		Short:       "u",
+		Description: "if presented, will compile stats by set username",
 	}
+	FlagCount = utils.OptFlag{
+		Long:        "count",
+		Short:       "c",
+		Description: fmt.Sprintf("max amount of message to upload, max is %d, default is %d", maxUploadCount, defaultUploadCount),
+	}
+	FlagDay = utils.OptFlag{
+		Long:        "day",
+		Short:       "d",
+		Description: fmt.Sprintf("max age of message to upload in days, max is %d, default is %d", int(maxUploadQueryAge.Hours()/24), int(defaultUploadQueryAge.Hours()/24)),
+	}
+	FlagRemove = utils.OptFlag{
+		Long:        "rm",
+		Short:       "r",
+		Description: "delete all stats from this chat",
+	}
+)
 
+func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) (err error) {
 	var tz int64 = 0
 	if tzFlag, ok := input.Ops[FlagTZ.Long]; ok {
 		tz, err = strconv.ParseInt(tzFlag, 10, 64)
@@ -49,22 +69,34 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		}
 	}
 
-	report, err := r.analiticsService.AnaliseChat(ctx, update.EffectiveChat().GetID(), int(tz))
+	username, usernameFlagOk := input.Ops[FlagStatsUsername.Long]
+	username = strings.ToLower(username)
+
+	report, err := r.analiticsService.AnaliseChat(ctx, update.EffectiveChat().GetID(), int(tz), username)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	fileUploader := uploader.NewUploader(ctx.Raw)
 
-	popularWordsFile, err := fileUploader.FromBytes(ctx, "image.jpeg", report.PopularWordsImage)
+	if len(report.Images) == 0 {
+		_, err = ctx.Reply(update, "Err: failed to create report", nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		return nil
+	}
+
+	firstFile, err := fileUploader.FromBytes(ctx, "image.jpeg", report.Images[0])
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	album := make([]message.MultiMediaOption, 0, 10)
 
-	if report.ChatterBoxesImage != nil {
-		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatterBoxesImage)
+	for _, imageBytes := range report.Images[1:] {
+		file, err := fileUploader.FromBytes(ctx, "image.jpeg", imageBytes)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -72,37 +104,23 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		album = append(album, message.UploadedPhoto(file))
 	}
 
-	if report.MostToxicUsersImage != nil {
-		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.MostToxicUsersImage)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		album = append(album, message.UploadedPhoto(file))
+	text := make([]styling.StyledTextOption, 0, 3)
+	if usernameFlagOk {
+		text = append(
+			text,
+			styling.Plain(
+				fmt.Sprintf("%s report for user %s\n\n", utils.GetChatName(update.EffectiveChat()), username),
+			),
+		)
+	} else {
+		text = append(text, styling.Plain(fmt.Sprintf("%s report\n\n", utils.GetChatName(update.EffectiveChat()))))
 	}
 
-	if report.ChatTimeDistributionImage != nil {
-		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatTimeDistributionImage)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		album = append(album, message.UploadedPhoto(file))
-	}
-
-	if report.ChatDateDistributionImage != nil {
-		file, err := fileUploader.FromBytes(ctx, "image.jpeg", report.ChatDateDistributionImage)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		album = append(album, message.UploadedPhoto(file))
-	}
-
-	text := []styling.StyledTextOption{
-		styling.Plain(fmt.Sprintf("%s report:\n\nFirst message in stats send at ", utils.GetChatName(update.EffectiveChat()))),
-		styling.Code(report.FirstMessageAt.String()), styling.Plain(fmt.Sprintf("\nMessages processed: %d", report.MessagesCount)),
-	}
+	text = append(text,
+		styling.Plain("First message in stats send at "),
+		styling.Code(report.FirstMessageAt.String()),
+		styling.Plain(fmt.Sprintf("\nMessages processed: %d", report.MessagesCount)),
+	)
 
 	var requestBuilder *message.RequestBuilder
 	if input.Silent {
@@ -113,7 +131,7 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 
 	_, err = requestBuilder.Album(
 		ctx,
-		message.UploadedPhoto(popularWordsFile, text...),
+		message.UploadedPhoto(firstFile, text...),
 		album...,
 	)
 	if err != nil {
@@ -123,7 +141,12 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	return nil
 }
 
-func (r *Presentation) uploadMessageToRepository(ctx *ext.Context, wg *sync.WaitGroup, update *ext.Update, elem *messages.Elem) {
+func (r *Presentation) uploadMessageToRepository(
+	ctx *ext.Context,
+	wg *sync.WaitGroup,
+	update *ext.Update,
+	elem *messages.Elem,
+) {
 	defer wg.Done()
 
 	msg, ok := elem.Msg.(*tg.Message)
@@ -146,7 +169,12 @@ func (r *Presentation) uploadMessageToRepository(ctx *ext.Context, wg *sync.Wait
 		TgId:     msg.ID,
 	})
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.upload.message.to.repository").Send()
+		zerolog.Ctx(ctx).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.upload.message.to.repository").
+			Send()
 		return
 	}
 
@@ -169,7 +197,7 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, ch
 		username, _ := user.Username()
 		repositoryUser := &db_repository.User{
 			TgUserId:   user.ID(),
-			TgUsername: username,
+			TgUsername: strings.ToLower(username),
 			TgName:     utils.GetNameFromPeerUser(&user),
 			IsBot:      isBot,
 		}
@@ -184,20 +212,76 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, ch
 	zerolog.Ctx(ctx).Info().Str("status", "users.uploaded").Int("count", len(chatMembers)).Send()
 }
 
-func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
-	const maxElapsed = time.Hour * 10
-	const maxCount = 50_000
+func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
+	if update.EffectiveChat().GetID() == ctx.Self.ID {
+		count, err := r.analiticsService.DeleteAllMessages(ctx)
+		if err != nil {
+			return errors.WithStack(err)
+		}
 
-	ok, err := r.checkFromAdmin(ctx, update)
+		if !input.Silent {
+			_, err = ctx.Reply(update, fmt.Sprintf("All %d messages was deleted", count), nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		return nil
+	}
+
+	count, err := r.analiticsService.DeleteMessagesByChatId(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if !ok {
-		_, err = ctx.Reply(update, "Err: insufficient privilege", nil)
+
+	if !input.Silent {
+		_, err = ctx.Reply(update, fmt.Sprintf("%d messages was deleted", count), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 	}
+
+	return nil
+}
+
+func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
+	const maxElapsed = time.Hour
+
+	var maxCount = defaultUploadCount
+	if userMaxCountS, ok := input.Ops[FlagCount.Long]; ok {
+		userMaxCount, err := strconv.Atoi(userMaxCountS)
+		if err != nil {
+			_, err := ctx.Reply(update, fmt.Sprintf("Err: failed to parse count flag: %s", err.Error()), nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		if userMaxCount < maxUploadCount {
+			maxCount = userMaxCount
+		} else {
+			maxCount = maxUploadCount
+		}
+	}
+
+	var maxQueryAge = defaultUploadQueryAge
+	if userQueryAgeS, ok := input.Ops[FlagDay.Long]; ok {
+		userQueryAge, err := strconv.Atoi(userQueryAgeS)
+		if err != nil {
+			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse age flag: %s", err.Error()), nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		if userQueryAge < int(maxUploadQueryAge.Hours()/24) {
+			maxQueryAge = time.Hour * 24 * time.Duration(userQueryAge)
+		} else {
+			maxQueryAge = maxUploadQueryAge
+		}
+	}
+
+	queryTill := time.Now().UTC().Add(-maxQueryAge)
 
 	var (
 		barChatId    int64
@@ -224,7 +308,6 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 		barPeer = ctx.Self.AsInputPeer()
 	}
 
-	queryTill := time.Now().UTC().Add(-shared.AppSettings.MessageTtl)
 	offset := 0
 	lastMessage, err := r.dbRepository.GetLastMessage(ctx, update.EffectiveChat().GetID())
 	if err != nil {
@@ -248,7 +331,7 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 
 	for {
 		zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
-		ok = historyIter.Next(ctx)
+		ok := historyIter.Next(ctx)
 		if ok {
 			zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
 
@@ -340,4 +423,12 @@ func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.U
 	}
 
 	return nil
+}
+
+func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
+	if _, ok := input.Ops[FlagRemove.Long]; ok {
+		return r.uploadStatsDeleteMessages(ctx, update, input)
+	}
+
+	return r.uploadStatsUpload(ctx, update, input)
 }

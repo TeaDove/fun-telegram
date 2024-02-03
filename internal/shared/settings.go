@@ -42,7 +42,7 @@ type Settings struct {
 	Storage         Storage       `envPrefix:"storage__"`
 	FileStoragePath string        `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
 	LogLevel        string        `env:"log_level"         envDefault:"debug"`
-	MessageTtl      time.Duration `env:"message_ttl" envDefault:"4320h"` // 6 months
+	MessageTtl      time.Duration `env:"message_ttl" envDefault:"24h"` // 6 months
 
 	KandinskyKey    string `env:"kandinsky_key"`
 	KandinskySecret string `env:"kandinsky_secret"`
