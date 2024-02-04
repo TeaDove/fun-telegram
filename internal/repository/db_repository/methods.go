@@ -208,3 +208,12 @@ func (r *Repository) DeleteAllMessages(ctx context.Context) (int64, error) {
 
 	return result.DeletedCount, nil
 }
+
+func (r *Repository) Ping(ctx context.Context) error {
+	err := r.client.Ping(ctx, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}

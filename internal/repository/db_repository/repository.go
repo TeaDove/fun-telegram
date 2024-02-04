@@ -3,6 +3,7 @@ package db_repository
 import (
 	"github.com/kamva/mgm/v3"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -10,6 +11,7 @@ import (
 type Repository struct {
 	messageCollection *mgm.Collection
 	userCollection    *mgm.Collection
+	client            *mongo.Client
 }
 
 func New(mongoUrl string) (*Repository, error) {
@@ -28,6 +30,11 @@ func New(mongoUrl string) (*Repository, error) {
 
 	r.messageCollection = mgm.Coll(&Message{})
 	r.userCollection = mgm.Coll(&User{})
+
+	r.client, err = mgm.NewClient()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	return &r, nil
 }

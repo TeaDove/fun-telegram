@@ -24,8 +24,6 @@ import (
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 	"github.com/teadove/goteleout/internal/utils"
 	"golang.org/x/time/rate"
-	"io"
-	"net/http"
 	"time"
 )
 
@@ -50,6 +48,10 @@ type Presentation struct {
 	dbRepository     *db_repository.Repository
 	analiticsService *analitics.Service
 	helpMessage      []styling.StyledTextOption
+	healthChecks     []struct {
+		Name    string
+		Checker healthCheck
+	}
 }
 
 func MustNewTelegramPresentation(
@@ -211,6 +213,10 @@ func MustNewTelegramPresentation(
 			description:  "find toxic words and screem about them",
 			requireAdmin: true,
 		},
+		"health": {
+			executor:    presentation.healthCommandHandler,
+			description: "checks if server is not down",
+		},
 	}
 	presentation.setHelpMessage()
 
@@ -238,6 +244,12 @@ func MustNewTelegramPresentation(
 
 	dp.Error = presentation.errorHandler
 	dp.Panic = presentation.panicHandler
+
+	presentation.healthChecks = []struct {
+		Name    string
+		Checker healthCheck
+	}{{Name: "dbRepository", Checker: presentation.dbRepository.Ping},
+		{Name: "telegram", Checker: presentation.protoClient.Ping}}
 
 	return &presentation
 }
@@ -277,36 +289,6 @@ func (r *Presentation) Run() error {
 	}
 
 	return nil
-}
-
-func (r *Presentation) Ping(ctx context.Context) error {
-	err := r.protoClient.Ping(ctx)
-	if err != nil {
-		return errors.Wrap(err, "failed to ping telegram")
-	}
-
-	return nil
-}
-
-func (r *Presentation) ApiHealth(w http.ResponseWriter, req *http.Request) {
-	ctx := utils.GetModuleCtx("health")
-	log := zerolog.Ctx(ctx).With().Str("remote.addr", req.RemoteAddr).Logger()
-	ctx = log.WithContext(ctx)
-	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
-	defer cancel()
-
-	err := r.Ping(ctx)
-	if err != nil {
-		log.Error().Stack().Err(err).Str("status", "failed.to.ping.telegram").Send()
-		return
-	}
-
-	_, err = io.WriteString(w, "ok")
-	if err != nil {
-		log.Error().Stack().Err(err).Str("status", "failed.to.write.response").Send()
-	}
-
-	log.Debug().Str("status", "health.check.ok").Send()
 }
 
 func filterNonNewMessages(update *ext.Update) bool {

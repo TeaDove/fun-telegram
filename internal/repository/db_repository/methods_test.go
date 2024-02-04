@@ -219,3 +219,13 @@ func TestIntegration_DbRepository_DeleteMessagesByChat_Ok(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(5), count)
 }
+
+func TestIntegration_DbRepository_Ping_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+
+	err := r.Ping(ctx)
+	assert.NoError(t, err)
+}
