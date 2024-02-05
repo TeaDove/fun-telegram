@@ -50,7 +50,7 @@ func (r *Service) check(
 	resultChan <- CheckResult{Name: name, Err: checker.Checker(ctx)}
 }
 
-const maxCheckTime = 3 * time.Second
+const maxCheckTime = 5 * time.Second
 
 func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 	outerCtx, outerCancel := context.WithTimeout(ctx, maxCheckTime+time.Millisecond*100)
