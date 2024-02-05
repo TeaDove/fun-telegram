@@ -59,6 +59,7 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 	defer cancel()
 
 	checkers := map[string]ServiceChecker{}
+	maps.Copy(checkers, r.checkers)
 	if frequent {
 		for name, checker := range checkers {
 			if !checker.ForFrequent {
@@ -67,9 +68,9 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 		}
 	}
 
-	maps.Copy(checkers, r.checkers)
 	checkResults := make(CheckResults, 0, len(checkers))
 	resultChan := make(chan CheckResult, len(checkers))
+	t0 := time.Now()
 
 	for name, checker := range checkers {
 		go r.check(ctx, name, checker, resultChan)
@@ -80,23 +81,37 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 		select {
 		case result := <-resultChan:
 			checkResults = append(checkResults, result)
+			if result.Err != nil {
+				zerolog.Ctx(ctx).
+					Error().Stack().
+					Err(result.Err).
+					Str("status", "health.check.failed").
+					Str("service", result.Name).
+					Dur("elapsed", time.Now().Sub(t0)).Send()
+			} else {
+				zerolog.Ctx(ctx).
+					Info().Str("status", "health.check.ok").
+					Str("service", result.Name).
+					Dur("elapsed", time.Now().Sub(t0)).Send()
+			}
+
 			delete(checkers, result.Name)
+			if len(checkers) == 0 {
+				shouldBreak = true
+			}
 		case <-outerCtx.Done():
 			for name := range checkers {
 				checkResults = append(checkResults, CheckResult{Name: name, Err: ctx.Err()})
+				zerolog.Ctx(ctx).
+					Error().Stack().
+					Err(ctx.Err()).
+					Str("status", "health.check.failed").
+					Str("service", name).
+					Dur("elapsed", time.Now().Sub(t0)).Send()
 			}
 			shouldBreak = true
 		}
 
-	}
-
-	utils.SendInterface(checkResults)
-	for _, result := range checkResults {
-		if result.Err != nil {
-			zerolog.Ctx(ctx).Error().Stack().Err(result.Err).Str("status", "health.check.failed").Str("service", result.Name).Send()
-		} else {
-			zerolog.Ctx(ctx).Info().Str("status", "health.check.ok").Str("service", result.Name).Send()
-		}
 	}
 
 	return checkResults
