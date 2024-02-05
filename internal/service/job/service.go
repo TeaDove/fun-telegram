@@ -14,11 +14,12 @@ type Service struct {
 	dbRepository *db_repository.Repository
 
 	// nolint: containedctx
-	ctx context.Context
+	ctx      context.Context
+	checkers map[string]ServiceChecker
 }
 
-func New(ctx context.Context, dbRepository *db_repository.Repository) (*Service, error) {
-	r := Service{dbRepository: dbRepository, ctx: utils.AddModuleCtx(ctx, "job")}
+func New(ctx context.Context, dbRepository *db_repository.Repository, checkers map[string]ServiceChecker) (*Service, error) {
+	r := Service{dbRepository: dbRepository, ctx: utils.AddModuleCtx(ctx, "job"), checkers: checkers}
 
 	scheduler := gocron.NewScheduler(time.UTC)
 

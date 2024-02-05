@@ -180,8 +180,6 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	zerolog.Ctx(ctx).Debug().Str("status", "kandinsky.image.get.response").Str("content", string(respBytes)).Send()
-
 	if gjson.GetBytes(respBytes, "censored").Bool() {
 		zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.censored").Str("id", id.String()).Send()
 		return nil, errors.WithStack(ErrImageWasCensored)

@@ -112,3 +112,7 @@ func (r *Storage) GetToggle(k string) (bool, error) {
 
 	return true, nil
 }
+
+func (r *Storage) Ping(ctx context.Context) error {
+	return r.rbs.Ping(ctx).Err()
+}

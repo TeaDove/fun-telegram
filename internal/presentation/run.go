@@ -27,9 +27,9 @@ func Run() {
 
 	log.Info().Str("status", "starting.application").Send()
 
-	presentation := container.MustNewCombatContainer(utils.GetCtx()).Presentation
-	go healthServer(presentation)
+	combatContainer := container.MustNewCombatContainer(utils.GetCtx())
+	go healthServer(combatContainer.JobService)
 
-	err := presentation.Run()
+	err := combatContainer.Presentation.Run()
 	utils.Check(err)
 }

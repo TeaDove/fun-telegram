@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -102,4 +103,8 @@ func (r *Storage) GetToggle(k string) (bool, error) {
 	_, ok := r.mapping[k]
 
 	return ok, nil
+}
+
+func (r *Storage) Ping(ctx context.Context) error {
+	return nil
 }

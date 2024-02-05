@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"github.com/pkg/errors"
 )
 
@@ -16,4 +17,6 @@ type Interface interface {
 	// Returns true, if k WAS toggled on
 	Toggle(k string) (bool, error)
 	GetToggle(k string) (bool, error)
+
+	Ping(ctx context.Context) error
 }

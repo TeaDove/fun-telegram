@@ -1,12 +1,12 @@
 package presentation
 
 import (
-	"github.com/teadove/goteleout/internal/presentation/telegram"
+	"github.com/teadove/goteleout/internal/service/job"
 	"net/http"
 )
 
-func healthServer(presentation *telegram.Presentation) {
-	http.HandleFunc("/health", presentation.ApiHealth)
+func healthServer(job *job.Service) {
+	http.HandleFunc("/health", job.ApiHealth)
 
 	err := http.ListenAndServe(":3333", nil)
 	if err != nil {

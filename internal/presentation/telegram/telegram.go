@@ -18,6 +18,7 @@ import (
 	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
+	"github.com/teadove/goteleout/internal/service/job"
 	"github.com/teadove/goteleout/internal/service/storage"
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
@@ -25,11 +26,6 @@ import (
 	"github.com/teadove/goteleout/internal/utils"
 	"golang.org/x/time/rate"
 	"time"
-)
-
-var (
-	ErrBadUpdate    = errors.New("bad update")
-	ErrPeerNotFound = errors.Wrap(ErrBadUpdate, "peer not found")
 )
 
 type Presentation struct {
@@ -48,20 +44,10 @@ type Presentation struct {
 	dbRepository     *db_repository.Repository
 	analiticsService *analitics.Service
 	helpMessage      []styling.StyledTextOption
-	healthChecks     []struct {
-		Name    string
-		Checker healthCheck
-	}
+	jobService       *job.Service
 }
 
-func MustNewTelegramPresentation(
-	ctx context.Context,
-	storage storage.Interface,
-	kandinskySupplier *kandinsky_supplier.Supplier,
-	ipLocator *ip_locator.Supplier,
-	dbRepository *db_repository.Repository,
-	analiticsService *analitics.Service,
-) *Presentation {
+func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
 	middlewares := make([]telegram.Middleware, 0, 2)
 
 	if shared.AppSettings.Telegram.RateLimiterEnabled {
@@ -115,6 +101,19 @@ func MustNewTelegramPresentation(
 		})
 	utils.Check(err)
 
+	return protoClient
+}
+
+func MustNewTelegramPresentation(
+	ctx context.Context,
+	protoClient *gotgproto.Client,
+	storage storage.Interface,
+	kandinskySupplier *kandinsky_supplier.Supplier,
+	ipLocator *ip_locator.Supplier,
+	dbRepository *db_repository.Repository,
+	analiticsService *analitics.Service,
+	jobService *job.Service,
+) *Presentation {
 	api := protoClient.API()
 
 	presentation := Presentation{
@@ -126,6 +125,7 @@ func MustNewTelegramPresentation(
 		ipLocator:         ipLocator,
 		dbRepository:      dbRepository,
 		analiticsService:  analiticsService,
+		jobService:        jobService,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -244,12 +244,6 @@ func MustNewTelegramPresentation(
 
 	dp.Error = presentation.errorHandler
 	dp.Panic = presentation.panicHandler
-
-	presentation.healthChecks = []struct {
-		Name    string
-		Checker healthCheck
-	}{{Name: "dbRepository", Checker: presentation.dbRepository.Ping},
-		{Name: "telegram", Checker: presentation.protoClient.Ping}}
 
 	return &presentation
 }
