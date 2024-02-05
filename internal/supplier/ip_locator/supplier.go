@@ -61,3 +61,12 @@ func (r *Supplier) GetLocation(ctx context.Context, ip string) (IpLocation, erro
 
 	return location, nil
 }
+
+func (r *Supplier) Ping(ctx context.Context) error {
+	_, err := r.GetLocation(ctx, "misis.ru")
+	if err != nil {
+		return errors.Wrap(err, "failed to call locator")
+	}
+
+	return nil
+}

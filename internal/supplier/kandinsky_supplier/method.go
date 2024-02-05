@@ -250,3 +250,12 @@ func (r *Supplier) WaitGeneration(ctx context.Context, input *RequestGenerationI
 
 	return img, nil
 }
+
+func (r *Supplier) Ping(ctx context.Context) error {
+	_, err := r.getModels(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get models")
+	}
+
+	return nil
+}
