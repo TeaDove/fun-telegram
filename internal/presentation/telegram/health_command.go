@@ -39,7 +39,7 @@ func (r *Presentation) healthCommandHandler(ctx *ext.Context, update *ext.Update
 }
 
 func (r *Presentation) Check(ctx context.Context) ([]string, []string) {
-	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	failedChecks := make([]string, 0, len(r.healthChecks))
@@ -63,8 +63,6 @@ func (r *Presentation) ApiHealth(w http.ResponseWriter, req *http.Request) {
 	ctx := utils.GetModuleCtx("health")
 	log := zerolog.Ctx(ctx).With().Str("remote.addr", req.RemoteAddr).Logger()
 	ctx = log.WithContext(ctx)
-	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
-	defer cancel()
 
 	_, failedChecks := r.Check(ctx)
 	if len(failedChecks) != 0 {
