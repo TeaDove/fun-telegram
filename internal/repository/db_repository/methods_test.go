@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
@@ -12,7 +11,7 @@ import (
 )
 
 func getRepository(t *testing.T) *Repository {
-	r, err := New(shared.AppSettings.Storage.MongoDbUrl)
+	r, err := New()
 	assert.NoError(t, err)
 
 	return r

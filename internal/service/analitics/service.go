@@ -53,6 +53,10 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		return AnaliseReport{}, errors.WithStack(err)
 	}
 
+	if len(messages) == 0 {
+		return AnaliseReport{}, nil
+	}
+
 	report := AnaliseReport{
 		Images:         make([][]byte, 0, 6),
 		FirstMessageAt: messages[len(messages)-1].CreatedAt,

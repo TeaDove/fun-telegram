@@ -17,10 +17,18 @@ services:
       mongodb:
         condition: service_healthy
     healthcheck:
-      test: curl -f http://127.0.0.1:3333/health
-      interval: 5s
-      timeout: 10s
+      test: curl -f http://127.0.0.1:3333/health || exit 1
+      interval: 10s
+      timeout: 20s
       retries: 3
+
+  autoheal:
+    restart: always
+    image: willfarrell/autoheal
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 #  restarter:
 #    image: docker:25.0.2-git

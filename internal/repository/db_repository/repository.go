@@ -3,6 +3,7 @@ package db_repository
 import (
 	"github.com/kamva/mgm/v3"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/shared"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
@@ -14,7 +15,7 @@ type Repository struct {
 	client            *mongo.Client
 }
 
-func New(mongoUrl string) (*Repository, error) {
+func New() (*Repository, error) {
 	const databaseName = "db_main"
 
 	r := Repository{}
@@ -22,7 +23,7 @@ func New(mongoUrl string) (*Repository, error) {
 	err := mgm.SetDefaultConfig(
 		&mgm.Config{CtxTimeout: 12 * time.Second},
 		databaseName,
-		options.Client().ApplyURI(mongoUrl),
+		options.Client().ApplyURI(shared.AppSettings.Storage.MongoDbUrl),
 	)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -31,7 +32,7 @@ func New(mongoUrl string) (*Repository, error) {
 	r.messageCollection = mgm.Coll(&Message{})
 	r.userCollection = mgm.Coll(&User{})
 
-	r.client, err = mgm.NewClient()
+	r.client, err = mgm.NewClient(options.Client().ApplyURI(shared.AppSettings.Storage.MongoDbUrl))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

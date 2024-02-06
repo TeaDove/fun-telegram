@@ -65,7 +65,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	locator := ip_locator.Supplier{}
 
-	dbRepository, err := db_repository.New(shared.AppSettings.Storage.MongoDbUrl)
+	dbRepository, err := db_repository.New()
 	utils.Check(err)
 
 	analiticsService, err := analitics.New(dbRepository)

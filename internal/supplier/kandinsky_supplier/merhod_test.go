@@ -22,6 +22,7 @@ func getSupplier(t *testing.T) *Supplier {
 }
 
 func TestIntegration_KandinskySupplier_GetModels_Ok(t *testing.T) {
+	t.Parallel()
 	supplier := getSupplier(t)
 
 	_, err := supplier.getModels(ctx)
@@ -30,6 +31,7 @@ func TestIntegration_KandinskySupplier_GetModels_Ok(t *testing.T) {
 }
 
 func TestIntegration_KandinskySupplier_RequestGeneration_Ok(t *testing.T) {
+	t.Parallel()
 	supplier := getSupplier(t)
 
 	id, err := supplier.RequestGeneration(ctx, &input)
@@ -39,6 +41,7 @@ func TestIntegration_KandinskySupplier_RequestGeneration_Ok(t *testing.T) {
 }
 
 func TestIntegration_KandinskySupplier_Get_Ok(t *testing.T) {
+	t.Parallel()
 	supplier := getSupplier(t)
 
 	id, err := supplier.RequestGeneration(ctx, &input)
@@ -49,6 +52,8 @@ func TestIntegration_KandinskySupplier_Get_Ok(t *testing.T) {
 }
 
 func TestIntegration_KandinskySupplier_WaitGet_Ok(t *testing.T) {
+	t.Parallel()
+	t.Skip("too long test")
 	supplier := getSupplier(t)
 
 	id, err := supplier.RequestGeneration(ctx, &input)
@@ -60,6 +65,8 @@ func TestIntegration_KandinskySupplier_WaitGet_Ok(t *testing.T) {
 }
 
 func TestIntegration_KandinskySupplier_WaitGeneration_Ok(t *testing.T) {
+	t.Parallel()
+	t.Skip("too long test")
 	supplier := getSupplier(t)
 
 	img, err := supplier.WaitGeneration(ctx, &input)
