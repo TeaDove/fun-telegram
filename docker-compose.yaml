@@ -16,17 +16,17 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
+    labels:
+      - "autoheal=true"
     healthcheck:
       test: curl -f http://127.0.0.1:3333/health || exit 1
-      interval: 10s
+      interval: 2m
       timeout: 20s
       retries: 3
 
   autoheal:
     restart: always
     image: willfarrell/autoheal
-    environment:
-      - AUTOHEAL_CONTAINER_LABEL=all
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -45,8 +45,13 @@ services:
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - "./data:/data"
+    labels:
+      - "autoheal=true"
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 2m
+      timeout: 20s
+      retries: 3
 
   mongodb:
     image: mongo:7.0.4-jammy
@@ -55,5 +60,10 @@ services:
     volumes:
       - "./data/mongo:/data/db"
       - './extra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro'
+    labels:
+      - "autoheal=true"
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 2m
+      timeout: 20s
+      retries: 3
