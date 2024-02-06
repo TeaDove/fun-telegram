@@ -17,8 +17,9 @@ type ServiceChecker struct {
 }
 
 type CheckResult struct {
-	Name string
-	Err  error
+	Name    string
+	Elapsed time.Duration
+	Err     error
 }
 
 type CheckResults []CheckResult
@@ -80,28 +81,31 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 	for !shouldBreak {
 		select {
 		case result := <-resultChan:
-			checkResults = append(checkResults, result)
+			elapsed := time.Now().Sub(t0)
 			if result.Err != nil {
 				zerolog.Ctx(ctx).
 					Error().Stack().
 					Err(result.Err).
 					Str("status", "health.check.failed").
 					Str("service", result.Name).
-					Dur("elapsed", time.Now().Sub(t0)).Send()
+					Dur("elapsed", elapsed).Send()
 			} else {
 				zerolog.Ctx(ctx).
 					Info().Str("status", "health.check.ok").
 					Str("service", result.Name).
-					Dur("elapsed", time.Now().Sub(t0)).Send()
+					Dur("elapsed", elapsed).Send()
 			}
+			result.Elapsed = elapsed
 
+			checkResults = append(checkResults, result)
 			delete(checkers, result.Name)
 			if len(checkers) == 0 {
 				shouldBreak = true
 			}
 		case <-outerCtx.Done():
+			elapsed := time.Now().Sub(t0)
 			for name := range checkers {
-				checkResults = append(checkResults, CheckResult{Name: name, Err: ctx.Err()})
+				checkResults = append(checkResults, CheckResult{Name: name, Err: ctx.Err(), Elapsed: elapsed})
 				zerolog.Ctx(ctx).
 					Error().Stack().
 					Err(ctx.Err()).
