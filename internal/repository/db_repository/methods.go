@@ -5,7 +5,7 @@ import (
 	"github.com/kamva/mgm/v3/builder"
 	"github.com/kamva/mgm/v3/operator"
 	errors "github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/shared"
+	"github.com/rs/zerolog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -98,9 +98,41 @@ func (r *Repository) DeleteMessages(ctx context.Context, messages []Message) (in
 	return result.DeletedCount, nil
 }
 
+func (r *Repository) DeleteMessagesOldWithCount(ctx context.Context, limit int64) (int64, error) {
+	batchSize := int64(10_000)
+	count := int64(0)
+	for {
+		shouldBreak := false
+		if batchSize+count > limit {
+			batchSize = limit - count
+			shouldBreak = true
+		}
+
+		messages, err := r.MessageGetSortedLimited(ctx, batchSize)
+		if err != nil {
+			return 0, errors.WithStack(err)
+		}
+
+		batchCount, err := r.DeleteMessages(ctx, messages)
+		if err != nil {
+			return 0, errors.WithStack(err)
+		}
+
+		zerolog.Ctx(ctx).Info().Str("status", "messages.deleted").Int64("count", batchCount).Send()
+
+		count += batchCount
+
+		if shouldBreak {
+			break
+		}
+	}
+
+	return count, nil
+}
+
 func (r *Repository) MessageDeleteOld(ctx context.Context) (int64, error) {
 	result, err := r.messageCollection.DeleteMany(ctx,
-		bson.M{"created_at": bson.M{"$lt": time.Now().UTC().Add(-shared.AppSettings.MessageTtl)}})
+		bson.M{"created_at": bson.M{"$lt": time.Now().UTC().Add(-time.Hour * 24 * 365)}})
 	if err != nil {
 		return 0, errors.WithStack(err)
 	}
@@ -235,61 +267,4 @@ func (r *Repository) DeleteAllMessages(ctx context.Context) (int64, error) {
 	}
 
 	return result.DeletedCount, nil
-}
-
-func (r *Repository) Ping(ctx context.Context) error {
-	err := r.client.Ping(ctx, nil)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
-func (r *Repository) StatsForTable(ctx context.Context, collName string) (MessageStorageStats, error) {
-	result := r.client.Database(databaseName).RunCommand(ctx, bson.M{"collStats": collName})
-
-	var document bson.M
-	err := result.Decode(&document)
-	if err != nil {
-		return MessageStorageStats{}, errors.WithStack(err)
-	}
-
-	stats := MessageStorageStats{}
-
-	count, ok := document["count"].(int32)
-	if !ok {
-		return MessageStorageStats{}, errors.New("failed to get count from stats")
-	}
-	stats.Count = int(count)
-
-	totalSize, ok := document["totalSize"].(int32)
-	if !ok {
-		return MessageStorageStats{}, errors.New("failed to get totalSize from stats")
-	}
-
-	stats.TotalSizeBytes = int(totalSize)
-
-	if stats.Count != 0 {
-		stats.AvgObjWithIndexSizeBytes = stats.TotalSizeBytes / stats.Count
-	}
-
-	return stats, nil
-}
-
-func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]MessageStorageStats, error) {
-	colls, err := r.client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	map_ := make(map[string]MessageStorageStats, len(colls))
-	for _, coll := range colls {
-		map_[coll], err = r.StatsForTable(ctx, coll)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-	}
-
-	return map_, nil
 }

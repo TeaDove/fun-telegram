@@ -1,0 +1,69 @@
+package db_repository
+
+import (
+	"context"
+	"github.com/kamva/mgm/v3"
+	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
+)
+
+func (r *Repository) Ping(ctx context.Context) error {
+	err := r.client.Ping(ctx, nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) StatsForMessages(ctx context.Context) (MessageStorageStats, error) {
+	return r.StatsForTable(ctx, mgm.CollName(&Message{}))
+}
+
+func (r *Repository) StatsForTable(ctx context.Context, collName string) (MessageStorageStats, error) {
+	result := r.client.Database(databaseName).RunCommand(ctx, bson.M{"collStats": collName})
+
+	var document bson.M
+	err := result.Decode(&document)
+	if err != nil {
+		return MessageStorageStats{}, errors.WithStack(err)
+	}
+
+	stats := MessageStorageStats{}
+
+	count, ok := document["count"].(int32)
+	if !ok {
+		return MessageStorageStats{}, errors.New("failed to get count from stats")
+	}
+	stats.Count = int(count)
+
+	totalSize, ok := document["totalSize"].(int32)
+	if !ok {
+		return MessageStorageStats{}, errors.New("failed to get totalSize from stats")
+	}
+
+	stats.TotalSizeBytes = int(totalSize)
+
+	if stats.Count != 0 {
+		stats.AvgObjWithIndexSizeBytes = stats.TotalSizeBytes / stats.Count
+	}
+
+	return stats, nil
+}
+
+func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]MessageStorageStats, error) {
+	colls, err := r.client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	map_ := make(map[string]MessageStorageStats, len(colls))
+	for _, coll := range colls {
+		map_[coll], err = r.StatsForTable(ctx, coll)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+	}
+
+	return map_, nil
+}

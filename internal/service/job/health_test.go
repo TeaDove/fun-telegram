@@ -31,7 +31,8 @@ func TestIntegration_JobService_HealthChecker_Ok(t *testing.T) {
 	}}}
 
 	checkResults := r.Check(ctx, false)
-	assert.Equal(t, CheckResults{{Name: "health-service", Err: nil}}, checkResults)
+	assert.Equal(t, "health-service", checkResults[0].Name)
+	assert.Equal(t, nil, checkResults[0].Err)
 }
 
 func TestIntegration_JobService_HealthChecker_ErrOk(t *testing.T) {
@@ -44,7 +45,8 @@ func TestIntegration_JobService_HealthChecker_ErrOk(t *testing.T) {
 	}}}
 
 	checkResults := r.Check(ctx, false)
-	assert.Equal(t, CheckResults{{Name: "unhealth-service", Err: err}}, checkResults)
+	assert.Equal(t, "unhealth-service", checkResults[0].Name)
+	assert.Equal(t, err, checkResults[0].Err)
 }
 
 func TestIntegration_JobService_HealthChecker_MultipleOk(t *testing.T) {

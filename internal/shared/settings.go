@@ -37,12 +37,13 @@ type Storage struct {
 }
 
 type Settings struct {
-	LogErrorToSelf  bool          `env:"log_error_to_self" envDefault:"false"`
-	Telegram        telegram      `envPrefix:"telegram__"`
-	Storage         Storage       `envPrefix:"storage__"`
-	FileStoragePath string        `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
-	LogLevel        string        `env:"log_level"         envDefault:"debug"`
-	MessageTtl      time.Duration `env:"message_ttl" envDefault:"24h"` // 6 months
+	LogErrorToSelf  bool     `env:"log_error_to_self" envDefault:"false"`
+	Telegram        telegram `envPrefix:"telegram__"`
+	Storage         Storage  `envPrefix:"storage__"`
+	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
+	LogLevel        string   `env:"log_level"         envDefault:"debug"`
+
+	MessagesMaxSizeMB int `env:"messages_max_size_mb" envDefault:"200"`
 
 	KandinskyKey    string `env:"kandinsky_key"`
 	KandinskySecret string `env:"kandinsky_secret"`

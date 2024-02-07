@@ -39,7 +39,36 @@ func New(ctx context.Context, dbRepository *db_repository.Repository, checkers m
 }
 
 func (r *Service) DeleteOldMessages() {
-	count, err := r.dbRepository.MessageDeleteOld(r.ctx)
+	stats, err := r.dbRepository.StatsForMessages(r.ctx)
+	if err != nil {
+		zerolog.Ctx(r.ctx).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.get.messages.stats").
+			Send()
+		return
+	}
+
+	desiredSizeInBytes := 10 * 1024 * 1024 // shared.AppSettings.MessagesMaxSizeMB
+	if desiredSizeInBytes > stats.TotalSizeBytes {
+		zerolog.Ctx(r.ctx).
+			Debug().
+			Str("status", "no.need.to.delete.messages").
+			Int("current.size", stats.TotalSizeBytes).
+			Int("max.size", desiredSizeInBytes).
+			Send()
+		return
+	}
+
+	sizeToDelete := stats.TotalSizeBytes - desiredSizeInBytes
+
+	countToDelete := sizeToDelete / stats.AvgObjWithIndexSizeBytes
+	if countToDelete == 0 {
+		return
+	}
+
+	_, err = r.dbRepository.DeleteMessagesOldWithCount(r.ctx, int64(countToDelete))
 	if err != nil {
 		zerolog.Ctx(r.ctx).
 			Error().
@@ -47,7 +76,26 @@ func (r *Service) DeleteOldMessages() {
 			Err(errors.WithStack(err)).
 			Str("status", "failed.to.delete.old.messages").
 			Send()
+		return
 	}
 
-	zerolog.Ctx(r.ctx).Info().Str("status", "old.messages.deleted").Int64("count", count).Send()
+	newStats, err := r.dbRepository.StatsForMessages(r.ctx)
+	if err != nil {
+		zerolog.Ctx(r.ctx).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.get.messages.stats").
+			Send()
+		return
+	}
+
+	zerolog.Ctx(r.ctx).
+		Info().
+		Str("status", "old.messages.deleted").
+		Int("old.count", stats.Count).
+		Int("new.count", newStats.Count).
+		Int("old.size", stats.TotalSizeBytes).
+		Int("new.size", newStats.TotalSizeBytes).
+		Send()
 }

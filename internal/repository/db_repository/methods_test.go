@@ -21,23 +21,30 @@ func getRepository(t *testing.T) *Repository {
 }
 
 func generateMessage(r *Repository, t *testing.T) []Message {
+	ctx := utils.GetCtx()
+	_, err := r.DeleteAllMessages(ctx)
+	require.NoError(t, err)
+
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 	messages := make([]Message, 0, 1000)
 
-	ctx := utils.GetCtx()
-	for i := 0; i < rand.Intn(500); i++ {
+	for i := 0; i < 50_000; i++ {
 		for j := 0; j < rand.Intn(500); j++ {
 			wg.Add(1)
-			chatId := rand.Int63n(1_000_000)
-
-			text := strconv.Itoa(rand.Intn(1_000_000))
-			message := Message{Text: text, TgChatID: chatId, TgUserId: rand.Int63n(10), TgId: j}
-			messages = append(messages, message)
-
+			j := j
+			i := i
 			go func() {
 				defer wg.Done()
-				err := r.MessageCreate(ctx, &message)
+
+				text := strconv.Itoa(rand.Intn(1_000_000))
+				message := &Message{Text: text, TgChatID: int64(i), TgUserId: rand.Int63n(10), TgId: j}
+				err := r.MessageCreate(ctx, message)
 				require.NoError(t, err)
+
+				mu.Lock()
+				defer mu.Unlock()
+				messages = append(messages, *message)
 			}()
 		}
 	}
@@ -259,9 +266,8 @@ func TestIntegration_DbRepository_Ping_Ok(t *testing.T) {
 }
 
 func TestIntegration_DbRepository_StatsForTable_Ok(t *testing.T) {
-	t.Parallel()
 	r := getRepository(t)
-
+	generateMessage(r, t)
 	ctx := context.Background()
 
 	_, err := r.StatsForTable(ctx, mgm.CollName(&Message{}))
@@ -269,17 +275,16 @@ func TestIntegration_DbRepository_StatsForTable_Ok(t *testing.T) {
 }
 
 func TestIntegration_DbRepository_StatsForDatabase_Ok(t *testing.T) {
-	t.Parallel()
 	r := getRepository(t)
-
+	//generateMessage(r, t)
 	ctx := context.Background()
 
-	_, err := r.StatsForDatabase(ctx)
+	stats, err := r.StatsForDatabase(ctx)
 	assert.NoError(t, err)
+	utils.SendInterface(stats)
 }
 
 func TestIntegration_DbRepository_MessageGetSortedLimited_Ok(t *testing.T) {
-	t.Parallel()
 	r := getRepository(t)
 	generateMessage(r, t)
 	ctx := context.Background()
@@ -291,14 +296,17 @@ func TestIntegration_DbRepository_MessageGetSortedLimited_Ok(t *testing.T) {
 }
 
 func TestIntegration_DbRepository_DeleteMessages_Ok(t *testing.T) {
-	t.Parallel()
 	r := getRepository(t)
 	messages := generateMessage(r, t)
-	utils.SendInterface(len(messages))
 
 	ctx := context.Background()
 
 	count, err := r.DeleteMessages(ctx, messages)
 	assert.NoError(t, err)
-	utils.SendInterface(count)
+	assert.Len(t, messages, int(count))
+}
+
+func TestIntegration_DbRepository_GenerateMessages_Ok(t *testing.T) {
+	r := getRepository(t)
+	_ = generateMessage(r, t)
 }
