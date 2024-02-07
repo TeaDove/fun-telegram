@@ -25,12 +25,12 @@ services:
       interval: 2m
       timeout: 20s
       retries: 3
+      start_period: 5s
+      start_interval: 5s
 
   autoheal:
     restart: always
     image: willfarrell/autoheal
-    environment:
-      - AUTOHEAL_CONTAINER_LABEL=all
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -55,6 +55,8 @@ services:
       interval: 2m
       timeout: 20s
       retries: 3
+      start_period: 5s
+      start_interval: 5s
 
   mongodb:
     image: mongo:7.0.4-jammy
@@ -70,3 +72,5 @@ services:
       interval: 2m
       timeout: 20s
       retries: 3
+      start_period: 5s
+      start_interval: 5s
