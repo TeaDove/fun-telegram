@@ -2,6 +2,7 @@ package db_repository
 
 import (
 	"context"
+	"github.com/kamva/mgm/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/goteleout/internal/utils"
@@ -226,5 +227,25 @@ func TestIntegration_DbRepository_Ping_Ok(t *testing.T) {
 	ctx := context.Background()
 
 	err := r.Ping(ctx)
+	assert.NoError(t, err)
+}
+
+func TestIntegration_DbRepository_StatsForTable_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+
+	_, err := r.StatsForTable(ctx, mgm.CollName(&Message{}))
+	assert.NoError(t, err)
+}
+
+func TestIntegration_DbRepository_StatsForDatabase_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+
+	_, err := r.StatsForDatabase(ctx)
 	assert.NoError(t, err)
 }

@@ -217,6 +217,11 @@ func MustNewTelegramPresentation(
 			executor:    presentation.healthCommandHandler,
 			description: "checks if server is not down",
 		},
+		"infra_stats": {
+			executor:     presentation.infraStatsCommandHandler,
+			description:  "show infrastraction load information",
+			requireOwner: true,
+		},
 	}
 	presentation.setHelpMessage()
 

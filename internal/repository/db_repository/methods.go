@@ -217,3 +217,48 @@ func (r *Repository) Ping(ctx context.Context) error {
 
 	return nil
 }
+
+func (r *Repository) StatsForTable(ctx context.Context, collName string) (MessageStorageStats, error) {
+	result := r.client.Database(databaseName).RunCommand(ctx, bson.M{"collStats": collName})
+
+	var document bson.M
+	err := result.Decode(&document)
+	if err != nil {
+		return MessageStorageStats{}, errors.WithStack(err)
+	}
+
+	stats := MessageStorageStats{}
+
+	count, ok := document["count"].(int32)
+	if !ok {
+		return MessageStorageStats{}, errors.New("failed to get count from stats")
+	}
+	stats.Count = int(count)
+
+	totalSize, ok := document["totalSize"].(int32)
+	if !ok {
+		return MessageStorageStats{}, errors.New("failed to get totalSize from stats")
+	}
+
+	stats.TotalSizeBytes = int(totalSize)
+	stats.AvgObjWithIndexSizeBytes = stats.TotalSizeBytes / stats.Count
+
+	return stats, nil
+}
+
+func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]MessageStorageStats, error) {
+	colls, err := r.client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	map_ := make(map[string]MessageStorageStats, len(colls))
+	for _, coll := range colls {
+		map_[coll], err = r.StatsForTable(ctx, coll)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+	}
+
+	return map_, nil
+}

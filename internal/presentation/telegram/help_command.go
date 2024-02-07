@@ -25,7 +25,10 @@ func (r *Presentation) setHelpMessage() {
 		command := r.router[commandName]
 		helpMessage = append(helpMessage, styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, command.description)))
 		if command.requireAdmin {
-			helpMessage = append(helpMessage, styling.Plain("requires admin rights\n"))
+			helpMessage = append(helpMessage, styling.Bold("requires admin rights\n"))
+		}
+		if command.requireOwner {
+			helpMessage = append(helpMessage, styling.Bold("requires owner rights\n"))
 		}
 
 		if len(command.flags) == 0 {

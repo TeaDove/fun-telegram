@@ -52,8 +52,12 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 	}
 
 	return userMember.Status() == members.Admin ||
-		update.EffectiveUser().GetID() == ctx.Self.ID ||
+		r.checkFromOwner(ctx, update) ||
 		userMember.Status() == members.Creator, nil
+}
+
+func (r *Presentation) checkFromOwner(ctx *ext.Context, update *ext.Update) (ok bool) {
+	return update.EffectiveUser().GetID() == ctx.Self.ID
 }
 
 func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {

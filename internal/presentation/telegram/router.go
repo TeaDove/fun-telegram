@@ -14,6 +14,7 @@ type messageProcessor struct {
 	executor     func(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error
 	description  string
 	requireAdmin bool
+	requireOwner bool
 	flags        []tgUtils.OptFlag
 }
 
@@ -76,7 +77,18 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			return errors.WithStack(err)
 		}
 		if !ok {
-			_, err = ctx.Reply(update, "Err: insufficient privilege", nil)
+			_, err = ctx.Reply(update, "Err: insufficient privilege, only admin is allowed to run this command", nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			return nil
+		}
+	}
+	if route.requireOwner {
+		ok = r.checkFromOwner(ctx, update)
+		if !ok {
+			_, err = ctx.Reply(update, "Err: insufficient privilege, only owner is allowed to run this command", nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}

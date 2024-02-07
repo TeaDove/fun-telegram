@@ -13,6 +13,12 @@ type Message struct {
 	TgId     int `bson:"tg_id"`
 }
 
+type MessageStorageStats struct {
+	TotalSizeBytes           int
+	Count                    int
+	AvgObjWithIndexSizeBytes int
+}
+
 type User struct {
 	mgm.DefaultModel `bson:",inline"`
 

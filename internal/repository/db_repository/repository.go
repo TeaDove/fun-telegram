@@ -15,8 +15,9 @@ type Repository struct {
 	client            *mongo.Client
 }
 
+const databaseName = "db_main"
+
 func New() (*Repository, error) {
-	const databaseName = "db_main"
 
 	r := Repository{}
 
