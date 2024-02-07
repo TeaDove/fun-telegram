@@ -8,14 +8,42 @@ import (
 	"github.com/teadove/goteleout/internal/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
+	"strconv"
+	"sync"
 	"testing"
 )
 
 func getRepository(t *testing.T) *Repository {
 	r, err := New()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return r
+}
+
+func generateMessage(r *Repository, t *testing.T) []Message {
+	var wg sync.WaitGroup
+	messages := make([]Message, 0, 1000)
+
+	ctx := utils.GetCtx()
+	for i := 0; i < rand.Intn(500); i++ {
+		for j := 0; j < rand.Intn(500); j++ {
+			wg.Add(1)
+			chatId := rand.Int63n(1_000_000)
+
+			text := strconv.Itoa(rand.Intn(1_000_000))
+			message := Message{Text: text, TgChatID: chatId, TgUserId: rand.Int63n(10), TgId: j}
+			messages = append(messages, message)
+
+			go func() {
+				defer wg.Done()
+				err := r.MessageCreate(ctx, &message)
+				require.NoError(t, err)
+			}()
+		}
+	}
+	wg.Wait()
+
+	return messages
 }
 
 func TestIntegration_DbRepository_MessageCreate_Ok(t *testing.T) {
@@ -248,4 +276,29 @@ func TestIntegration_DbRepository_StatsForDatabase_Ok(t *testing.T) {
 
 	_, err := r.StatsForDatabase(ctx)
 	assert.NoError(t, err)
+}
+
+func TestIntegration_DbRepository_MessageGetSortedLimited_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+	generateMessage(r, t)
+	ctx := context.Background()
+
+	messages, err := r.MessageGetSortedLimited(ctx, 1000)
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, len(messages), 0)
+	assert.LessOrEqual(t, len(messages), 1000)
+}
+
+func TestIntegration_DbRepository_DeleteMessages_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+	messages := generateMessage(r, t)
+	utils.SendInterface(len(messages))
+
+	ctx := context.Background()
+
+	count, err := r.DeleteMessages(ctx, messages)
+	assert.NoError(t, err)
+	utils.SendInterface(count)
 }

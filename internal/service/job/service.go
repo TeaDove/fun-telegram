@@ -35,8 +35,6 @@ func New(ctx context.Context, dbRepository *db_repository.Repository, checkers m
 
 	scheduler.StartAsync()
 
-	go r.DeleteOldMessages()
-
 	return &r, nil
 }
 

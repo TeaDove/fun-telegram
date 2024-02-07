@@ -7,6 +7,7 @@ import (
 	errors "github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/shared"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
@@ -68,6 +69,33 @@ func (r *Repository) UserUpsert(ctx context.Context, user *User) error {
 	}
 
 	return nil
+}
+
+func (r *Repository) MessageGetSortedLimited(ctx context.Context, limit int64) ([]Message, error) {
+	messages := make([]Message, 0, 100)
+
+	opts := options.Find().SetSort(bson.M{"created_at": 1}).SetLimit(limit)
+
+	err := r.messageCollection.SimpleFindWithCtx(ctx, &messages, bson.M{}, opts)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return messages, nil
+}
+
+func (r *Repository) DeleteMessages(ctx context.Context, messages []Message) (int64, error) {
+	messageIds := make([]primitive.ObjectID, len(messages))
+	for idx, message := range messages {
+		messageIds[idx] = message.ID
+	}
+
+	result, err := r.messageCollection.DeleteMany(ctx, bson.M{"_id": bson.M{"$in": messageIds}})
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+
+	return result.DeletedCount, nil
 }
 
 func (r *Repository) MessageDeleteOld(ctx context.Context) (int64, error) {
@@ -241,7 +269,10 @@ func (r *Repository) StatsForTable(ctx context.Context, collName string) (Messag
 	}
 
 	stats.TotalSizeBytes = int(totalSize)
-	stats.AvgObjWithIndexSizeBytes = stats.TotalSizeBytes / stats.Count
+
+	if stats.Count != 0 {
+		stats.AvgObjWithIndexSizeBytes = stats.TotalSizeBytes / stats.Count
+	}
 
 	return stats, nil
 }
