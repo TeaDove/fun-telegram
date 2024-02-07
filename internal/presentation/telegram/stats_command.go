@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/repository/db_repository"
+	utils2 "github.com/teadove/goteleout/internal/utils"
 	"strconv"
 	"strings"
 	"sync"
@@ -214,16 +215,40 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, ch
 
 func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
 	if update.EffectiveChat().GetID() == ctx.Self.ID {
-		count, err := r.analiticsService.DeleteAllMessages(ctx)
+		output, err := r.jobService.DeleteOldMessages(ctx)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		if !input.Silent {
-			_, err = ctx.Reply(update, fmt.Sprintf("All %d messages was deleted", count), nil)
+		if output.OldCount == 0 {
+			err = r.replyIfNotSilent(
+				ctx,
+				update,
+				input,
+				"No need to delete messages",
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
+
+			return nil
+		}
+
+		err = r.replyIfNotSilent(
+			ctx,
+			update,
+			input,
+			fmt.Sprintf(
+				"Messages deleted\n"+
+					"Old count: %d, New count: %d\n"+
+					"Old size: %.2fkb, new size: %.2fkb\n"+
+					"Mem freed: %.2fkb",
+				output.OldCount, output.NewCount,
+				utils2.BytesToKiloBytes(output.OldSize), utils2.BytesToKiloBytes(output.NewSize),
+				utils2.BytesToKiloBytes(output.BytesFreed)),
+		)
+		if err != nil {
+			return errors.WithStack(err)
 		}
 
 		return nil

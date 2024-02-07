@@ -43,7 +43,7 @@ type Settings struct {
 	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
 	LogLevel        string   `env:"log_level"         envDefault:"debug"`
 
-	MessagesMaxSizeMB int `env:"messages_max_size_mb" envDefault:"200"`
+	MessagesMaxSizeMB int `env:"messages_max_size_mb" envDefault:"100"`
 
 	KandinskyKey    string `env:"kandinsky_key"`
 	KandinskySecret string `env:"kandinsky_secret"`

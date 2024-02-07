@@ -67,3 +67,30 @@ func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]MessageSt
 
 	return map_, nil
 }
+
+func (r *Repository) ReleaseMemory(ctx context.Context) (int, error) {
+	bytesFreed := 0
+	colls, err := r.client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+
+	for _, coll := range colls {
+		result := r.client.Database(databaseName).RunCommand(ctx, bson.M{"compact": coll})
+
+		var document bson.M
+		err = result.Decode(&document)
+		if err != nil {
+			return 0, errors.WithStack(err)
+		}
+
+		bytesFreedColl, ok := document["bytesFreed"].(int32)
+		if !ok {
+			return 0, errors.New("failed to get bytesFreed")
+		}
+
+		bytesFreed += int(bytesFreedColl)
+	}
+
+	return bytesFreed, nil
+}

@@ -6,6 +6,8 @@ import (
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
+	"golang.org/x/exp/maps"
+	"slices"
 )
 
 func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) (err error) {
@@ -17,8 +19,22 @@ func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Up
 	message := make([]styling.StyledTextOption, 0, 5)
 
 	message = append(message, styling.Bold("MongoDB\n"))
+	collNames := maps.Keys(stats)
+	for _, collName := range collNames {
+		if stats[collName].Count == 0 {
+			delete(stats, collName)
+		}
+	}
+	collNames = maps.Keys(stats)
+	slices.SortFunc(collNames, func(a, b string) int {
+		if stats[a].TotalSizeBytes < stats[b].TotalSizeBytes {
+			return 1
+		}
+		return -1
+	})
 
-	for collName, collStats := range stats {
+	for _, collName := range collNames {
+		collStats := stats[collName]
 		message = append(message,
 			styling.Plain(fmt.Sprintf("    %s\n", collName)),
 			styling.Plain(fmt.Sprintf("        count: %d\n", collStats.Count)),

@@ -29,7 +29,7 @@ func generateMessage(r *Repository, t *testing.T) []Message {
 	var mu sync.Mutex
 	messages := make([]Message, 0, 1000)
 
-	for i := 0; i < 50_000; i++ {
+	for i := 0; i < 1_000; i++ {
 		for j := 0; j < rand.Intn(500); j++ {
 			wg.Add(1)
 			j := j
@@ -309,4 +309,16 @@ func TestIntegration_DbRepository_DeleteMessages_Ok(t *testing.T) {
 func TestIntegration_DbRepository_GenerateMessages_Ok(t *testing.T) {
 	r := getRepository(t)
 	_ = generateMessage(r, t)
+}
+
+func TestIntegration_DbRepository_ReleaseMemory_Ok(t *testing.T) {
+	r := getRepository(t)
+	ctx := context.Background()
+
+	messages := generateMessage(r, t)
+	_, err := r.DeleteMessages(ctx, messages)
+	require.NoError(t, err)
+
+	_, err = r.ReleaseMemory(ctx)
+	assert.NoError(t, err)
 }
