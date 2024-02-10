@@ -222,7 +222,7 @@ func MustNewTelegramPresentation(
 			description:  resource.CommandLocaleDescription,
 			requireAdmin: true,
 		},
-		"reload": {
+		"restart": {
 			executor:     presentation.restartCommandHandler,
 			description:  resource.CommandLocaleDescription,
 			requireOwner: true,
@@ -253,6 +253,11 @@ func MustNewTelegramPresentation(
 
 	dp.Error = presentation.errorHandler
 	dp.Panic = presentation.panicHandler
+
+	err := presentation.updateRestartMessages(ctx)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.update.restart.messages").Send()
+	}
 
 	return &presentation
 }

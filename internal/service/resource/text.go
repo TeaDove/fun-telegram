@@ -35,6 +35,7 @@ const (
 	CommandLocaleSuccess
 	CommandRestartDescription
 	CommandRestartRestarting
+	CommandRestartSuccess
 )
 
 var localizer = map[Code]map[Locale]string{
@@ -58,5 +59,6 @@ var localizer = map[Code]map[Locale]string{
 	CommandLocaleDescription:       {Ru: "выставляет локаль в этом чате", En: "sets locale for this chat"},
 	CommandLocaleSuccess:           {Ru: "Локаль выставлена: ru", En: "Locale set: en"},
 	CommandRestartRestarting:       {Ru: "Перезагрузка...", En: "Restarting..."},
+	CommandRestartSuccess:          {Ru: "Перезагрузка успешна!", En: "Restart success!"},
 	CommandRestartDescription:      {Ru: "перезагружает бота", En: "restarts bot"},
 }

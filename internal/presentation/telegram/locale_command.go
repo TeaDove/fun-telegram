@@ -4,12 +4,27 @@ import (
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/repository/redis_repository"
 	"github.com/teadove/goteleout/internal/service/resource"
 	"strings"
 )
 
 func getLocalePath(chatId int64) string {
 	return fmt.Sprintf("locale::%d", chatId)
+}
+
+const defaultLocale = resource.En
+
+func (r *Presentation) getLocale(chatId int64) (resource.Locale, error) {
+	localeBytes, err := r.redisRepository.Load(getLocalePath(chatId))
+	if err != nil {
+		if errors.Is(err, redis_repository.ErrKeyNotFound) {
+			return defaultLocale, nil
+		}
+		return "", errors.WithStack(err)
+	}
+
+	return resource.Locale(localeBytes), nil
 }
 
 func (r *Presentation) localeCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {

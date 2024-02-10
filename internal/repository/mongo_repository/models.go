@@ -29,7 +29,7 @@ type User struct {
 	IsBot      bool   `bson:"is_bot"`
 }
 
-type ReloadMessage struct {
+type RestartMessage struct {
 	mgm.DefaultModel `bson:",inline"`
 
 	MessageId primitive.ObjectID `bson:"message_id,omitempty"`

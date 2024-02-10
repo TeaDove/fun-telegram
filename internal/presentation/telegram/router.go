@@ -5,7 +5,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/repository/redis_repository"
 	"github.com/teadove/goteleout/internal/service/resource"
 	"strings"
 	"time"
@@ -17,20 +16,6 @@ type messageProcessor struct {
 	requireAdmin bool
 	requireOwner bool
 	flags        []OptFlag
-}
-
-const defaultLocale = resource.En
-
-func (r *Presentation) getLocale(update *ext.Update) (resource.Locale, error) {
-	localeBytes, err := r.redisRepository.Load(getLocalePath(update.EffectiveChat().GetID()))
-	if err != nil {
-		if errors.Is(err, redis_repository.ErrKeyNotFound) {
-			return defaultLocale, nil
-		}
-		return "", errors.WithStack(err)
-	}
-
-	return resource.Locale(localeBytes), nil
 }
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
@@ -112,7 +97,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		}
 	}
 
-	locale, err := r.getLocale(update)
+	locale, err := r.getLocale(update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}

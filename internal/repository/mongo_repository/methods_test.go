@@ -322,3 +322,41 @@ func TestIntegration_DbRepository_ReleaseMemory_Ok(t *testing.T) {
 	_, err = r.ReleaseMemory(ctx)
 	assert.NoError(t, err)
 }
+
+func TestIntegration_DbRepository_SetReloadMessage_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+	err := r.MessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1})
+	require.NoError(t, err)
+
+	err = r.RestartMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1})
+	require.NoError(t, err)
+
+	id = rand.Int63n(1_000_000)
+	err = r.RestartMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1})
+	require.NoError(t, err)
+}
+
+func TestIntegration_DbRepository_ReloadMessageCreateGetAndDelete_Ok(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+	err := r.RestartMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1})
+	require.NoError(t, err)
+
+	id = rand.Int63n(1_000_000)
+	err = r.RestartMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1})
+	require.NoError(t, err)
+
+	_, err = r.RestartMessageGetAndDelete(ctx)
+	assert.NoError(t, err)
+
+	messages, err := r.RestartMessageGetAndDelete(ctx)
+	assert.NoError(t, err)
+	assert.Len(t, messages, 0)
+}

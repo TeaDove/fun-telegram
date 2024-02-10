@@ -10,10 +10,10 @@ import (
 )
 
 type Repository struct {
-	messageCollection       *mgm.Collection
-	userCollection          *mgm.Collection
-	reloadMessageCollection *mgm.Collection
-	client                  *mongo.Client
+	messageCollection        *mgm.Collection
+	userCollection           *mgm.Collection
+	client                   *mongo.Client
+	restartMessageCollection *mgm.Collection
 }
 
 const databaseName = "db_main"
@@ -33,7 +33,7 @@ func New() (*Repository, error) {
 
 	r.messageCollection = mgm.Coll(&Message{})
 	r.userCollection = mgm.Coll(&User{})
-	r.reloadMessageCollection = mgm.Coll(&ReloadMessage{})
+	r.restartMessageCollection = mgm.Coll(&RestartMessage{})
 
 	r.client, err = mgm.NewClient(options.Client().ApplyURI(shared.AppSettings.Storage.MongoDbUrl))
 	if err != nil {
