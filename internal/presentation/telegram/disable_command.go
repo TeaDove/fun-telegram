@@ -4,16 +4,15 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
-	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/repository/redis_repository"
 	"strconv"
 	"strings"
 )
 
 func (r *Presentation) isEnabled(chatId int64) (bool, error) {
-	_, err := r.storage.Load(strconv.Itoa(int(chatId)))
+	_, err := r.redisRepository.Load(strconv.Itoa(int(chatId)))
 	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
+		if errors.Is(err, redis_repository.ErrKeyNotFound) {
 			return true, nil
 		} else {
 			return false, errors.WithStack(err)
@@ -24,9 +23,9 @@ func (r *Presentation) isEnabled(chatId int64) (bool, error) {
 }
 
 func (r *Presentation) isBanned(username string) (bool, error) {
-	_, err := r.storage.Load(compileBanKey(strings.ToLower(username)))
+	_, err := r.redisRepository.Load(compileBanKey(strings.ToLower(username)))
 	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
+		if errors.Is(err, redis_repository.ErrKeyNotFound) {
 			return false, nil
 		} else {
 			return false, errors.WithStack(err)
@@ -60,13 +59,13 @@ func (r *Presentation) checkFromOwner(ctx *ext.Context, update *ext.Update) (ok 
 	return update.EffectiveUser().GetID() == ctx.Self.ID
 }
 
-func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
+func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	chatId := strconv.Itoa(int(update.EffectiveChat().GetID()))
 
-	_, err := r.storage.Load(chatId)
+	_, err := r.redisRepository.Load(chatId)
 	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
-			err = r.storage.Save(chatId, []byte("1"))
+		if errors.Is(err, redis_repository.ErrKeyNotFound) {
+			err = r.redisRepository.Save(chatId, []byte("1"))
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -82,7 +81,7 @@ func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Updat
 		return errors.WithStack(err)
 	}
 
-	err = r.storage.Delete(chatId)
+	err = r.redisRepository.Delete(chatId)
 	if err != nil {
 		return errors.WithStack(err)
 	}

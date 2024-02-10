@@ -1,4 +1,4 @@
-package db_repository
+package mongo_repository
 
 import (
 	"context"
@@ -267,4 +267,20 @@ func (r *Repository) DeleteAllMessages(ctx context.Context) (int64, error) {
 	}
 
 	return result.DeletedCount, nil
+}
+
+func (r *Repository) SetReloadMessage(ctx context.Context, message *Message) error {
+	err := r.messageCollection.CreateWithCtx(ctx, message)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	err = r.reloadMessageCollection.CreateWithCtx(ctx, &ReloadMessage{
+		MessageId: message.ID,
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }

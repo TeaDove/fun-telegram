@@ -6,18 +6,18 @@ import (
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"time"
 )
 
 type Service struct {
-	dbRepository *db_repository.Repository
+	dbRepository *mongo_repository.Repository
 
 	toxicityExp *regexp2.Regexp
 	lemmatizer  *golem.Lemmatizer
 }
 
-func New(dbRepository *db_repository.Repository) (*Service, error) {
+func New(dbRepository *mongo_repository.Repository) (*Service, error) {
 	r := Service{dbRepository: dbRepository}
 
 	exp, err := regexp2.Compile(

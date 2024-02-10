@@ -5,17 +5,32 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
+	"github.com/teadove/goteleout/internal/repository/redis_repository"
+	"github.com/teadove/goteleout/internal/service/resource"
 	"strings"
 	"time"
 )
 
 type messageProcessor struct {
-	executor     func(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error
-	description  string
+	executor     func(ctx *ext.Context, update *ext.Update, input *Input) error
+	description  resource.Code
 	requireAdmin bool
 	requireOwner bool
-	flags        []tgUtils.OptFlag
+	flags        []OptFlag
+}
+
+const defaultLocale = resource.En
+
+func (r *Presentation) getLocale(update *ext.Update) (resource.Locale, error) {
+	localeBytes, err := r.redisRepository.Load(getLocalePath(update.EffectiveChat().GetID()))
+	if err != nil {
+		if errors.Is(err, redis_repository.ErrKeyNotFound) {
+			return defaultLocale, nil
+		}
+		return "", errors.WithStack(err)
+	}
+
+	return resource.Locale(localeBytes), nil
 }
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
@@ -40,7 +55,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	opts := tgUtils.GetOpt(text, route.flags...)
+	opts := GetOpt(text, route.flags...)
 
 	ok, err := r.isEnabled(update.EffectiveChat().GetID())
 	if err != nil {
@@ -96,6 +111,13 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			return nil
 		}
 	}
+
+	locale, err := r.getLocale(update)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	opts.Locale = locale
 
 	t0 := time.Now().UTC()
 	zerolog.Ctx(ctx.Context).

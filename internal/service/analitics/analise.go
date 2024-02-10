@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
 	"image/jpeg"
@@ -53,7 +53,7 @@ func getBarChart() chart.BarChart {
 	}
 }
 
-func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, error) {
+func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, error) {
 	const maxWords = 20
 
 	wordsToCount := make(map[string]int, 100)
@@ -125,7 +125,7 @@ func (r *Service) getPopularWords(messages []db_repository.Message) ([]byte, err
 	return jpgImg, nil
 }
 
-func (r *Service) getChatterBoxes(messages []db_repository.Message, getter nameGetter) ([]byte, error) {
+func (r *Service) getChatterBoxes(messages []mongo_repository.Message, getter nameGetter) ([]byte, error) {
 	users, userToCount := getChatterBoxes(messages, 20)
 
 	values := make([]chart.Value, 0, 10)

@@ -6,10 +6,9 @@ import (
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
-func (r *Presentation) locationCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
+func (r *Presentation) locationCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	location, err := r.ipLocator.GetLocation(ctx, input.Text)
 	if err != nil {
 		_, err = ctx.Reply(update, fmt.Sprintf("Err: %s", location.Message), nil)

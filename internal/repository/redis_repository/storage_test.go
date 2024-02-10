@@ -1,4 +1,4 @@
-package redis
+package redis_repository
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func getStorage() *Storage {
+func getStorage() *Repository {
 	return MustNew("localhost")
 }
 

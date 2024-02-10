@@ -1,16 +1,16 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"golang.org/x/exp/maps"
 	"slices"
 )
 
-func (r *Presentation) setHelpMessage() {
+func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []styling.StyledTextOption {
 	helpMessage := make([]styling.StyledTextOption, 0, 20)
 	helpMessage = append(helpMessage,
 		styling.Plain("Bot created by @TeaDove\nSource code: "),
@@ -23,7 +23,7 @@ func (r *Presentation) setHelpMessage() {
 
 	for _, commandName := range keys {
 		command := r.router[commandName]
-		helpMessage = append(helpMessage, styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, command.description)))
+		helpMessage = append(helpMessage, styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, r.resourceService.Localize(ctx, command.description, input.Locale))))
 		if command.requireAdmin {
 			helpMessage = append(helpMessage, styling.Bold("requires admin rights\n"))
 		}
@@ -45,11 +45,11 @@ func (r *Presentation) setHelpMessage() {
 		helpMessage = append(helpMessage, styling.Plain("\n"))
 	}
 
-	r.helpMessage = helpMessage
+	return helpMessage
 }
 
-func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
-	_, err := ctx.Reply(update, r.helpMessage, nil)
+func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+	_, err := ctx.Reply(update, r.compileHelpMessage(ctx, input), nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}

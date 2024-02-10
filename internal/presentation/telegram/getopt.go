@@ -1,6 +1,7 @@
-package utils
+package telegram
 
 import (
+	"github.com/teadove/goteleout/internal/service/resource"
 	"strings"
 )
 
@@ -14,6 +15,7 @@ type Input struct {
 	Text   string
 	Silent bool
 	Ops    map[string]string
+	Locale resource.Locale
 }
 
 var FlagSilent = OptFlag{Long: "silent", Short: "q"}

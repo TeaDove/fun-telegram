@@ -6,12 +6,11 @@ import (
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
 // TODO: fix nolint
 // nolint: cyclop
-func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
+func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const maxCount = 40
 
 	count := 0
@@ -39,7 +38,7 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 
 		count += 1
 
-		name := utils.GetNameFromPeerUser(&user)
+		name := GetNameFromPeerUser(&user)
 
 		username, ok := user.Username()
 		if ok {

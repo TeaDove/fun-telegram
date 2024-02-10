@@ -5,7 +5,6 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
 func compileToxicFinderKey(chatId int64) string {
@@ -13,7 +12,7 @@ func compileToxicFinderKey(chatId int64) string {
 }
 
 func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
-	ok, err := r.storage.GetToggle(compileToxicFinderKey(update.EffectiveChat().GetID()))
+	ok, err := r.redisRepository.GetToggle(compileToxicFinderKey(update.EffectiveChat().GetID()))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -52,8 +51,8 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 	return nil
 }
 
-func (r *Presentation) toxicFinderCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
-	ok, err := r.storage.Toggle(compileToxicFinderKey(update.EffectiveChat().GetID()))
+func (r *Presentation) toxicFinderCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+	ok, err := r.redisRepository.Toggle(compileToxicFinderKey(update.EffectiveChat().GetID()))
 	if err != nil {
 		return errors.WithStack(err)
 	}

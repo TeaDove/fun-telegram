@@ -4,11 +4,10 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
 func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error {
-	chatName := tgUtils.GetChatName(update.EffectiveChat())
+	chatName := GetChatName(update.EffectiveChat())
 
 	ctx.Context = log.
 		With().
@@ -30,7 +29,7 @@ func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	if !tgUtils.GetOpt(update.EffectiveMessage.Message.Message).Silent {
+	if !GetOpt(update.EffectiveMessage.Message.Message).Silent {
 		return nil
 	}
 

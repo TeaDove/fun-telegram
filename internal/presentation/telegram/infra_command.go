@@ -5,12 +5,11 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"golang.org/x/exp/maps"
 	"slices"
 )
 
-func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) (err error) {
+func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
 	stats, err := r.dbRepository.StatsForDatabase(ctx)
 	if err != nil {
 		return errors.WithStack(err)

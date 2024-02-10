@@ -10,16 +10,15 @@ import (
 	"github.com/gotd/contrib/middleware/floodwait"
 	"github.com/gotd/contrib/middleware/ratelimit"
 	"github.com/gotd/td/telegram"
-	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
+	"github.com/teadove/goteleout/internal/repository/redis_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/service/job"
-	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/service/resource"
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
@@ -35,16 +34,15 @@ type Presentation struct {
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
 
-	storage storage.Interface
-	router  map[string]messageProcessor
+	router map[string]messageProcessor
 
 	kandinskySupplier *kandinsky_supplier.Supplier
 	ipLocator         *ip_locator.Supplier
-
-	dbRepository     *db_repository.Repository
-	analiticsService *analitics.Service
-	helpMessage      []styling.StyledTextOption
-	jobService       *job.Service
+	redisRepository   *redis_repository.Repository
+	dbRepository      *mongo_repository.Repository
+	resourceService   *resource.Service
+	analiticsService  *analitics.Service
+	jobService        *job.Service
 }
 
 func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
@@ -80,10 +78,6 @@ func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
 
 	}
 
-	//zapLogger, err := zap.NewDevelopment()
-	//zapLogger.WithOptions()
-	//utils.Check(err)
-
 	protoClient, err := gotgproto.NewClient(
 		shared.AppSettings.Telegram.AppID,
 		shared.AppSettings.Telegram.AppHash,
@@ -91,7 +85,6 @@ func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
 			Phone: shared.AppSettings.Telegram.PhoneNumber,
 		},
 		&gotgproto.ClientOpts{
-			//Logger:           zapLogger,
 			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
@@ -107,17 +100,18 @@ func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
 func MustNewTelegramPresentation(
 	ctx context.Context,
 	protoClient *gotgproto.Client,
-	storage storage.Interface,
+	redisRepository *redis_repository.Repository,
 	kandinskySupplier *kandinsky_supplier.Supplier,
 	ipLocator *ip_locator.Supplier,
-	dbRepository *db_repository.Repository,
+	dbRepository *mongo_repository.Repository,
 	analiticsService *analitics.Service,
 	jobService *job.Service,
+	resourceService *resource.Service,
 ) *Presentation {
 	api := protoClient.API()
 
 	presentation := Presentation{
-		storage:           storage,
+		redisRepository:   redisRepository,
 		protoClient:       protoClient,
 		telegramApi:       api,
 		telegramManager:   peers.Options{}.Build(api),
@@ -126,6 +120,7 @@ func MustNewTelegramPresentation(
 		dbRepository:      dbRepository,
 		analiticsService:  analiticsService,
 		jobService:        jobService,
+		resourceService:   resourceService,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -152,78 +147,87 @@ func MustNewTelegramPresentation(
 	presentation.router = map[string]messageProcessor{
 		"echo": {
 			executor:    presentation.echoCommandHandler,
-			description: "echoes with same message",
-			flags:       []tgUtils.OptFlag{},
+			description: resource.CommandEchoHelp,
+			flags:       []OptFlag{},
 		},
 		"help": {
 			executor:    presentation.helpCommandHandler,
-			description: "get this message",
-			flags:       []tgUtils.OptFlag{},
+			description: resource.CommandHelpDescription,
+			flags:       []OptFlag{},
 		},
 		"get_me": {
 			executor:    presentation.getMeCommandHandler,
-			description: "get id, username of requested user and group",
-			flags:       []tgUtils.OptFlag{},
+			description: resource.CommandGetMeHelpDescription,
+			flags:       []OptFlag{},
 		},
 		"ping": {
 			executor:     presentation.pingCommandHandler,
-			description:  "ping all users",
-			flags:        []tgUtils.OptFlag{},
+			description:  resource.CommandPingDescription,
+			flags:        []OptFlag{},
 			requireAdmin: true,
 		},
 		"spam_reaction": {
 			executor:    presentation.spamReactionCommandHandler,
-			description: "if replied to message with reaction, will spam this reaction to replied user",
-			flags:       []tgUtils.OptFlag{FlagStop},
+			description: resource.CommandSpamReactionDescription,
+			flags:       []OptFlag{FlagStop},
 		},
 		"kandinsky": {
 			executor:    presentation.kandkinskyCommandHandler,
-			description: "generate image via kandinsky",
-			flags:       []tgUtils.OptFlag{FlagNegativePrompt, FlagStyle},
+			description: resource.CommandKandinskyDescription,
+			flags:       []OptFlag{FlagNegativePrompt, FlagStyle},
 		},
 		"disable": {
 			executor:     presentation.disableCommandHandler,
-			description:  "disables or enabled bot in this chat",
-			flags:        []tgUtils.OptFlag{},
+			description:  resource.CommandDisableDescription,
+			flags:        []OptFlag{},
 			requireAdmin: true,
 		},
 		"location": {
 			executor:    presentation.locationCommandHandler,
-			description: "get description by ip address or domain",
-			flags:       []tgUtils.OptFlag{},
+			description: resource.CommandLocationDescription,
+			flags:       []OptFlag{},
 		},
 		"stats": {
 			executor:     presentation.statsCommandHandler,
-			description:  "returns stats of this chat",
-			flags:        []tgUtils.OptFlag{FlagTZ, FlagStatsUsername},
+			description:  resource.CommandStatsDescription,
+			flags:        []OptFlag{FlagTZ, FlagStatsUsername},
 			requireAdmin: true,
 		},
 		"upload_stats": {
 			executor:     presentation.uploadStatsCommandHandler,
-			description:  "uploads stats from this chat",
-			flags:        []tgUtils.OptFlag{FlagRemove, FlagCount, FlagDay},
+			description:  resource.CommandUploadStatsDescription,
+			flags:        []OptFlag{FlagRemove, FlagCount, FlagDay},
 			requireAdmin: true,
 		},
 		"ban": {
 			executor:    presentation.banCommandHandler,
-			description: "bans or unbans user from using this bot globally",
+			description: resource.CommandBanDescription,
 		},
 		"toxic": {
 			executor:     presentation.toxicFinderCommandHandler,
-			description:  "find toxic words and screem about them",
+			description:  resource.CommandToxicDescription,
 			requireAdmin: true,
 		},
 		"health": {
 			executor:    presentation.healthCommandHandler,
-			description: "checks if server is not down",
+			description: resource.CommandHealthDescription,
 		},
 		"infra_stats": {
 			executor:     presentation.infraStatsCommandHandler,
-			description:  "show infrastraction load information",
+			description:  resource.CommandInfraStatsDescription,
+			requireOwner: true,
+		},
+		"locale": {
+			executor:     presentation.localeCommandHandler,
+			description:  resource.CommandLocaleDescription,
+			requireAdmin: true,
+		},
+		"reload": {
+			executor:     presentation.restartCommandHandler,
+			description:  resource.CommandLocaleDescription,
 			requireOwner: true,
 		},
 	}
-	presentation.setHelpMessage()
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
@@ -288,15 +292,4 @@ func (r *Presentation) Run() error {
 	}
 
 	return nil
-}
-
-func filterNonNewMessages(update *ext.Update) bool {
-	switch update.UpdateClass.(type) {
-	case *tg.UpdateNewChannelMessage:
-		return true
-	case *tg.UpdateNewMessage:
-		return true
-	default:
-		return false
-	}
 }

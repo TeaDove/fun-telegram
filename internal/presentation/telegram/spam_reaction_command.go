@@ -7,8 +7,7 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
-	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/repository/redis_repository"
 )
 
 func compileSpamVictimKey(chatId int64, userId int64) string {
@@ -29,8 +28,8 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return nil
 	}
 
-	reactionsBuf, err := r.storage.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
-	if errors.Is(err, storage.ErrKeyNotFound) {
+	reactionsBuf, err := r.redisRepository.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
+	if errors.Is(err, redis_repository.ErrKeyNotFound) {
 		return nil
 	}
 
@@ -65,8 +64,8 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 }
 
 // nolint: cyclop
-func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
-	chatId, _ := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
+	chatId, _ := GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
 		if !input.Silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
@@ -92,14 +91,14 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *t
 
 	var userId int64
 
-	userId, err = tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
+	userId, err = GetSenderId(update.EffectiveMessage.ReplyToMessage)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	key := compileSpamVictimKey(chatId, userId)
 
-	err = r.storage.Delete(key)
+	err = r.redisRepository.Delete(key)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -118,10 +117,10 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *t
 
 // TODO: fix nolint
 // nolint: cyclop
-func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
+func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const maxReactionCount = 3
 
-	chatId, currentPeer := tgUtils.GetChatFromEffectiveChat(update.EffectiveChat())
+	chatId, currentPeer := GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
 		if !input.Silent {
 			_, err := ctx.Reply(update, "Err: this command work only in chats", nil)
@@ -145,7 +144,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUt
 		return nil
 	}
 
-	userId, err := tgUtils.GetSenderId(update.EffectiveMessage.ReplyToMessage)
+	userId, err := GetSenderId(update.EffectiveMessage.ReplyToMessage)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -181,7 +180,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUt
 
 	key := compileSpamVictimKey(chatId, userId)
 
-	err = r.storage.Save(key, buf.Buf)
+	err = r.redisRepository.Save(key, buf.Buf)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -203,10 +202,10 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *tgUt
 }
 
 var (
-	FlagStop = tgUtils.OptFlag{Long: "stop", Short: "s", Description: "stops spamming reactions"}
+	FlagStop = OptFlag{Long: "stop", Short: "s", Description: "stops spamming reactions"}
 )
 
-func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
+func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if _, ok := input.Ops[FlagStop.Long]; ok {
 		return r.deleteSpam(ctx, update, input)
 	}

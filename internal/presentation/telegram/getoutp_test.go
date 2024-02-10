@@ -1,4 +1,4 @@
-package utils
+package telegram
 
 import (
 	"github.com/stretchr/testify/assert"

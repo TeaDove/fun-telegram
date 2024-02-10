@@ -30,8 +30,7 @@ type telegram struct {
 }
 
 type Storage struct {
-	Filename   string `env:"filename" envDefault:"storage.json"`
-	Type       string `env:"type" envDefault:"redis"` // redis, simpleFile
+	Filename   string `env:"filename" envDefault:"redis_repository.json"`
 	RedisHost  string `env:"redis_host" envDefault:"localhost"`
 	MongoDbUrl string `env:"mongo_db_url" envDefault:"mongodb://localhost:27017"`
 }

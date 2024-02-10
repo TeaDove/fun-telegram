@@ -4,8 +4,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/shared"
 	"strings"
 )
@@ -39,10 +38,10 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 		return nil
 	}
 
-	err = r.dbRepository.UserUpsert(ctx, &db_repository.User{
+	err = r.dbRepository.UserUpsert(ctx, &mongo_repository.User{
 		TgUserId:   update.EffectiveUser().GetID(),
 		TgUsername: strings.ToLower(update.EffectiveUser().Username),
-		TgName:     utils.GetNameFromTgUser(update.EffectiveUser()),
+		TgName:     GetNameFromTgUser(update.EffectiveUser()),
 		IsBot:      update.EffectiveUser().Bot,
 	})
 	if err != nil {
@@ -53,7 +52,7 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 		return nil
 	}
 
-	err = r.dbRepository.MessageCreate(ctx, &db_repository.Message{
+	err = r.dbRepository.MessageCreate(ctx, &mongo_repository.Message{
 		TgChatID: update.EffectiveChat().GetID(),
 		TgUserId: update.EffectiveUser().GetID(),
 		Text:     update.EffectiveMessage.Text,

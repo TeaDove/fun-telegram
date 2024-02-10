@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/utils"
 	"testing"
 	"time"
@@ -13,7 +13,7 @@ import (
 
 func getService(t *testing.T) *Service {
 	ctx := utils.GetModuleCtx("test")
-	repository, err := db_repository.New()
+	repository, err := mongo_repository.New()
 	require.NoError(t, err)
 
 	r, err := New(ctx, repository, nil)

@@ -5,8 +5,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
-	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/repository/redis_repository"
 	"strings"
 )
 
@@ -14,7 +13,7 @@ func compileBanKey(username string) string {
 	return fmt.Sprintf("ban::%s", username)
 }
 
-func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
+func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	usernameToBanLower := strings.ToLower(input.Text)
 	if usernameToBanLower == "" {
 		_, err := ctx.Reply(update, "Err: no username found", nil)
@@ -41,7 +40,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 		usernameToBanLower = update.EffectiveUser().Username
 
-		err = r.storage.Save(compileBanKey(usernameToBanLower), []byte{})
+		err = r.redisRepository.Save(compileBanKey(usernameToBanLower), []byte{})
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -67,10 +66,10 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 	username := compileBanKey(usernameToBanLower)
 
-	_, err := r.storage.Load(username)
+	_, err := r.redisRepository.Load(username)
 	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
-			err = r.storage.Save(username, []byte{})
+		if errors.Is(err, redis_repository.ErrKeyNotFound) {
+			err = r.redisRepository.Save(username, []byte{})
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -85,7 +84,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return errors.WithStack(err)
 		}
 	} else {
-		err = r.storage.Delete(username)
+		err = r.redisRepository.Delete(username)
 		if err != nil {
 			return errors.WithStack(err)
 		}

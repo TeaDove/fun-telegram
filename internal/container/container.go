@@ -3,45 +3,24 @@ package container
 import (
 	"context"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
-	"github.com/teadove/goteleout/internal/service/analitics"
-	"github.com/teadove/goteleout/internal/service/job"
-	"github.com/teadove/goteleout/internal/service/storage"
-	"github.com/teadove/goteleout/internal/service/storage/redis"
-	"github.com/teadove/goteleout/internal/supplier/ip_locator"
-	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
-	"os"
-	"path/filepath"
-
-	"github.com/teadove/goteleout/internal/service/storage/memory"
-
-	"github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
+	"github.com/teadove/goteleout/internal/repository/redis_repository"
+	"github.com/teadove/goteleout/internal/service/analitics"
+	"github.com/teadove/goteleout/internal/service/job"
+	"github.com/teadove/goteleout/internal/service/resource"
 	"github.com/teadove/goteleout/internal/shared"
+	"github.com/teadove/goteleout/internal/supplier/ip_locator"
+	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 	"github.com/teadove/goteleout/internal/utils"
+	"os"
 )
 
 type Container struct {
 	Presentation *telegram.Presentation
 	JobService   *job.Service
-}
-
-func makeStorage(settings *shared.Settings) storage.Interface {
-	realPath, err := homedir.Expand(settings.FileStoragePath)
-	utils.Check(err)
-	err = os.MkdirAll(realPath, os.ModePerm)
-	utils.Check(err)
-
-	path := filepath.Join(realPath, settings.Storage.Filename)
-
-	switch settings.Storage.Type {
-	case "redis":
-		return redis.MustNew(settings.Storage.RedisHost)
-	default:
-		return memory.MustNew(true, path)
-	}
 }
 
 func MustNewCombatContainer(ctx context.Context) Container {
@@ -52,10 +31,10 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	persistentStorage := makeStorage(&shared.AppSettings)
+	persistentStorage := redis_repository.MustNew()
 
 	kandinskySupplier, err := kandinsky_supplier.New(
-		context.Background(),
+		ctx,
 		shared.AppSettings.KandinskyKey,
 		shared.AppSettings.KandinskySecret,
 	)
@@ -65,7 +44,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	locator := ip_locator.Supplier{}
 
-	dbRepository, err := db_repository.New()
+	dbRepository, err := mongo_repository.New()
 	utils.Check(err)
 
 	analiticsService, err := analitics.New(dbRepository)
@@ -82,6 +61,9 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	})
 	utils.Check(err)
 
+	resourceService, err := resource.New(ctx)
+	utils.Check(err)
+
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		ctx,
 		protoClient,
@@ -91,6 +73,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		dbRepository,
 		analiticsService,
 		jobService,
+		resourceService,
 	)
 
 	container := Container{telegramPresentation, jobService}

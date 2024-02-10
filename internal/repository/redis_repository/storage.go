@@ -1,4 +1,4 @@
-package redis
+package redis_repository
 
 import (
 	"context"
@@ -6,28 +6,29 @@ import (
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
-	"github.com/teadove/goteleout/internal/service/storage"
+	"github.com/teadove/goteleout/internal/shared"
 )
 
 var emptyBytes = []byte{}
+var ErrKeyNotFound = errors.New("key not found")
 
-type Storage struct {
+type Repository struct {
 	rbs redis.Client
 }
 
-func MustNew(host string) *Storage {
-	return &Storage{rbs: *redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:6379", host),
+func MustNew() *Repository {
+	return &Repository{rbs: *redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:6379", shared.AppSettings.Storage.RedisHost),
 		Password: "", // no password set
 		DB:       0,  // use default DB,
 	})}
 }
 
-func (r *Storage) Load(k string) ([]byte, error) {
+func (r *Repository) Load(k string) ([]byte, error) {
 	cmd := r.rbs.Get(context.Background(), k)
 	if cmd.Err() != nil {
 		if errors.Is(cmd.Err(), redis.Nil) {
-			return []byte{}, errors.WithStack(storage.ErrKeyNotFound)
+			return []byte{}, errors.WithStack(ErrKeyNotFound)
 		}
 
 		return []byte{}, errors.WithStack(cmd.Err())
@@ -36,7 +37,7 @@ func (r *Storage) Load(k string) ([]byte, error) {
 	return []byte(cmd.Val()), nil
 }
 
-func (r *Storage) Save(k string, t []byte) error {
+func (r *Repository) Save(k string, t []byte) error {
 	ctx := context.Background()
 
 	cmd := r.rbs.Set(ctx, k, t, 0)
@@ -47,7 +48,7 @@ func (r *Storage) Save(k string, t []byte) error {
 	return nil
 }
 
-func (r *Storage) Contains(k string) bool {
+func (r *Repository) Contains(k string) bool {
 	cmd := r.rbs.Get(context.Background(), k)
 	if cmd.Err() != nil {
 		if errors.Is(cmd.Err(), redis.Nil) {
@@ -66,7 +67,7 @@ func (r *Storage) Contains(k string) bool {
 	return true
 }
 
-func (r *Storage) Delete(k string) error {
+func (r *Repository) Delete(k string) error {
 	ctx := context.Background()
 	cmd := r.rbs.Del(ctx, k)
 
@@ -77,10 +78,10 @@ func (r *Storage) Delete(k string) error {
 	return nil
 }
 
-func (r *Storage) Toggle(k string) (bool, error) {
+func (r *Repository) Toggle(k string) (bool, error) {
 	_, err := r.Load(k)
 	if err != nil {
-		if !errors.Is(err, storage.ErrKeyNotFound) {
+		if !errors.Is(err, ErrKeyNotFound) {
 			return false, errors.WithStack(err)
 		}
 
@@ -100,10 +101,10 @@ func (r *Storage) Toggle(k string) (bool, error) {
 	return true, nil
 }
 
-func (r *Storage) GetToggle(k string) (bool, error) {
+func (r *Repository) GetToggle(k string) (bool, error) {
 	_, err := r.Load(k)
 	if err != nil {
-		if !errors.Is(err, storage.ErrKeyNotFound) {
+		if !errors.Is(err, ErrKeyNotFound) {
 			return false, errors.WithStack(err)
 		}
 
@@ -113,6 +114,6 @@ func (r *Storage) GetToggle(k string) (bool, error) {
 	return true, nil
 }
 
-func (r *Storage) Ping(ctx context.Context) error {
+func (r *Repository) Ping(ctx context.Context) error {
 	return r.rbs.Ping(ctx).Err()
 }

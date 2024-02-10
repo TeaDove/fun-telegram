@@ -5,19 +5,19 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/utils"
 	"time"
 )
 
 type Service struct {
-	dbRepository *db_repository.Repository
+	dbRepository *mongo_repository.Repository
 
 	checkers map[string]ServiceChecker
 }
 
-func New(ctx context.Context, dbRepository *db_repository.Repository, checkers map[string]ServiceChecker) (*Service, error) {
+func New(ctx context.Context, dbRepository *mongo_repository.Repository, checkers map[string]ServiceChecker) (*Service, error) {
 	ctx = utils.AddModuleCtx(ctx, "job")
 	r := Service{dbRepository: dbRepository, checkers: checkers}
 

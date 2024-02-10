@@ -1,7 +1,8 @@
-package db_repository
+package mongo_repository
 
 import (
 	"github.com/kamva/mgm/v3"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Message struct {
@@ -26,4 +27,10 @@ type User struct {
 	TgUsername string `bson:"tg_username"`
 	TgName     string `bson:"tg_name"`
 	IsBot      bool   `bson:"is_bot"`
+}
+
+type ReloadMessage struct {
+	mgm.DefaultModel `bson:",inline"`
+
+	MessageId primitive.ObjectID `bson:"message_id,omitempty"`
 }

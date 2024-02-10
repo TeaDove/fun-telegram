@@ -5,10 +5,9 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 )
 
-func (r *Presentation) healthCommandHandler(ctx *ext.Context, update *ext.Update, _ *tgUtils.Input) error {
+func (r *Presentation) healthCommandHandler(ctx *ext.Context, update *ext.Update, _ *Input) error {
 	results := r.jobService.Check(ctx, false)
 	message := make([]styling.StyledTextOption, 0, len(results)+2)
 

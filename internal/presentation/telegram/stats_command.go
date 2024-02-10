@@ -14,8 +14,7 @@ import (
 	"github.com/kamva/mgm/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/presentation/telegram/utils"
-	"github.com/teadove/goteleout/internal/repository/db_repository"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	utils2 "github.com/teadove/goteleout/internal/utils"
 	"strconv"
 	"strings"
@@ -31,34 +30,34 @@ const (
 )
 
 var (
-	FlagTZ = utils.OptFlag{
+	FlagTZ = OptFlag{
 		Long:        "tz",
 		Short:       "t",
 		Description: "offsets all time-based stats by timezone utc offset",
 	}
-	FlagStatsUsername = utils.OptFlag{
+	FlagStatsUsername = OptFlag{
 		Long:        "username",
 		Short:       "u",
 		Description: "if presented, will compile stats by set username",
 	}
-	FlagCount = utils.OptFlag{
+	FlagCount = OptFlag{
 		Long:        "count",
 		Short:       "c",
 		Description: fmt.Sprintf("max amount of message to upload, max is %d, default is %d", maxUploadCount, defaultUploadCount),
 	}
-	FlagDay = utils.OptFlag{
+	FlagDay = OptFlag{
 		Long:        "day",
 		Short:       "d",
 		Description: fmt.Sprintf("max age of message to upload in days, max is %d, default is %d", int(maxUploadQueryAge.Hours()/24), int(defaultUploadQueryAge.Hours()/24)),
 	}
-	FlagRemove = utils.OptFlag{
+	FlagRemove = OptFlag{
 		Long:        "rm",
 		Short:       "r",
 		Description: "delete all stats from this chat",
 	}
 )
 
-func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) (err error) {
+func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
 	var tz int64 = 0
 	if tzFlag, ok := input.Ops[FlagTZ.Long]; ok {
 		tz, err = strconv.ParseInt(tzFlag, 10, 64)
@@ -110,11 +109,11 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		text = append(
 			text,
 			styling.Plain(
-				fmt.Sprintf("%s report for user %s\n\n", utils.GetChatName(update.EffectiveChat()), username),
+				fmt.Sprintf("%s report for user %s\n\n", GetChatName(update.EffectiveChat()), username),
 			),
 		)
 	} else {
-		text = append(text, styling.Plain(fmt.Sprintf("%s report\n\n", utils.GetChatName(update.EffectiveChat()))))
+		text = append(text, styling.Plain(fmt.Sprintf("%s report\n\n", GetChatName(update.EffectiveChat()))))
 	}
 
 	text = append(text,
@@ -160,7 +159,7 @@ func (r *Presentation) uploadMessageToRepository(
 		return
 	}
 
-	err := r.dbRepository.MessageCreateOrNothingAndSetTime(ctx, &db_repository.Message{
+	err := r.dbRepository.MessageCreateOrNothingAndSetTime(ctx, &mongo_repository.Message{
 		DefaultModel: mgm.DefaultModel{
 			DateFields: mgm.DateFields{CreatedAt: time.Unix(int64(msg.Date), 0)},
 		},
@@ -196,10 +195,10 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, ch
 		_, isBot := user.ToBot()
 
 		username, _ := user.Username()
-		repositoryUser := &db_repository.User{
+		repositoryUser := &mongo_repository.User{
 			TgUserId:   user.ID(),
 			TgUsername: strings.ToLower(username),
-			TgName:     utils.GetNameFromPeerUser(&user),
+			TgName:     GetNameFromPeerUser(&user),
 			IsBot:      isBot,
 		}
 		err = r.dbRepository.UserUpsert(ctx, repositoryUser)
@@ -213,7 +212,7 @@ func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, ch
 	zerolog.Ctx(ctx).Info().Str("status", "users.uploaded").Int("count", len(chatMembers)).Send()
 }
 
-func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
+func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if update.EffectiveChat().GetID() == ctx.Self.ID {
 		output, err := r.jobService.DeleteOldMessages(ctx)
 		if err != nil {
@@ -269,7 +268,7 @@ func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.U
 	return nil
 }
 
-func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
+func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const maxElapsed = time.Hour
 
 	var maxCount = defaultUploadCount
@@ -450,7 +449,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	return nil
 }
 
-func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *utils.Input) error {
+func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if _, ok := input.Ops[FlagRemove.Long]; ok {
 		return r.uploadStatsDeleteMessages(ctx, update, input)
 	}

@@ -1,4 +1,4 @@
-package db_repository
+package mongo_repository
 
 import (
 	"github.com/kamva/mgm/v3"
@@ -10,9 +10,10 @@ import (
 )
 
 type Repository struct {
-	messageCollection *mgm.Collection
-	userCollection    *mgm.Collection
-	client            *mongo.Client
+	messageCollection       *mgm.Collection
+	userCollection          *mgm.Collection
+	reloadMessageCollection *mgm.Collection
+	client                  *mongo.Client
 }
 
 const databaseName = "db_main"
@@ -32,6 +33,7 @@ func New() (*Repository, error) {
 
 	r.messageCollection = mgm.Coll(&Message{})
 	r.userCollection = mgm.Coll(&User{})
+	r.reloadMessageCollection = mgm.Coll(&ReloadMessage{})
 
 	r.client, err = mgm.NewClient(options.Client().ApplyURI(shared.AppSettings.Storage.MongoDbUrl))
 	if err != nil {

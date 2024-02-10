@@ -8,7 +8,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	tgUtils "github.com/teadove/goteleout/internal/presentation/telegram/utils"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 )
 
@@ -19,13 +18,13 @@ const (
 )
 
 var (
-	FlagNegativePrompt = tgUtils.OptFlag{Long: "negative", Short: "n", Description: "adds negative prompt"}
-	FlagStyle          = tgUtils.OptFlag{Long: "style", Short: "s", Description: "sets image style"}
+	FlagNegativePrompt = OptFlag{Long: "negative", Short: "n", Description: "adds negative prompt"}
+	FlagStyle          = OptFlag{Long: "style", Short: "s", Description: "sets image style"}
 )
 
 // kandkinskyCommandHandler
 // nolint: cyclop
-func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *tgUtils.Input) error {
+func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	if r.kandinskySupplier == nil {
 		_, err := ctx.Reply(update, "Err: kandinsky supplier is currently disabled", nil)
 		if err != nil {
