@@ -4,7 +4,7 @@ FROM golang:1.22-bullseye as build
 WORKDIR /src
 COPY . .
 
-ENV CGO_ENABLED=1
+ENV CGO_ENABLED=0
 
 RUN go mod download
 RUN go build -o bootstrap
