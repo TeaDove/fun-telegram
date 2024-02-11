@@ -17,8 +17,8 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
-      clickhouse:
-        condition: service_healthy
+#      clickhouse:
+#        condition: service_healthy
     labels:
       - "autoheal=true"
     healthcheck:
