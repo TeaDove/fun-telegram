@@ -18,21 +18,35 @@ var locales = mapset.NewSet(Ru, En)
 type Code int
 
 const (
-	Err               Code = iota
-	ErrLocaleNotFound Code = iota
-	ToxicMessageFound
-	CommandEchoHelp
+	Err Code = iota
+	ErrLocaleNotFound
+	ErrUsernameRequired
+	ErrInsufficientPrivilegesAdmin
+	ErrInsufficientPrivilegesOwner
+	ErrAccessDenies
+	ErrNiceTry
+	AdminRequires
+	OwnerRequires
+	CommandEchoDescription
 	CommandHelpDescription
+	CommandHelpBegin
 	CommandGetMeHelpDescription
 	CommandPingDescription
 	CommandSpamReactionDescription
+	CommandSpamReactionFlagStopDescription
 	CommandKandinskyDescription
+	CommandKandinskyFlagStyleDescription
+	CommandKandinskyFlagNegativePromptDescription
 	CommandDisableDescription
 	CommandLocationDescription
-	CommandStatsDescription
 	CommandUploadStatsDescription
 	CommandBanDescription
+	CommandBanUserBanned
+	CommandBanUserUnbanned
 	CommandToxicDescription
+	CommandToxicEnabled
+	CommandToxicDisabled
+	CommandToxicMessageFound
 	CommandHealthDescription
 	CommandInfraStatsDescription
 	CommandLocaleDescription
@@ -40,22 +54,28 @@ const (
 	CommandRestartDescription
 	CommandRestartRestarting
 	CommandRestartSuccess
+	CommandStatsDescription
 	CommandStatsFlagTZDescription
 	CommandStatsFlagUsernameDescription
 	CommandStatsFlagCountDescription
 	CommandStatsFlagDayDescription
 	CommandStatsFlagRemoveDescription
-	CommandSpamReactionFlagStopDescription
-	CommandKandinskyFlagStyleDescription
-	CommandKandinskyFlagNegativePromptDescription
 )
 
 var localizer = map[Code]map[Locale]string{
 	Err:                                           {Ru: "Ошибка: %s", En: "Err: %s"},
 	ErrLocaleNotFound:                             {Ru: "Ошибка: Локаль не найдена: %s", En: "Err: Locale not found: %s"},
-	ToxicMessageFound:                             {Ru: "!УВАГА! ТОКСИЧНОЕ СООБЩЕНИЕ НАЙДЕНО", En: "!ALERT! TOXIC MESSAGE FOUND"},
-	CommandEchoHelp:                               {Ru: "возвращает введенное сообщение", En: "echoes with same message"},
+	ErrUsernameRequired:                           {Ru: "Ошибка: Требуется ввести username пользователя", En: "Err: Username required"},
+	ErrInsufficientPrivilegesAdmin:                {Ru: "Ошибка: Недостаточно прав: Требуются права администратора", En: "Err: Insufficient privilege: Admin rights required"},
+	ErrInsufficientPrivilegesOwner:                {Ru: "Ошибка: Недостаточно прав: Требуются права владельца", En: "Err: Insufficient privilege: Owner rights required"},
+	ErrAccessDenies:                               {Ru: "Ошибка: Доступ запрещен", En: "Err: Access denied"},
+	ErrNiceTry:                                    {Ru: "Ошибка: Хорошая попытка", En: "Err: Nice try"},
+	AdminRequires:                                 {Ru: "необходимы права администратора", En: "requires admin rights"},
+	OwnerRequires:                                 {Ru: "необходимы права владельца", En: "requires owner rights"},
+	CommandToxicMessageFound:                      {Ru: "!УВАГА! ТОКСИЧНОЕ СООБЩЕНИЕ НАЙДЕНО", En: "!ALERT! TOXIC MESSAGE FOUND"},
+	CommandEchoDescription:                        {Ru: "возвращает введенное сообщение", En: "echoes with same message"},
 	CommandHelpDescription:                        {Ru: "возвращает это сообщение", En: "get this message"},
+	CommandHelpBegin:                              {Ru: "Создатель бота: @TeaDove\nИсходный код: https://github.com/TeaDove/fun-telegram\nДоступные комманды:\n\n", En: "Bot created by @TeaDove\nSource code: https://github.com/TeaDove/fun-telegram\nAvailable commands:\n\n"},
 	CommandPingDescription:                        {Ru: "уведомить всех пользователей", En: "ping all users"},
 	CommandGetMeHelpDescription:                   {Ru: "получить id, username заращиваемой группы и пользователя", En: "get id, username of requested user and group"},
 	CommandSpamReactionDescription:                {Ru: "начинает спамить реакцией, которая есть на выбранном сообщение", En: "if replied to message with reaction, will spam this reaction to replied user"},
@@ -81,4 +101,8 @@ var localizer = map[Code]map[Locale]string{
 	CommandSpamReactionFlagStopDescription:        {Ru: "оставить спам реакциями", En: "stop spamming reactions"},
 	CommandKandinskyFlagStyleDescription:          {Ru: "выставить стиль изображения", En: "set image style"},
 	CommandKandinskyFlagNegativePromptDescription: {Ru: "добавить негативный промпт", En: "add negative prompt"},
+	CommandToxicEnabled:                           {Ru: "Токсичный искатель включен в этом чате", En: "Toxic finder enabled in this chat"},
+	CommandToxicDisabled:                          {Ru: "Токсичный искатель выключен в этом чате", En: "Toxic finder disabled in this chat"},
+	CommandBanUserBanned:                          {Ru: "%s забанен", En: "%s was banned"},
+	CommandBanUserUnbanned:                        {Ru: "%s разбанен", En: "%s was unbanned"},
 }

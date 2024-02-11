@@ -23,7 +23,7 @@ func (r *Presentation) isEnabled(chatId int64) (bool, error) {
 }
 
 func (r *Presentation) isBanned(username string) (bool, error) {
-	_, err := r.redisRepository.Load(compileBanKey(strings.ToLower(username)))
+	_, err := r.redisRepository.Load(compileBanPath(strings.ToLower(username)))
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
 			return false, nil

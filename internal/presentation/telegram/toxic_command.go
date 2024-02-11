@@ -5,6 +5,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/service/resource"
 )
 
 func compileToxicFinderKey(chatId int64) string {
@@ -43,7 +44,18 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 		return nil
 	}
 
-	_, err = ctx.Reply(update, []styling.StyledTextOption{styling.Plain("!ALERT! TOXIC MESSAGE FOUND"), styling.Blockquote(word)}, nil)
+	locale, err := r.getLocale(update.EffectiveChat().GetID())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	_, err = ctx.Reply(
+		update,
+		[]styling.StyledTextOption{
+			styling.Plain(r.resourceService.Localize(ctx, resource.CommandToxicMessageFound, locale)),
+			styling.Blockquote(word),
+		},
+		nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -58,12 +70,12 @@ func (r *Presentation) toxicFinderCommandHandler(ctx *ext.Context, update *ext.U
 	}
 
 	if ok {
-		err = r.replyIfNotSilent(ctx, update, input, "Toxic finder disabled in this chat")
+		err = r.replyIfNotSilentLocalized(ctx, update, input, resource.CommandToxicDisabled)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 	} else {
-		err = r.replyIfNotSilent(ctx, update, input, "Toxic finder enabled in this chat")
+		err = r.replyIfNotSilent(ctx, update, input, resource.CommandToxicEnabled)
 		if err != nil {
 			return errors.WithStack(err)
 		}

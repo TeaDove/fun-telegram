@@ -6,17 +6,18 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/redis_repository"
+	"github.com/teadove/goteleout/internal/service/resource"
 	"strings"
 )
 
-func compileBanKey(username string) string {
+func compileBanPath(username string) string {
 	return fmt.Sprintf("ban::%s", username)
 }
 
 func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	usernameToBanLower := strings.ToLower(input.Text)
 	if usernameToBanLower == "" {
-		_, err := ctx.Reply(update, "Err: no username found", nil)
+		err := r.replyIfNotSilentLocalized(ctx, update, input, resource.ErrUsernameRequired)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -33,19 +34,19 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return nil
 		}
 
-		_, err := ctx.Reply(update, "Nice try", nil)
+		_, err := ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrNiceTry, input.Locale), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		usernameToBanLower = update.EffectiveUser().Username
 
-		err = r.redisRepository.Save(compileBanKey(usernameToBanLower), []byte{})
+		err = r.redisRepository.Save(compileBanPath(usernameToBanLower), []byte{})
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		_, err = ctx.Reply(update, fmt.Sprintf("%s was banned", usernameToBanLower), nil)
+		_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -56,7 +57,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 	}
 
 	if update.EffectiveUser().GetID() != ctx.Self.ID {
-		_, err := ctx.Reply(update, "Err: user can be banned only by owner of bot", nil)
+		_, err := ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, input.Locale), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -64,7 +65,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 		return nil
 	}
 
-	username := compileBanKey(usernameToBanLower)
+	username := compileBanPath(usernameToBanLower)
 
 	_, err := r.redisRepository.Load(username)
 	if err != nil {
@@ -74,7 +75,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 				return errors.WithStack(err)
 			}
 
-			_, err = ctx.Reply(update, fmt.Sprintf("%s was banned", usernameToBanLower), nil)
+			_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower), nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -89,7 +90,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return errors.WithStack(err)
 		}
 
-		_, err = ctx.Reply(update, fmt.Sprintf("%s was unbanned", usernameToBanLower), nil)
+		_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserUnbanned, input.Locale, usernameToBanLower), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}

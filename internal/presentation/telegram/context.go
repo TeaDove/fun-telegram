@@ -35,7 +35,7 @@ func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
 
 	err := ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{update.EffectiveMessage.ID})
 	if err != nil {
-		zerolog.Ctx(ctx.Context).Warn().Str("status", "unable to delete message").Stack().Err(err).Send()
+		zerolog.Ctx(ctx.Context).Warn().Str("status", "failed to delete message").Stack().Err(err).Send()
 	}
 
 	return nil

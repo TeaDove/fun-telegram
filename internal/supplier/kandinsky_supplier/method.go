@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/utils"
 	"github.com/tidwall/gjson"
 	"io"
 	"math"
@@ -49,7 +48,6 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 	if resp.StatusCode != 200 {
 		return 0, errors.Errorf("bad status code, status code: %d, content: %s", resp.StatusCode, string(respBytes))
 	}
-	utils.SendInterface(string(respBytes))
 
 	for _, v := range gjson.ParseBytes(respBytes).Array() {
 		model := int(v.Get("id").Int())
@@ -204,8 +202,8 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 }
 
 const (
-	delayFirstTerm         = time.Second * 10
-	delayRate      float64 = 3
+	delayFirstTerm         = time.Second * 5
+	delayRate      float64 = 2
 	maxAttempts            = 10
 )
 

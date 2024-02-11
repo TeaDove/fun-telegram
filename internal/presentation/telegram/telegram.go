@@ -147,7 +147,7 @@ func MustNewTelegramPresentation(
 	presentation.router = map[string]messageProcessor{
 		"echo": {
 			executor:    presentation.echoCommandHandler,
-			description: resource.CommandEchoHelp,
+			description: resource.CommandEchoDescription,
 			flags:       []OptFlag{},
 		},
 		"help": {
@@ -224,7 +224,7 @@ func MustNewTelegramPresentation(
 		},
 		"restart": {
 			executor:     presentation.restartCommandHandler,
-			description:  resource.CommandLocaleDescription,
+			description:  resource.CommandRestartDescription,
 			requireOwner: true,
 		},
 	}

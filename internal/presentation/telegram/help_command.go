@@ -6,17 +6,14 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/service/resource"
 	"golang.org/x/exp/maps"
 	"slices"
 )
 
 func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []styling.StyledTextOption {
 	helpMessage := make([]styling.StyledTextOption, 0, 20)
-	helpMessage = append(helpMessage,
-		styling.Plain("Bot created by @TeaDove\nSource code: "),
-		styling.TextURL("fun-telegram", "https://github.com/TeaDove/fun-telegram"),
-		styling.Plain("\nAvailable commands:\n\n"),
-	)
+	helpMessage = append(helpMessage, styling.Plain(r.resourceService.Localize(ctx, resource.CommandHelpBegin, input.Locale)))
 
 	keys := maps.Keys(r.router)
 	slices.Sort(keys)
@@ -25,10 +22,10 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []s
 		command := r.router[commandName]
 		helpMessage = append(helpMessage, styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, r.resourceService.Localize(ctx, command.description, input.Locale))))
 		if command.requireAdmin {
-			helpMessage = append(helpMessage, styling.Bold("requires admin rights\n"))
+			helpMessage = append(helpMessage, styling.Bold(r.resourceService.Localize(ctx, resource.AdminRequires, input.Locale)), styling.Plain("\n"))
 		}
 		if command.requireOwner {
-			helpMessage = append(helpMessage, styling.Bold("requires owner rights\n"))
+			helpMessage = append(helpMessage, styling.Bold(r.resourceService.Localize(ctx, resource.OwnerRequires, input.Locale)), styling.Plain("\n"))
 		}
 
 		if len(command.flags) == 0 {

@@ -62,8 +62,15 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return errors.WithStack(err)
 	}
 
+	locale, err := r.getLocale(update.EffectiveChat().GetID())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	opts.Locale = locale
+
 	if ok {
-		_, err = ctx.Reply(update, "Err: you are banned from using this bot", nil)
+		_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrAccessDenies, locale), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -77,7 +84,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			return errors.WithStack(err)
 		}
 		if !ok {
-			_, err = ctx.Reply(update, "Err: insufficient privilege, only admin is allowed to run this command", nil)
+			_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesAdmin, locale), nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -88,7 +95,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	if route.requireOwner {
 		ok = r.checkFromOwner(ctx, update)
 		if !ok {
-			_, err = ctx.Reply(update, "Err: insufficient privilege, only owner is allowed to run this command", nil)
+			_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, locale), nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -96,13 +103,6 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			return nil
 		}
 	}
-
-	locale, err := r.getLocale(update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	opts.Locale = locale
 
 	t0 := time.Now().UTC()
 	zerolog.Ctx(ctx.Context).

@@ -12,10 +12,10 @@ func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update,
 	user := update.EffectiveUser()
 	chat := update.EffectiveChat()
 	stylingOptions := []styling.StyledTextOption{
-		styling.Plain("Requested user: \n" +
+		styling.Plain("User: \n" +
 			"id: "), styling.Code(strconv.FormatInt(user.ID, 10)), styling.Plain("\n" +
 			"mention: "), styling.MentionName(user.FirstName, user.AsInput()), styling.Plain("\n\n" +
-			"Current chat: \n" +
+			"Chat: \n" +
 			"id: "), styling.Code(strconv.FormatInt(chat.GetID(), 10))}
 
 	// TODO add replied user information
