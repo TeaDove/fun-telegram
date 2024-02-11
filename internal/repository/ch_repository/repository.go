@@ -28,7 +28,7 @@ func New(ctx context.Context) (*Repository, error) {
 			"max_execution_time": 60 * 3,
 		},
 		Protocol: clickhouse.Native,
-		Debug:    true,
+		Debug:    false,
 		Debugf: func(format string, v ...any) {
 			zerolog.Ctx(ctx).Debug().Str("status", "ch.log").Str("log", fmt.Sprintf(format, v...)).Send()
 		},
