@@ -3,7 +3,7 @@ package resource
 import (
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 )
 
 type Locale string
@@ -90,13 +90,13 @@ var localizer = map[Code]map[Locale]string{
 	CommandInfraStatsDescription:                  {Ru: "показывает проверку загрузки инфраструктуры", En: "show infrastraction load information"},
 	CommandLocaleDescription:                      {Ru: "выставляет локаль в этом чате", En: "sets locale for this chat"},
 	CommandLocaleSuccess:                          {Ru: "Локаль выставлена: ru", En: "Locale set: en"},
-	CommandRestartRestarting:                      {Ru: "Перезагрузка...", En: "Restarting..."},
+	CommandRestartRestarting:                      {Ru: "Перезагрузка...\n", En: "Restarting..."},
 	CommandRestartSuccess:                         {Ru: "Перезагрузка успешна!", En: "Restart success!"},
 	CommandRestartDescription:                     {Ru: "перезагружает бота", En: "restarts bot"},
 	CommandStatsFlagTZDescription:                 {Ru: "временной офсет по UTC", En: "offsets all time-based stats by timezone UTC offset"},
 	CommandStatsFlagUsernameDescription:           {Ru: "если подан - скомпилирует статистику относительно данного пользователя", En: "if presented, will compile stats by set username"},
-	CommandStatsFlagCountDescription:              {Ru: fmt.Sprintf("максимальное количество сообщение для загрузки, максимум - %d, по умолчанию - %d", utils.MaxUploadCount, utils.DefaultUploadCount), En: fmt.Sprintf("max amount of message to upload, max is %d, default is %d", utils.MaxUploadCount, utils.DefaultUploadCount)},
-	CommandStatsFlagDayDescription:                {Ru: fmt.Sprintf("максимальный возраст сообщения для загрузки в днях, максимум - %d, по умолчанию - %d", int(utils.MaxUploadQueryAge.Hours()/24), int(utils.DefaultUploadQueryAge.Hours()/24)), En: fmt.Sprintf("max age of message to upload in days, max is %d, default is %d", int(utils.MaxUploadQueryAge.Hours()/24), int(utils.DefaultUploadQueryAge.Hours()/24))},
+	CommandStatsFlagCountDescription:              {Ru: fmt.Sprintf("максимальное количество сообщение для загрузки, максимум - %d, по умолчанию - %d", shared.MaxUploadCount, shared.DefaultUploadCount), En: fmt.Sprintf("max amount of message to upload, max is %d, default is %d", shared.MaxUploadCount, shared.DefaultUploadCount)},
+	CommandStatsFlagDayDescription:                {Ru: fmt.Sprintf("максимальный возраст сообщения для загрузки в днях, максимум - %d, по умолчанию - %d", int(shared.MaxUploadQueryAge.Hours()/24), int(shared.DefaultUploadQueryAge.Hours()/24)), En: fmt.Sprintf("max age of message to upload in days, max is %d, default is %d", int(shared.MaxUploadQueryAge.Hours()/24), int(shared.DefaultUploadQueryAge.Hours()/24))},
 	CommandStatsFlagRemoveDescription:             {Ru: "удалить все сообщения из БД для этого чата", En: "delete all stats from this chat"},
 	CommandSpamReactionFlagStopDescription:        {Ru: "оставить спам реакциями", En: "stop spamming reactions"},
 	CommandKandinskyFlagStyleDescription:          {Ru: "выставить стиль изображения", En: "set image style"},

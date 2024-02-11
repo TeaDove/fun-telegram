@@ -5,7 +5,7 @@ import (
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 )
 
 type Service struct {
@@ -27,7 +27,7 @@ func (r *Service) Localize(ctx context.Context, code Code, locale Locale) string
 			Int("code", int(code)).
 			Str("locale", string(locale)).
 			Send()
-		return utils.Undefined
+		return shared.Undefined
 	}
 
 	return text

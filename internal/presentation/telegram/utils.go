@@ -8,7 +8,7 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/service/resource"
-	"github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 	"strings"
 	"unicode"
 )
@@ -121,7 +121,7 @@ func GetNameFromTgUser(user *tg.User) string {
 		if ok {
 			result = username
 		} else {
-			result = utils.Undefined
+			result = shared.Undefined
 		}
 	}
 
@@ -138,5 +138,5 @@ func GetChatName(chat types.EffectiveChat) string {
 		return v.Username
 	}
 
-	return utils.Undefined
+	return shared.Undefined
 }

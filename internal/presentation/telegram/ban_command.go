@@ -41,7 +41,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 		usernameToBanLower = update.EffectiveUser().Username
 
-		err = r.redisRepository.Save(compileBanPath(usernameToBanLower), []byte{})
+		err = r.redisRepository.Save(ctx, compileBanPath(usernameToBanLower), []byte{})
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -67,10 +67,10 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 	username := compileBanPath(usernameToBanLower)
 
-	_, err := r.redisRepository.Load(username)
+	_, err := r.redisRepository.Load(ctx, username)
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
-			err = r.redisRepository.Save(username, []byte{})
+			err = r.redisRepository.Save(ctx, username, []byte{})
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -85,7 +85,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return errors.WithStack(err)
 		}
 	} else {
-		err = r.redisRepository.Delete(username)
+		err = r.redisRepository.Delete(ctx, username)
 		if err != nil {
 			return errors.WithStack(err)
 		}

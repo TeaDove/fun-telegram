@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram"
 	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
@@ -15,8 +14,6 @@ import (
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
-	"github.com/teadove/goteleout/internal/utils"
-	"os"
 )
 
 type Container struct {
@@ -25,13 +22,6 @@ type Container struct {
 }
 
 func MustNewCombatContainer(ctx context.Context) Container {
-	level, err := zerolog.ParseLevel(shared.AppSettings.LogLevel)
-	utils.Check(err)
-
-	zerolog.SetGlobalLevel(level)
-
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-
 	persistentStorage := redis_repository.MustNew()
 
 	kandinskySupplier, err := kandinsky_supplier.New(
@@ -40,21 +30,21 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		shared.AppSettings.KandinskySecret,
 	)
 	if err != nil {
-		log.Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.create.kandinsky.supplier").Send()
+		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.create.kandinsky.supplier").Send()
 	}
 
 	locator := ip_locator.Supplier{}
 
 	dbRepository, err := mongo_repository.New()
-	utils.Check(err)
+	shared.Check(ctx, err)
 
 	analiticsService, err := analitics.New(dbRepository)
-	utils.Check(err)
+	shared.Check(ctx, err)
 
 	protoClient := telegram.MustNewProtoClient(ctx)
 
 	chRepository, err := ch_repository.New(ctx)
-	utils.Check(err)
+	shared.Check(ctx, err)
 
 	jobService, err := job.New(ctx, dbRepository, map[string]job.ServiceChecker{
 		"MongoDB":    {Checker: dbRepository.Ping, ForFrequent: true},
@@ -64,10 +54,10 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		"Kandinsky":  {Checker: kandinskySupplier.Ping},
 		"IpLocator":  {Checker: locator.Ping},
 	})
-	utils.Check(err)
+	shared.Check(ctx, err)
 
 	resourceService, err := resource.New(ctx)
-	utils.Check(err)
+	shared.Check(ctx, err)
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		ctx,

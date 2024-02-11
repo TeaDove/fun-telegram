@@ -42,7 +42,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	opts := GetOpt(text, route.flags...)
 
-	ok, err := r.isEnabled(update.EffectiveChat().GetID())
+	ok, err := r.isEnabled(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -57,12 +57,12 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	ok, err = r.isBanned(update.EffectiveUser().Username)
+	ok, err = r.isBanned(ctx, update.EffectiveUser().Username)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	locale, err := r.getLocale(update.EffectiveChat().GetID())
+	locale, err := r.getLocale(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}

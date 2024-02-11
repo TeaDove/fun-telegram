@@ -1,21 +1,22 @@
 package presentation
 
 import (
-	"github.com/rs/zerolog/log"
+	"context"
+	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/container"
-	"github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 	"os"
 	"os/signal"
 	"runtime/pprof"
 )
 
-func captureInterrupt() {
+func captureInterrupt(ctx context.Context) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 
 	go func() {
 		for sig := range c {
-			log.Info().Str("signal", sig.String()).Msg("captured exit signal, exiting...")
+			zerolog.Ctx(ctx).Info().Str("signal", sig.String()).Msg("captured exit signal, exiting...")
 			pprof.StopCPUProfile()
 			os.Exit(0)
 		}
@@ -23,13 +24,21 @@ func captureInterrupt() {
 }
 
 func Run() {
-	captureInterrupt()
+	ctx := shared.GetCtx()
+	captureInterrupt(ctx)
+	zerolog.Ctx(ctx).Info().Str("status", "app.starting").Send()
 
-	log.Info().Str("status", "starting.application").Send()
-
-	combatContainer := container.MustNewCombatContainer(utils.GetCtx())
+	combatContainer := container.MustNewCombatContainer(ctx)
 	go healthServer(combatContainer.JobService)
+	go func() {
+		checkResults := combatContainer.JobService.Check(ctx, true)
+		if checkResults.HasUnhealthy() {
+			zerolog.Ctx(ctx).Error().Str("status", "failed.to.health.check").Send()
+		}
+	}()
+
+	zerolog.Ctx(ctx).Info().Str("status", "app.started").Send()
 
 	err := combatContainer.Presentation.Run()
-	utils.Check(err)
+	shared.Check(ctx, err)
 }

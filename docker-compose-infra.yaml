@@ -37,6 +37,7 @@ services:
     image: yandex/clickhouse-server:22.1
     ports:
       - "9000:9000"
+      - "8123:8123"
     volumes:
       - "./data/ch:/var/lib/clickhouse"
     healthcheck:

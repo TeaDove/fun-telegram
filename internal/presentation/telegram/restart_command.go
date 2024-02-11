@@ -45,7 +45,7 @@ func (r *Presentation) updateRestartMessages(ctx context.Context) error {
 		return nil
 	}
 
-	locale, err := r.getLocale(r.protoClient.Self.ID)
+	locale, err := r.getLocale(ctx, r.protoClient.Self.ID)
 	if err != nil {
 		return errors.WithStack(err)
 	}

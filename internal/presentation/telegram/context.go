@@ -3,13 +3,12 @@ package telegram
 import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error {
 	chatName := GetChatName(update.EffectiveChat())
 
-	ctx.Context = log.
+	ctx.Context = zerolog.Ctx(ctx).
 		With().
 		Dict("tg", zerolog.Dict().
 			Int("message_id", update.EffectiveMessage.ID).

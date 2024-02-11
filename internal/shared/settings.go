@@ -1,13 +1,13 @@
 package shared
 
 import (
+	"context"
 	"path/filepath"
 	"time"
 
 	"github.com/caarlos0/env/v7"
 	"github.com/joho/godotenv"
 	"github.com/mitchellh/go-homedir"
-	"github.com/teadove/goteleout/internal/utils"
 )
 
 const (
@@ -36,7 +36,6 @@ type storage struct {
 }
 
 type Settings struct {
-	LogErrorToSelf  bool     `env:"log_error_to_self" envDefault:"false"`
 	Telegram        telegram `envPrefix:"telegram__"`
 	Storage         storage  `envPrefix:"storage__"`
 	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
@@ -51,13 +50,14 @@ type Settings struct {
 func mustNewSettings() Settings {
 	var settings Settings
 
+	ctx := context.Background()
 	_ = godotenv.Load(defaultEnvFile)
 
 	err := env.Parse(&settings, env.Options{Prefix: defaultEnvPrefix})
-	utils.Check(err)
+	Check(ctx, err)
 
 	realPath, err := homedir.Expand(settings.FileStoragePath)
-	utils.Check(err)
+	Check(ctx, err)
 
 	settings.Telegram.SessionFullPath = filepath.Join(realPath, settings.Telegram.SessionPath)
 

@@ -21,7 +21,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return nil
 	}
 
-	ok, err := r.isEnabled(update.EffectiveChat().GetID())
+	ok, err := r.isEnabled(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -29,7 +29,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return nil
 	}
 
-	reactionsBuf, err := r.redisRepository.Load(compileSpamVictimKey(chatId, update.EffectiveUser().ID))
+	reactionsBuf, err := r.redisRepository.Load(ctx, compileSpamVictimKey(chatId, update.EffectiveUser().ID))
 	if errors.Is(err, redis_repository.ErrKeyNotFound) {
 		return nil
 	}
@@ -99,7 +99,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *I
 
 	key := compileSpamVictimKey(chatId, userId)
 
-	err = r.redisRepository.Delete(key)
+	err = r.redisRepository.Delete(ctx, key)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -181,7 +181,7 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 
 	key := compileSpamVictimKey(chatId, userId)
 
-	err = r.redisRepository.Save(key, buf.Buf)
+	err = r.redisRepository.Save(ctx, key, buf.Buf)
 	if err != nil {
 		return errors.WithStack(err)
 	}

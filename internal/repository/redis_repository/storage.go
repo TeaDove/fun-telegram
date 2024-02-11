@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/shared"
 )
 
@@ -24,8 +23,8 @@ func MustNew() *Repository {
 	})}
 }
 
-func (r *Repository) Load(k string) ([]byte, error) {
-	cmd := r.rbs.Get(context.Background(), k)
+func (r *Repository) Load(ctx context.Context, k string) ([]byte, error) {
+	cmd := r.rbs.Get(ctx, k)
 	if cmd.Err() != nil {
 		if errors.Is(cmd.Err(), redis.Nil) {
 			return []byte{}, errors.WithStack(ErrKeyNotFound)
@@ -37,72 +36,49 @@ func (r *Repository) Load(k string) ([]byte, error) {
 	return []byte(cmd.Val()), nil
 }
 
-func (r *Repository) Save(k string, t []byte) error {
-	ctx := context.Background()
-
-	cmd := r.rbs.Set(ctx, k, t, 0)
-	if cmd.Err() != nil {
-		return errors.WithStack(cmd.Err())
-	}
-
-	return nil
-}
-
-func (r *Repository) Contains(k string) bool {
-	cmd := r.rbs.Get(context.Background(), k)
-	if cmd.Err() != nil {
-		if errors.Is(cmd.Err(), redis.Nil) {
-			return false
-		}
-
-		log.Error().
-			Err(errors.WithStack(cmd.Err())).
-			Str("status", "unable.execute.get.command").
-			Str("key", k).
-			Send()
-
-		return false
-	}
-
-	return true
-}
-
-func (r *Repository) Delete(k string) error {
-	ctx := context.Background()
-	cmd := r.rbs.Del(ctx, k)
-
-	if cmd.Err() != nil {
-		return errors.WithStack(cmd.Err())
-	}
-
-	return nil
-}
-
-func (r *Repository) Toggle(k string) (bool, error) {
-	_, err := r.Load(k)
+func (r *Repository) Save(ctx context.Context, k string, t []byte) error {
+	err := r.rbs.Set(ctx, k, t, 0).Err()
 	if err != nil {
-		if !errors.Is(err, ErrKeyNotFound) {
-			return false, errors.WithStack(err)
-		}
-
-		err = r.Save(k, emptyBytes)
-		if err != nil {
-			return false, errors.WithStack(err)
-		}
-
-		return false, nil
+		return errors.WithStack(err)
 	}
 
-	err = r.Delete(k)
+	return nil
+}
+
+func (r *Repository) Delete(ctx context.Context, k string) error {
+	err := r.rbs.Del(ctx, k).Err()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) Toggle(ctx context.Context, k string) (bool, error) {
+	ok, err := r.GetToggle(ctx, k)
 	if err != nil {
 		return false, errors.WithStack(err)
 	}
 
-	return true, nil
+	if ok {
+		err = r.Delete(ctx, k)
+		if err != nil {
+			return false, errors.WithStack(err)
+		}
+
+		return true, nil
+	}
+
+	err = r.Save(ctx, k, emptyBytes)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	return false, nil
 }
 
-func (r *Repository) GetToggle(k string) (bool, error) {
-	_, err := r.Load(k)
+func (r *Repository) GetToggle(ctx context.Context, k string) (bool, error) {
+	_, err := r.Load(ctx, k)
 	if err != nil {
 		if !errors.Is(err, ErrKeyNotFound) {
 			return false, errors.WithStack(err)

@@ -14,7 +14,7 @@ func (r *Presentation) catchMessages(ctx *ext.Context, update *ext.Update) error
 		return nil
 	}
 
-	ok, err := r.isEnabled(update.EffectiveChat().GetID())
+	ok, err := r.isEnabled(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}

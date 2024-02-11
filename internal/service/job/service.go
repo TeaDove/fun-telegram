@@ -7,7 +7,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/shared"
-	"github.com/teadove/goteleout/internal/utils"
 	"time"
 )
 
@@ -18,7 +17,7 @@ type Service struct {
 }
 
 func New(ctx context.Context, dbRepository *mongo_repository.Repository, checkers map[string]ServiceChecker) (*Service, error) {
-	ctx = utils.AddModuleCtx(ctx, "job")
+	ctx = shared.AddModuleCtx(ctx, "job")
 	r := Service{dbRepository: dbRepository, checkers: checkers}
 
 	scheduler := gocron.NewScheduler(time.UTC)

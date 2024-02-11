@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/shared"
-	"github.com/teadove/goteleout/internal/utils"
 	"time"
 )
 
@@ -47,7 +46,7 @@ func New(ctx context.Context) (*Repository, error) {
 				Name    string
 				Version string
 			}{
-				{Name: "FunTelegram", Version: utils.Undefined},
+				{Name: "FunTelegram", Version: shared.Undefined},
 			},
 		},
 	})

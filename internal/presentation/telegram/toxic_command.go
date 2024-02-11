@@ -8,12 +8,12 @@ import (
 	"github.com/teadove/goteleout/internal/service/resource"
 )
 
-func compileToxicFinderKey(chatId int64) string {
+func compileToxicFinderPath(chatId int64) string {
 	return fmt.Sprintf("toxic::%d", chatId)
 }
 
 func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
-	ok, err := r.redisRepository.GetToggle(compileToxicFinderKey(update.EffectiveChat().GetID()))
+	ok, err := r.redisRepository.GetToggle(ctx, compileToxicFinderPath(update.EffectiveChat().GetID()))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -22,7 +22,7 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 		return nil
 	}
 
-	ok, err = r.isEnabled(update.EffectiveChat().GetID())
+	ok, err = r.isEnabled(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -44,7 +44,7 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 		return nil
 	}
 
-	locale, err := r.getLocale(update.EffectiveChat().GetID())
+	locale, err := r.getLocale(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -64,7 +64,7 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 }
 
 func (r *Presentation) toxicFinderCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
-	ok, err := r.redisRepository.Toggle(compileToxicFinderKey(update.EffectiveChat().GetID()))
+	ok, err := r.redisRepository.Toggle(ctx, compileToxicFinderPath(update.EffectiveChat().GetID()))
 	if err != nil {
 		return errors.WithStack(err)
 	}

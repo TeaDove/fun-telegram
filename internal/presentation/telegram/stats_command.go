@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/service/resource"
-	utils "github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 	"strconv"
 	"strings"
 	"sync"
@@ -237,8 +237,8 @@ func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.U
 					"Old size: %.2fkb, new size: %.2fkb\n"+
 					"Mem freed: %.2fkb",
 				output.OldCount, output.NewCount,
-				utils.BytesToKiloBytes(output.OldSize), utils.BytesToKiloBytes(output.NewSize),
-				utils.BytesToKiloBytes(output.BytesFreed)),
+				shared.BytesToKiloBytes(output.OldSize), shared.BytesToKiloBytes(output.NewSize),
+				shared.BytesToKiloBytes(output.BytesFreed)),
 		)
 		if err != nil {
 			return errors.WithStack(err)
@@ -265,7 +265,7 @@ func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.U
 func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const maxElapsed = time.Hour
 
-	var maxCount = utils.DefaultUploadCount
+	var maxCount = shared.DefaultUploadCount
 	if userMaxCountS, ok := input.Ops[FlagCount.Long]; ok {
 		userMaxCount, err := strconv.Atoi(userMaxCountS)
 		if err != nil {
@@ -275,14 +275,14 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			}
 		}
 
-		if userMaxCount < utils.MaxUploadCount {
+		if userMaxCount < shared.MaxUploadCount {
 			maxCount = userMaxCount
 		} else {
-			maxCount = utils.MaxUploadCount
+			maxCount = shared.MaxUploadCount
 		}
 	}
 
-	var maxQueryAge = utils.DefaultUploadQueryAge
+	var maxQueryAge = shared.DefaultUploadQueryAge
 	if userQueryAgeS, ok := input.Ops[FlagDay.Long]; ok {
 		userQueryAge, err := strconv.Atoi(userQueryAgeS)
 		if err != nil {
@@ -292,10 +292,10 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			}
 		}
 
-		if userQueryAge < int(utils.MaxUploadQueryAge.Hours()/24) {
+		if userQueryAge < int(shared.MaxUploadQueryAge.Hours()/24) {
 			maxQueryAge = time.Hour * 24 * time.Duration(userQueryAge)
 		} else {
-			maxQueryAge = utils.MaxUploadQueryAge
+			maxQueryAge = shared.MaxUploadQueryAge
 		}
 	}
 

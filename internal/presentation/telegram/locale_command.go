@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
@@ -15,8 +16,8 @@ func getLocalePath(chatId int64) string {
 
 const defaultLocale = resource.En
 
-func (r *Presentation) getLocale(chatId int64) (resource.Locale, error) {
-	localeBytes, err := r.redisRepository.Load(getLocalePath(chatId))
+func (r *Presentation) getLocale(ctx context.Context, chatId int64) (resource.Locale, error) {
+	localeBytes, err := r.redisRepository.Load(ctx, getLocalePath(chatId))
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
 			return defaultLocale, nil
@@ -39,7 +40,7 @@ func (r *Presentation) localeCommandHandler(ctx *ext.Context, update *ext.Update
 	}
 
 	path := getLocalePath(update.EffectiveChat().GetID())
-	err := r.redisRepository.Save(path, []byte(locale))
+	err := r.redisRepository.Save(ctx, path, []byte(locale))
 	if err != nil {
 		return errors.WithStack(err)
 	}

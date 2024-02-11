@@ -3,7 +3,7 @@ package job
 import (
 	"context"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 	"golang.org/x/exp/maps"
 	"io"
 	"net/http"
@@ -127,7 +127,7 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 // ApiHealth
 // yes, i know, that it should be in presentation, no in service
 func (r *Service) ApiHealth(w http.ResponseWriter, req *http.Request) {
-	ctx := utils.GetModuleCtx("health")
+	ctx := shared.GetModuleCtx("health")
 	log := zerolog.Ctx(ctx).With().Str("remote.addr", req.RemoteAddr).Logger()
 	ctx = log.WithContext(ctx)
 

@@ -22,7 +22,6 @@ import (
 	"github.com/teadove/goteleout/internal/shared"
 	"github.com/teadove/goteleout/internal/supplier/ip_locator"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
-	"github.com/teadove/goteleout/internal/utils"
 	"golang.org/x/time/rate"
 	"time"
 )
@@ -92,7 +91,7 @@ func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
 			Middlewares:      middlewares,
 			RunMiddleware:    runMiddleware,
 		})
-	utils.Check(err)
+	shared.Check(ctx, err)
 
 	return protoClient
 }
@@ -248,7 +247,7 @@ func MustNewTelegramPresentation(
 
 	dp, ok := protoClient.Dispatcher.(*dispatcher.NativeDispatcher)
 	if !ok {
-		utils.FancyPanic(errors.New("can only work with NativeDispatcher"))
+		shared.FancyPanic(ctx, errors.New("can only work with NativeDispatcher"))
 	}
 
 	dp.Error = presentation.errorHandler

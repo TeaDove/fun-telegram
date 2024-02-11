@@ -1,13 +1,14 @@
-package utils
+package shared
 
 import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"os"
 )
 
-var instanceId = uuid.New().String()
+var InstanceId = uuid.New().String()
 
 func SendInterface(values ...any) {
 	arr := zerolog.Arr()
@@ -19,11 +20,11 @@ func SendInterface(values ...any) {
 }
 
 func GetCtx() context.Context {
-	return log.With().Str("instance.id", instanceId).Logger().WithContext(context.Background())
+	return getLogger().With().Str("instance.id", InstanceId).Logger().WithContext(context.Background())
 }
 
 func AddModuleCtx(ctx context.Context, moduleName string) context.Context {
-	return log.With().Str("module_name", moduleName).
+	return zerolog.Ctx(ctx).With().Str("module_name", moduleName).
 		Ctx(ctx).
 		Logger().
 		WithContext(ctx)
@@ -31,4 +32,14 @@ func AddModuleCtx(ctx context.Context, moduleName string) context.Context {
 
 func GetModuleCtx(moduleName string) context.Context {
 	return AddModuleCtx(GetCtx(), moduleName)
+}
+
+func getLogger() zerolog.Logger {
+	level, err := zerolog.ParseLevel(AppSettings.LogLevel)
+	if err != nil {
+		level = zerolog.DebugLevel
+	}
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger().Level(level).Output(zerolog.ConsoleWriter{Out: os.Stderr})
+
+	return logger
 }

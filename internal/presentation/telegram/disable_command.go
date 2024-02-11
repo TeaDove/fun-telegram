@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"context"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
@@ -9,8 +10,8 @@ import (
 	"strings"
 )
 
-func (r *Presentation) isEnabled(chatId int64) (bool, error) {
-	_, err := r.redisRepository.Load(strconv.Itoa(int(chatId)))
+func (r *Presentation) isEnabled(ctx context.Context, chatId int64) (bool, error) {
+	_, err := r.redisRepository.Load(ctx, strconv.Itoa(int(chatId)))
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
 			return true, nil
@@ -22,8 +23,8 @@ func (r *Presentation) isEnabled(chatId int64) (bool, error) {
 	return false, nil
 }
 
-func (r *Presentation) isBanned(username string) (bool, error) {
-	_, err := r.redisRepository.Load(compileBanPath(strings.ToLower(username)))
+func (r *Presentation) isBanned(ctx context.Context, username string) (bool, error) {
+	_, err := r.redisRepository.Load(ctx, compileBanPath(strings.ToLower(username)))
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
 			return false, nil
@@ -62,10 +63,10 @@ func (r *Presentation) checkFromOwner(ctx *ext.Context, update *ext.Update) (ok 
 func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	chatId := strconv.Itoa(int(update.EffectiveChat().GetID()))
 
-	_, err := r.redisRepository.Load(chatId)
+	_, err := r.redisRepository.Load(ctx, chatId)
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
-			err = r.redisRepository.Save(chatId, []byte("1"))
+			err = r.redisRepository.Save(ctx, chatId, []byte("1"))
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -81,7 +82,7 @@ func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Updat
 		return errors.WithStack(err)
 	}
 
-	err = r.redisRepository.Delete(chatId)
+	err = r.redisRepository.Delete(ctx, chatId)
 	if err != nil {
 		return errors.WithStack(err)
 	}

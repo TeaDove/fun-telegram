@@ -5,7 +5,7 @@ import (
 	"github.com/kamva/mgm/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
 	"strconv"
@@ -21,7 +21,7 @@ func getRepository(t *testing.T) *Repository {
 }
 
 func generateMessage(r *Repository, t *testing.T) []Message {
-	ctx := utils.GetCtx()
+	ctx := shared.GetCtx()
 	_, err := r.DeleteAllMessages(ctx)
 	require.NoError(t, err)
 
@@ -93,7 +93,7 @@ func TestIntegration_DbRepository_DeleteOldMessages_Ok(t *testing.T) {
 	t.Parallel()
 	r := getRepository(t)
 
-	_, err := r.MessageDeleteOld(utils.GetModuleCtx("repository"))
+	_, err := r.MessageDeleteOld(shared.GetModuleCtx("repository"))
 	assert.NoError(t, err)
 }
 
@@ -281,7 +281,7 @@ func TestIntegration_DbRepository_StatsForDatabase_Ok(t *testing.T) {
 
 	stats, err := r.StatsForDatabase(ctx)
 	assert.NoError(t, err)
-	utils.SendInterface(stats)
+	shared.SendInterface(stats)
 }
 
 func TestIntegration_DbRepository_MessageGetSortedLimited_Ok(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
-	"github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/shared"
 	"image"
 	"image/jpeg"
 	"os"
@@ -34,7 +34,7 @@ func getService(t *testing.T) *Service {
 
 func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	r := getService(t)
-	ctx := utils.GetModuleCtx("tests")
+	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, 1825059942, 3, "") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 
 func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 	r := getService(t)
-	ctx := utils.GetModuleCtx("tests")
+	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, 1825059942, 3, "TeaDove") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
