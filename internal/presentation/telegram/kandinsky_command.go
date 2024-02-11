@@ -8,6 +8,7 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/teadove/goteleout/internal/service/resource"
 	"github.com/teadove/goteleout/internal/supplier/kandinsky_supplier"
 )
 
@@ -18,8 +19,8 @@ const (
 )
 
 var (
-	FlagNegativePrompt = OptFlag{Long: "negative", Short: "n", Description: "adds negative prompt"}
-	FlagStyle          = OptFlag{Long: "style", Short: "s", Description: "sets image style"}
+	FlagKandinskyNegativePrompt = OptFlag{Long: "negative", Short: "n", Description: resource.CommandKandinskyFlagNegativePromptDescription}
+	FlagKandinskyStyle          = OptFlag{Long: "style", Short: "s", Description: resource.CommandKandinskyFlagStyleDescription}
 )
 
 // kandkinskyCommandHandler
@@ -42,13 +43,13 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 		kandinskyInput.Prompt = input.Text
 	}
 
-	if negative, ok := input.Ops[FlagNegativePrompt.Long]; ok {
+	if negative, ok := input.Ops[FlagKandinskyNegativePrompt.Long]; ok {
 		kandinskyInput.NegativePromptUnclip = negative
 	} else {
 		kandinskyInput.NegativePromptUnclip = defaultNegativePrompt
 	}
 
-	if style, ok := input.Ops[FlagStyle.Long]; ok {
+	if style, ok := input.Ops[FlagKandinskyStyle.Long]; ok {
 		kandinskyInput.Style = style
 	} else {
 		kandinskyInput.Style = defaultStyle

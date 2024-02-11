@@ -9,12 +9,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/teadove/goteleout/internal/utils"
 	"github.com/tidwall/gjson"
 	"io"
 	"math"
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -47,6 +49,7 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 	if resp.StatusCode != 200 {
 		return 0, errors.Errorf("bad status code, status code: %d, content: %s", resp.StatusCode, string(respBytes))
 	}
+	utils.SendInterface(string(respBytes))
 
 	for _, v := range gjson.ParseBytes(respBytes).Array() {
 		model := int(v.Get("id").Int())
@@ -76,6 +79,7 @@ type RequestGenerationRequest struct {
 }
 
 func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerationInput) (uuid.UUID, error) {
+	input.Style = strings.ToUpper(input.Style)
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
 

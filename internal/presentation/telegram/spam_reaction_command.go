@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/redis_repository"
+	"github.com/teadove/goteleout/internal/service/resource"
 )
 
 func compileSpamVictimKey(chatId int64, userId int64) string {
@@ -202,11 +203,11 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 }
 
 var (
-	FlagStop = OptFlag{Long: "stop", Short: "s", Description: "stops spamming reactions"}
+	FlagSpamReactionStop = OptFlag{Long: "stop", Short: "s", Description: resource.CommandSpamReactionFlagStopDescription}
 )
 
 func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
-	if _, ok := input.Ops[FlagStop.Long]; ok {
+	if _, ok := input.Ops[FlagSpamReactionStop.Long]; ok {
 		return r.deleteSpam(ctx, update, input)
 	}
 

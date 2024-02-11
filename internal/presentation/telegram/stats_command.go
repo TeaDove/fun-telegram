@@ -15,51 +15,45 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
-	utils2 "github.com/teadove/goteleout/internal/utils"
+	"github.com/teadove/goteleout/internal/service/resource"
+	utils "github.com/teadove/goteleout/internal/utils"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-const (
-	maxUploadCount        = 200_000
-	defaultUploadCount    = 10_000
-	maxUploadQueryAge     = time.Hour * 24 * 365
-	defaultUploadQueryAge = time.Hour * 24 * 30 * 2
-)
-
 var (
-	FlagTZ = OptFlag{
+	FlagStatsTZ = OptFlag{
 		Long:        "tz",
 		Short:       "t",
-		Description: "offsets all time-based stats by timezone utc offset",
+		Description: resource.CommandStatsFlagTZDescription,
 	}
 	FlagStatsUsername = OptFlag{
 		Long:        "username",
 		Short:       "u",
-		Description: "if presented, will compile stats by set username",
+		Description: resource.CommandStatsFlagUsernameDescription,
 	}
 	FlagCount = OptFlag{
 		Long:        "count",
 		Short:       "c",
-		Description: fmt.Sprintf("max amount of message to upload, max is %d, default is %d", maxUploadCount, defaultUploadCount),
+		Description: resource.CommandStatsFlagCountDescription,
 	}
 	FlagDay = OptFlag{
 		Long:        "day",
 		Short:       "d",
-		Description: fmt.Sprintf("max age of message to upload in days, max is %d, default is %d", int(maxUploadQueryAge.Hours()/24), int(defaultUploadQueryAge.Hours()/24)),
+		Description: resource.CommandStatsFlagDayDescription,
 	}
 	FlagRemove = OptFlag{
 		Long:        "rm",
 		Short:       "r",
-		Description: "delete all stats from this chat",
+		Description: resource.CommandStatsFlagRemoveDescription,
 	}
 )
 
 func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
 	var tz int64 = 0
-	if tzFlag, ok := input.Ops[FlagTZ.Long]; ok {
+	if tzFlag, ok := input.Ops[FlagStatsTZ.Long]; ok {
 		tz, err = strconv.ParseInt(tzFlag, 10, 64)
 		if err != nil {
 			_, err = ctx.Reply(update, "Err: failed to parse tz argument to int", nil)
@@ -243,8 +237,8 @@ func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.U
 					"Old size: %.2fkb, new size: %.2fkb\n"+
 					"Mem freed: %.2fkb",
 				output.OldCount, output.NewCount,
-				utils2.BytesToKiloBytes(output.OldSize), utils2.BytesToKiloBytes(output.NewSize),
-				utils2.BytesToKiloBytes(output.BytesFreed)),
+				utils.BytesToKiloBytes(output.OldSize), utils.BytesToKiloBytes(output.NewSize),
+				utils.BytesToKiloBytes(output.BytesFreed)),
 		)
 		if err != nil {
 			return errors.WithStack(err)
@@ -271,7 +265,7 @@ func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.U
 func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *Input) error {
 	const maxElapsed = time.Hour
 
-	var maxCount = defaultUploadCount
+	var maxCount = utils.DefaultUploadCount
 	if userMaxCountS, ok := input.Ops[FlagCount.Long]; ok {
 		userMaxCount, err := strconv.Atoi(userMaxCountS)
 		if err != nil {
@@ -281,14 +275,14 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			}
 		}
 
-		if userMaxCount < maxUploadCount {
+		if userMaxCount < utils.MaxUploadCount {
 			maxCount = userMaxCount
 		} else {
-			maxCount = maxUploadCount
+			maxCount = utils.MaxUploadCount
 		}
 	}
 
-	var maxQueryAge = defaultUploadQueryAge
+	var maxQueryAge = utils.DefaultUploadQueryAge
 	if userQueryAgeS, ok := input.Ops[FlagDay.Long]; ok {
 		userQueryAge, err := strconv.Atoi(userQueryAgeS)
 		if err != nil {
@@ -298,10 +292,10 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			}
 		}
 
-		if userQueryAge < int(maxUploadQueryAge.Hours()/24) {
+		if userQueryAge < int(utils.MaxUploadQueryAge.Hours()/24) {
 			maxQueryAge = time.Hour * 24 * time.Duration(userQueryAge)
 		} else {
-			maxQueryAge = maxUploadQueryAge
+			maxQueryAge = utils.MaxUploadQueryAge
 		}
 	}
 

@@ -39,7 +39,7 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []s
 		for _, flag := range command.flags {
 			helpMessage = append(
 				helpMessage,
-				styling.Plain(fmt.Sprintf("%s/%s - %s\n", flag.Long, flag.Short, flag.Description)),
+				styling.Plain(fmt.Sprintf("%s/%s - %s\n", flag.Long, flag.Short, r.resourceService.Localize(ctx, flag.Description, input.Locale))),
 			)
 		}
 		helpMessage = append(helpMessage, styling.Plain("\n"))

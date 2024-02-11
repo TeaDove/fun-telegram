@@ -169,12 +169,12 @@ func MustNewTelegramPresentation(
 		"spam_reaction": {
 			executor:    presentation.spamReactionCommandHandler,
 			description: resource.CommandSpamReactionDescription,
-			flags:       []OptFlag{FlagStop},
+			flags:       []OptFlag{FlagSpamReactionStop},
 		},
 		"kandinsky": {
 			executor:    presentation.kandkinskyCommandHandler,
 			description: resource.CommandKandinskyDescription,
-			flags:       []OptFlag{FlagNegativePrompt, FlagStyle},
+			flags:       []OptFlag{FlagKandinskyNegativePrompt, FlagKandinskyStyle},
 		},
 		"disable": {
 			executor:     presentation.disableCommandHandler,
@@ -190,7 +190,7 @@ func MustNewTelegramPresentation(
 		"stats": {
 			executor:     presentation.statsCommandHandler,
 			description:  resource.CommandStatsDescription,
-			flags:        []OptFlag{FlagTZ, FlagStatsUsername},
+			flags:        []OptFlag{FlagStatsTZ, FlagStatsUsername},
 			requireAdmin: true,
 		},
 		"upload_stats": {

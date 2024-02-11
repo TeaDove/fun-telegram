@@ -8,7 +8,7 @@ import (
 type OptFlag struct {
 	Short       string
 	Long        string
-	Description string
+	Description resource.Code
 }
 
 type Input struct {
