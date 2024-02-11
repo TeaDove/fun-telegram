@@ -19,7 +19,6 @@ type Repository struct {
 const databaseName = "db_main"
 
 func New() (*Repository, error) {
-
 	r := Repository{}
 
 	err := mgm.SetDefaultConfig(

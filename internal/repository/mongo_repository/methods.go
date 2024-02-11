@@ -103,8 +103,10 @@ func (r *Repository) DeleteMessages(ctx context.Context, messages []Message) (in
 func (r *Repository) DeleteMessagesOldWithCount(ctx context.Context, limit int64) (int64, error) {
 	batchSize := int64(10_000)
 	count := int64(0)
+
 	for {
 		shouldBreak := false
+
 		if batchSize+count > limit {
 			batchSize = limit - count
 			shouldBreak = true

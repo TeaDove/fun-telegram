@@ -1,6 +1,6 @@
 module github.com/teadove/goteleout
 
-go 1.21
+go 1.22
 
 require (
 	github.com/aaaton/golem/v4 v4.0.1
@@ -23,7 +23,7 @@ require (
 	github.com/tidwall/gjson v1.17.0
 	github.com/wcharczuk/go-chart/v2 v2.1.1
 	go.mongodb.org/mongo-driver v1.13.1
-	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b
+	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
 	golang.org/x/time v0.5.0
 )
 

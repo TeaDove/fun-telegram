@@ -30,6 +30,7 @@ func (r CheckResults) HasUnhealthy() bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -53,6 +54,8 @@ func (r *Service) check(
 
 const maxCheckTime = 5 * time.Second
 
+// Check
+// nolint: cyclop
 func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 	outerCtx, outerCancel := context.WithTimeout(ctx, maxCheckTime+time.Millisecond*100)
 	defer outerCancel()
@@ -81,7 +84,7 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 	for !shouldBreak {
 		select {
 		case result := <-resultChan:
-			elapsed := time.Now().Sub(t0)
+			elapsed := time.Since(t0)
 			if result.Err != nil {
 				zerolog.Ctx(ctx).
 					Error().Stack().
@@ -103,7 +106,7 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 				shouldBreak = true
 			}
 		case <-outerCtx.Done():
-			elapsed := time.Now().Sub(t0)
+			elapsed := time.Since(t0)
 			for name := range checkers {
 				checkResults = append(checkResults, CheckResult{Name: name, Err: ctx.Err(), Elapsed: elapsed})
 				zerolog.Ctx(ctx).
@@ -111,7 +114,7 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 					Err(ctx.Err()).
 					Str("status", "health.check.failed").
 					Str("service", name).
-					Dur("elapsed", time.Now().Sub(t0)).Send()
+					Dur("elapsed", elapsed).Send()
 			}
 			shouldBreak = true
 		}

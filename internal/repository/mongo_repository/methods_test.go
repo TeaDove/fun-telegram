@@ -276,7 +276,7 @@ func TestIntegration_DbRepository_StatsForTable_Ok(t *testing.T) {
 
 func TestIntegration_DbRepository_StatsForDatabase_Ok(t *testing.T) {
 	r := getRepository(t)
-	//generateMessage(r, t)
+	generateMessage(r, t)
 	ctx := context.Background()
 
 	stats, err := r.StatsForDatabase(ctx)

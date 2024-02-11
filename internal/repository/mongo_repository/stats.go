@@ -35,6 +35,7 @@ func (r *Repository) StatsForTable(ctx context.Context, collName string) (Messag
 	if !ok {
 		return MessageStorageStats{}, errors.New("failed to get count from stats")
 	}
+
 	stats.Count = int(count)
 
 	totalSize, ok := document["totalSize"].(int32)
@@ -79,6 +80,7 @@ func (r *Repository) ReleaseMemory(ctx context.Context) (int, error) {
 		result := r.client.Database(databaseName).RunCommand(ctx, bson.M{"compact": coll})
 
 		var document bson.M
+
 		err = result.Decode(&document)
 		if err != nil {
 			return 0, errors.WithStack(err)
