@@ -16,6 +16,7 @@ type messageProcessor struct {
 	requireAdmin bool
 	requireOwner bool
 	flags        []OptFlag
+	example      string
 }
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {

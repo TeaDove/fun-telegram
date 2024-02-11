@@ -8,7 +8,7 @@ services:
       fun_storage__redis_host: "redis"
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
       fun_storage__clickhouse_url: "clickhouse:9000"
-    image: ghcr.io/teadove/fun-telegram:v1.11.2
+    image: ghcr.io/teadove/fun-telegram:v1.11.3
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
@@ -16,6 +16,8 @@ services:
       redis:
         condition: service_healthy
       mongodb:
+        condition: service_healthy
+      clickhouse:
         condition: service_healthy
     labels:
       - "autoheal=true"
@@ -73,9 +75,11 @@ services:
       start_period: 5s
 
   clickhouse:
-    image: yandex/clickhouse-server:22.1
+    image: clickhouse/clickhouse-server:23.12
     volumes:
       - "./data/ch:/var/lib/clickhouse"
+    labels:
+      - "autoheal=true"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1
       interval: 2m

@@ -25,8 +25,10 @@ const (
 	ErrInsufficientPrivilegesOwner
 	ErrAccessDenies
 	ErrNiceTry
+	ErrUnprocessableEntity
 	AdminRequires
 	OwnerRequires
+	Example
 	CommandEchoDescription
 	CommandHelpDescription
 	CommandHelpBegin
@@ -58,6 +60,7 @@ const (
 	CommandStatsFlagTZDescription
 	CommandStatsFlagUsernameDescription
 	CommandStatsFlagCountDescription
+	CommandStatsFlagOffsetDescription
 	CommandStatsFlagDayDescription
 	CommandStatsFlagRemoveDescription
 )
@@ -70,6 +73,7 @@ var localizer = map[Code]map[Locale]string{
 	ErrInsufficientPrivilegesOwner:                {Ru: "Ошибка: Недостаточно прав: Требуются права владельца", En: "Err: Insufficient privilege: Owner rights required"},
 	ErrAccessDenies:                               {Ru: "Ошибка: Доступ запрещен", En: "Err: Access denied"},
 	ErrNiceTry:                                    {Ru: "Ошибка: Хорошая попытка", En: "Err: Nice try"},
+	ErrUnprocessableEntity:                        {Ru: "Ошибка: Необрабатываемая сущность: %s", En: "Err: Unprocessable entity: %s"},
 	AdminRequires:                                 {Ru: "необходимы права администратора", En: "requires admin rights"},
 	OwnerRequires:                                 {Ru: "необходимы права владельца", En: "requires owner rights"},
 	CommandToxicMessageFound:                      {Ru: "!УВАГА! ТОКСИЧНОЕ СООБЩЕНИЕ НАЙДЕНО", En: "!ALERT! TOXIC MESSAGE FOUND"},
@@ -98,6 +102,7 @@ var localizer = map[Code]map[Locale]string{
 	CommandStatsFlagCountDescription:              {Ru: fmt.Sprintf("максимальное количество сообщение для загрузки, максимум - %d, по умолчанию - %d", shared.MaxUploadCount, shared.DefaultUploadCount), En: fmt.Sprintf("max amount of message to upload, max is %d, default is %d", shared.MaxUploadCount, shared.DefaultUploadCount)},
 	CommandStatsFlagDayDescription:                {Ru: fmt.Sprintf("максимальный возраст сообщения для загрузки в днях, максимум - %d, по умолчанию - %d", int(shared.MaxUploadQueryAge.Hours()/24), int(shared.DefaultUploadQueryAge.Hours()/24)), En: fmt.Sprintf("max age of message to upload in days, max is %d, default is %d", int(shared.MaxUploadQueryAge.Hours()/24), int(shared.DefaultUploadQueryAge.Hours()/24))},
 	CommandStatsFlagRemoveDescription:             {Ru: "удалить все сообщения из БД для этого чата", En: "delete all stats from this chat"},
+	CommandStatsFlagOffsetDescription:             {Ru: "форсировать оффсет сообщений", En: "force message offset"},
 	CommandSpamReactionFlagStopDescription:        {Ru: "оставить спам реакциями", En: "stop spamming reactions"},
 	CommandKandinskyFlagStyleDescription:          {Ru: "выставить стиль изображения", En: "set image style"},
 	CommandKandinskyFlagNegativePromptDescription: {Ru: "добавить негативный промпт", En: "add negative prompt"},
@@ -105,4 +110,5 @@ var localizer = map[Code]map[Locale]string{
 	CommandToxicDisabled:                          {Ru: "Токсичный искатель выключен в этом чате", En: "Toxic finder disabled in this chat"},
 	CommandBanUserBanned:                          {Ru: "%s забанен", En: "%s was banned"},
 	CommandBanUserUnbanned:                        {Ru: "%s разбанен", En: "%s was unbanned"},
+	Example:                                       {Ru: "Пример", En: "Example"},
 }

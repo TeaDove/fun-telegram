@@ -148,6 +148,7 @@ func MustNewTelegramPresentation(
 			executor:    presentation.echoCommandHandler,
 			description: resource.CommandEchoDescription,
 			flags:       []OptFlag{},
+			example:     "Hello World!",
 		},
 		"help": {
 			executor:    presentation.helpCommandHandler,
@@ -174,6 +175,7 @@ func MustNewTelegramPresentation(
 			executor:    presentation.kandkinskyCommandHandler,
 			description: resource.CommandKandinskyDescription,
 			flags:       []OptFlag{FlagKandinskyNegativePrompt, FlagKandinskyStyle},
+			example:     "--style=ANIME girl in space, sticker, realism, cute_mood, bold colors, disney",
 		},
 		"disable": {
 			executor:     presentation.disableCommandHandler,
@@ -195,8 +197,9 @@ func MustNewTelegramPresentation(
 		"upload_stats": {
 			executor:     presentation.uploadStatsCommandHandler,
 			description:  resource.CommandUploadStatsDescription,
-			flags:        []OptFlag{FlagRemove, FlagCount, FlagDay},
+			flags:        []OptFlag{FlagRemove, FlagCount, FlagDay, FlagOffset},
 			requireAdmin: true,
+			example:      "-c=400000 -d=365 -o=0 --silent",
 		},
 		"ban": {
 			executor:    presentation.banCommandHandler,

@@ -14,7 +14,7 @@ type Message struct {
 	TgId     int `bson:"tg_id"`
 }
 
-type MessageStorageStats struct {
+type StorageStats struct {
 	TotalSizeBytes           int
 	Count                    int
 	AvgObjWithIndexSizeBytes int

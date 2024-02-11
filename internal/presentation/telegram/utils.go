@@ -48,6 +48,17 @@ func (r *Presentation) replyIfNotSilentLocalized(ctx *ext.Context, update *ext.U
 	return nil
 }
 
+func (r *Presentation) replyIfNotSilentLocalizedf(ctx *ext.Context, update *ext.Update, input *Input, code resource.Code, args ...any) error {
+	text := r.resourceService.Localizef(ctx, code, input.Locale, args)
+
+	err := r.replyIfNotSilent(ctx, update, input, text)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
 func GetChatFromEffectiveChat(effectiveChat types.EffectiveChat) (int64, tg.InputPeerClass) {
 	switch t := effectiveChat.(type) {
 	case *types.Chat, *types.User, *types.Channel:

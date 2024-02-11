@@ -39,6 +39,11 @@ var (
 		Short:       "c",
 		Description: resource.CommandStatsFlagCountDescription,
 	}
+	FlagOffset = OptFlag{
+		Long:        "offset",
+		Short:       "o",
+		Description: resource.CommandStatsFlagOffsetDescription,
+	}
 	FlagDay = OptFlag{
 		Long:        "day",
 		Short:       "d",
@@ -139,40 +144,41 @@ func (r *Presentation) uploadMessageToRepository(
 	ctx *ext.Context,
 	wg *sync.WaitGroup,
 	update *ext.Update,
-	elem *messages.Elem,
+	elemChan chan messages.Elem,
 ) {
 	defer wg.Done()
+	for elem := range elemChan {
+		msg, ok := elem.Msg.(*tg.Message)
+		if !ok {
+			return
+		}
 
-	msg, ok := elem.Msg.(*tg.Message)
-	if !ok {
-		return
+		msgFrom, ok := msg.FromID.(*tg.PeerUser)
+		if !ok {
+			return
+		}
+
+		err := r.dbRepository.MessageCreateOrNothingAndSetTime(ctx, &mongo_repository.Message{
+			DefaultModel: mgm.DefaultModel{
+				DateFields: mgm.DateFields{CreatedAt: time.Unix(int64(msg.Date), 0)},
+			},
+			TgChatID: update.EffectiveChat().GetID(),
+			TgUserId: msgFrom.UserID,
+			Text:     msg.Message,
+			TgId:     msg.ID,
+		})
+		if err != nil {
+			zerolog.Ctx(ctx).
+				Error().
+				Stack().
+				Err(errors.WithStack(err)).
+				Str("status", "failed.to.upload.message.to.repository").
+				Send()
+			return
+		}
+
+		zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
 	}
-
-	msgFrom, ok := msg.FromID.(*tg.PeerUser)
-	if !ok {
-		return
-	}
-
-	err := r.dbRepository.MessageCreateOrNothingAndSetTime(ctx, &mongo_repository.Message{
-		DefaultModel: mgm.DefaultModel{
-			DateFields: mgm.DateFields{CreatedAt: time.Unix(int64(msg.Date), 0)},
-		},
-		TgChatID: update.EffectiveChat().GetID(),
-		TgUserId: msgFrom.UserID,
-		Text:     msg.Message,
-		TgId:     msg.ID,
-	})
-	if err != nil {
-		zerolog.Ctx(ctx).
-			Error().
-			Stack().
-			Err(errors.WithStack(err)).
-			Str("status", "failed.to.upload.message.to.repository").
-			Send()
-		return
-	}
-
-	zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
 }
 
 func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, chat types.EffectiveChat) {
@@ -262,8 +268,43 @@ func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.U
 	return nil
 }
 
-func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *Input) error {
-	const maxElapsed = time.Hour
+func (r *Presentation) updateUploadStatsMessage(
+	ctx *ext.Context,
+	count int,
+	chatId int64,
+	msgId int,
+	chatPeer tg.InputPeerClass,
+	offset int,
+	startedAt time.Time,
+	lastDate time.Time,
+) {
+	zerolog.Ctx(ctx).Info().Str("status", "messages.batch.uploaded").Int("count", count).Send()
+
+	_, err := ctx.EditMessage(chatId, &tg.MessagesEditMessageRequest{
+		Peer: chatPeer,
+		ID:   msgId,
+		Message: fmt.Sprintf(
+			"⚙️ Uploading messages\n\n"+
+				"Amount uploaded: %d\n"+
+				"Seconds elapsed: %.2f\n"+
+				"Offset: %d\n"+
+				"LastDate: %s",
+			count,
+			time.Since(startedAt).Seconds(),
+			offset,
+			lastDate.String(),
+		),
+	})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
+	}
+}
+
+func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
+	const (
+		maxElapsed = time.Hour
+		batchSize  = 100
+	)
 
 	var maxCount = shared.DefaultUploadCount
 	if userMaxCountS, ok := input.Ops[FlagCount.Long]; ok {
@@ -327,31 +368,46 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	}
 
 	offset := 0
-	lastMessage, err := r.dbRepository.GetLastMessage(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.get.last.message").Send()
+	if flaggedOffset, ok := input.Ops[FlagOffset.Long]; ok {
+		offset, err = strconv.Atoi(flaggedOffset)
+		if err != nil {
+			err = r.replyIfNotSilentLocalizedf(ctx, update, input, resource.ErrUnprocessableEntity, err.Error())
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			return nil
+		}
 	} else {
-		offset = lastMessage.TgId - 1
+		lastMessage, err := r.dbRepository.GetLastMessage(ctx, update.EffectiveChat().GetID())
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.get.last.message").Send()
+		} else {
+			offset = lastMessage.TgId - 1
+		}
+		zerolog.Ctx(ctx).Info().Str("status", "stats.upload.begin").Int("offset", offset).Send()
 	}
-	zerolog.Ctx(ctx).Info().Str("status", "stats.upload.begin").Int("offset", offset).Send()
 
 	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
-	historyQuery.BatchSize(100)
+	historyQuery.BatchSize(batchSize)
 	historyQuery.OffsetID(offset)
 	historyIter := historyQuery.Iter()
 	startedAt := time.Now()
 	count := 0
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 	go r.uploadMembers(ctx, &wg, update.EffectiveChat())
+
+	elemChan := make(chan messages.Elem, batchSize*3)
+	go r.uploadMessageToRepository(ctx, &wg, update, elemChan)
 	var lastDate time.Time
 
 	for {
-		zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
+		//zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
 		ok := historyIter.Next(ctx)
 		if ok {
-			zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
+			//zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
 
 			elem := historyIter.Value()
 			offset = elem.Msg.GetID()
@@ -364,33 +420,11 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			lastDate = time.Unix(int64(msg.Date), 0)
 
 			count++
-
-			wg.Add(1)
-			go r.uploadMessageToRepository(ctx, &wg, update, &elem)
+			elemChan <- elem
 
 			if count%100 == 0 {
-				time.Sleep(time.Second)
-				zerolog.Ctx(ctx).Info().Str("status", "messages.batch.uploaded").Int("count", count).Send()
-
-				_, err = ctx.EditMessage(barChatId, &tg.MessagesEditMessageRequest{
-					Peer: barPeer,
-					ID:   barMessageId,
-					Message: fmt.Sprintf(
-						"⚙️ Uploading messages\n\n"+
-							"Amount uploaded: %d\n"+
-							"Seconds elapsed: %.2f\n"+
-							"Offset: %d\n"+
-							"LastDate: %s",
-						count,
-						time.Now().Sub(startedAt).Seconds(),
-						offset,
-						lastDate.String(),
-					),
-				})
-				if err != nil {
-					zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
-				}
-
+				time.Sleep(time.Millisecond * 900)
+				go r.updateUploadStatsMessage(ctx, count, barChatId, barMessageId, barPeer, offset, startedAt, lastDate)
 			}
 
 			if !lastDate.After(queryTill) {
@@ -420,6 +454,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 
 	}
 
+	close(elemChan)
 	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
 

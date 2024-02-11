@@ -58,11 +58,10 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 	requestedUser := update.EffectiveUser()
 
 	imageAnnotation := fmt.Sprintf(
-		"Image requested by %s\n\nPrompt: %s\nStyle: %s\nNegative prompt: %s",
+		"Image requested by %s\n\nPrompt: %s\nStyle: %s",
 		requestedUser.Username,
 		kandinskyInput.Prompt,
 		kandinskyInput.Style,
-		kandinskyInput.NegativePromptUnclip,
 	)
 
 	msg, err := ctx.Reply(

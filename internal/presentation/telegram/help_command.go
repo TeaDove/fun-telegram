@@ -20,12 +20,30 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []s
 
 	for _, commandName := range keys {
 		command := r.router[commandName]
-		helpMessage = append(helpMessage, styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, r.resourceService.Localize(ctx, command.description, input.Locale))))
+		helpMessage = append(helpMessage,
+			styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, r.resourceService.Localize(ctx, command.description, input.Locale))),
+		)
 		if command.requireAdmin {
-			helpMessage = append(helpMessage, styling.Bold(r.resourceService.Localize(ctx, resource.AdminRequires, input.Locale)), styling.Plain("\n"))
+			helpMessage = append(helpMessage,
+				styling.Bold(r.resourceService.Localize(ctx, resource.AdminRequires, input.Locale)),
+				styling.Plain("\n"),
+			)
 		}
 		if command.requireOwner {
-			helpMessage = append(helpMessage, styling.Bold(r.resourceService.Localize(ctx, resource.OwnerRequires, input.Locale)), styling.Plain("\n"))
+			helpMessage = append(helpMessage,
+				styling.Bold(r.resourceService.Localize(ctx, resource.OwnerRequires, input.Locale)),
+				styling.Plain("\n"),
+			)
+		}
+		if command.example != "" {
+			helpMessage = append(helpMessage,
+				styling.Plain(r.resourceService.Localize(ctx, resource.Example, input.Locale)),
+				styling.Plain(": "),
+				styling.Code(
+					fmt.Sprintf("!%s %s\n",
+						commandName,
+						command.example,
+					)))
 		}
 
 		if len(command.flags) == 0 {
