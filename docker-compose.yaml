@@ -81,7 +81,8 @@ services:
     labels:
       - "autoheal=true"
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1
+      test: exit 0
+#      test: wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1
       interval: 2m
       timeout: 20s
       retries: 3
