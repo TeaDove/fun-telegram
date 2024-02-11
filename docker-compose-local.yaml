@@ -7,6 +7,7 @@ services:
       fun_file_storage_path: "/config"
       fun_storage__redis_host: "redis"
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
+      fun_storage__clickhouse_url: "clickhouse:9000"
     build:
       context: .
       dockerfile: Dockerfile
@@ -67,6 +68,17 @@ services:
       - "autoheal=true"
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 2m
+      timeout: 20s
+      retries: 3
+      start_period: 5s
+
+  clickhouse:
+    image: yandex/clickhouse-server:22.1
+    volumes:
+      - "./data/ch:/var/lib/clickhouse"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1
       interval: 2m
       timeout: 20s
       retries: 3

@@ -29,16 +29,16 @@ type telegram struct {
 	SaveAllMessages    bool          `env:"save_all_messages" envDefault:"true"`
 }
 
-type Storage struct {
-	Filename   string `env:"filename" envDefault:"redis_repository.json"`
-	RedisHost  string `env:"redis_host" envDefault:"localhost"`
-	MongoDbUrl string `env:"mongo_db_url" envDefault:"mongodb://localhost:27017"`
+type storage struct {
+	RedisHost     string `env:"redis_host" envDefault:"localhost"`
+	MongoDbUrl    string `env:"mongo_db_url" envDefault:"mongodb://localhost:27017"`
+	ClickhouseUtl string `env:"clickhouse_url" envDefault:"localhost:9000"`
 }
 
 type Settings struct {
 	LogErrorToSelf  bool     `env:"log_error_to_self" envDefault:"false"`
 	Telegram        telegram `envPrefix:"telegram__"`
-	Storage         Storage  `envPrefix:"storage__"`
+	Storage         storage  `envPrefix:"storage__"`
 	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
 	LogLevel        string   `env:"log_level"         envDefault:"debug"`
 

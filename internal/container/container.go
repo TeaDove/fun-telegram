@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/teadove/goteleout/internal/presentation/telegram"
+	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/repository/redis_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
@@ -52,12 +53,16 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	protoClient := telegram.MustNewProtoClient(ctx)
 
+	chRepository, err := ch_repository.New(ctx)
+	utils.Check(err)
+
 	jobService, err := job.New(ctx, dbRepository, map[string]job.ServiceChecker{
-		"MongoDB":   {Checker: dbRepository.Ping, ForFrequent: true},
-		"Telegram":  {Checker: protoClient.Ping, ForFrequent: true},
-		"Redis":     {Checker: persistentStorage.Ping, ForFrequent: true},
-		"IpLocator": {Checker: locator.Ping, ForFrequent: false},
-		"Kandinsky": {Checker: kandinskySupplier.Ping, ForFrequent: false},
+		"MongoDB":    {Checker: dbRepository.Ping, ForFrequent: true},
+		"Telegram":   {Checker: protoClient.Ping, ForFrequent: true},
+		"Redis":      {Checker: persistentStorage.Ping, ForFrequent: true},
+		"ClickHouse": {Checker: chRepository.Ping, ForFrequent: true},
+		"Kandinsky":  {Checker: kandinskySupplier.Ping},
+		"IpLocator":  {Checker: locator.Ping},
 	})
 	utils.Check(err)
 
