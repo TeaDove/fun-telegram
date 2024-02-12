@@ -119,12 +119,17 @@ func (r *Service) getChatterBoxes(messages []mongo_repository.Message, getter na
 }
 
 func (r *Service) getInterlocutors(ctx context.Context, chatId int64, userId int64, getter nameGetter) ([]byte, error) {
-	interlocutors, err := r.chRepository.MessageFindInterlocutors(ctx, chatId, userId, 10, time.Minute*5)
+	const interlocutorsLimit = 10
+	const interlocutorsTimeLimit = time.Minute * 5
+
+	interlocutors, err := r.chRepository.MessageFindInterlocutors(ctx, chatId, userId, interlocutorsLimit, interlocutorsTimeLimit)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	values := make([]chart.Value, 0, 10)
+	println(len(interlocutors))
+
+	values := make([]chart.Value, 0, interlocutorsLimit)
 	for _, user := range interlocutors {
 		values = append(values, chart.Value{
 			Value: float64(user.MessagesCount),

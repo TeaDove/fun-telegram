@@ -55,6 +55,7 @@ func New(ctx context.Context) (*Repository, error) {
 	}
 
 	r.conn = conn
+	go r.init(ctx)
 
 	return &r, nil
 }
@@ -66,4 +67,13 @@ func (r *Repository) Ping(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (r *Repository) init(ctx context.Context) {
+	for _, sql := range initSQL {
+		err := r.conn.Exec(ctx, sql)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.run.init.sql").Send()
+		}
+	}
 }

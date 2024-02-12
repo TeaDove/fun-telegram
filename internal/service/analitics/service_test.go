@@ -10,16 +10,14 @@ import (
 	"image"
 	"image/jpeg"
 	"os"
-	"strconv"
 	"testing"
-	"time"
 )
 
-func draw(t *testing.T, name string, imageBytes []byte) {
-	img, _, err := image.Decode(bytes.NewReader(imageBytes))
+func draw(t *testing.T, reportImage RepostImage) {
+	img, _, err := image.Decode(bytes.NewReader(reportImage.Content))
 	require.NoError(t, err)
 
-	out, err := os.Create(fmt.Sprintf("./%s-%s.jpeg", time.Now().Format(time.RFC3339), name))
+	out, err := os.Create(fmt.Sprintf("./%s.jpeg", reportImage.Name))
 	defer out.Close()
 
 	err = jpeg.Encode(out, img, nil)
@@ -47,8 +45,8 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	report, err := r.AnaliseChat(ctx, 1825059942, 3, "") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
-	for idx, reportImage := range report.Images {
-		draw(t, fmt.Sprintf("%d", idx), reportImage)
+	for _, reportImage := range report.Images {
+		draw(t, reportImage)
 	}
 }
 
@@ -59,7 +57,7 @@ func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 	report, err := r.AnaliseChat(ctx, 1701683862, 3, "abaturoff") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
-	for idx, reportImage := range report.Images {
-		draw(t, strconv.Itoa(idx), reportImage)
+	for _, reportImage := range report.Images {
+		draw(t, reportImage)
 	}
 }

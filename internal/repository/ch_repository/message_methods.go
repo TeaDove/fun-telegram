@@ -47,7 +47,8 @@ where am.tg_chat_id = ?
   and abs(am.created_at - m.created_at) - ? < 0
   and am.tg_user_id != m.tg_user_id
 group by 1
-order by 2 desc;`, chatId, userId, int(interlocutorLimit.Seconds()))
+order by 2 desc 
+limit ?;`, chatId, userId, int(interlocutorLimit.Seconds()), limit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find interlocutors")
 	}

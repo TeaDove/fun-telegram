@@ -42,8 +42,13 @@ func New(mongoRepository *mongo_repository.Repository, chRepository *ch_reposito
 	return &r, nil
 }
 
+type RepostImage struct {
+	Name    string
+	Content []byte
+}
+
 type AnaliseReport struct {
-	Images [][]byte
+	Images []RepostImage
 
 	FirstMessageAt time.Time
 	MessagesCount  int
@@ -65,7 +70,7 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 	}
 
 	report := AnaliseReport{
-		Images:         make([][]byte, 0, 6),
+		Images:         make([]RepostImage, 0, 6),
 		FirstMessageAt: messages[len(messages)-1].CreatedAt,
 		MessagesCount:  len(messages),
 	}
@@ -75,35 +80,33 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile popular words")
 	}
 
-	report.Images = append(report.Images, reportImage)
+	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "PopularWords"})
 
 	reportImage, err = r.getChatTimeDistribution(messages, tz)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat time distribution")
 	}
 
-	report.Images = append(report.Images, reportImage)
+	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatTimeDistribution"})
 
 	reportImage, err = r.getChatDateDistribution(messages)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
 	}
 
-	report.Images = append(report.Images, reportImage)
+	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatDateDistribution"})
 
 	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
 	}
 
-	getter := r.getNameGetter(usersInChat)
-
-	reportImage, err = r.getInterlocutors(ctx, chatId, user.TgId, getter)
+	reportImage, err = r.getInterlocutors(ctx, chatId, user.TgId, r.getNameGetter(usersInChat))
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
 	}
 
-	report.Images = append(report.Images, reportImage)
+	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "Interlocutors"})
 
 	return report, nil
 }
@@ -126,7 +129,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	getter := r.getNameGetter(usersInChat)
 
 	report := AnaliseReport{
-		Images:         make([][]byte, 0, 6),
+		Images:         make([]RepostImage, 0, 6),
 		FirstMessageAt: messages[len(messages)-1].CreatedAt,
 		MessagesCount:  len(messages),
 	}
@@ -137,7 +140,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	}
 
 	if reportImage != nil {
-		report.Images = append(report.Images, reportImage)
+		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "PopularWords"})
 	}
 
 	reportImage, err = r.getChatterBoxes(messages, getter)
@@ -146,7 +149,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	}
 
 	if reportImage != nil {
-		report.Images = append(report.Images, reportImage)
+		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatterBoxes"})
 	}
 
 	reportImage, err = r.getChatTimeDistribution(messages, tz)
@@ -155,7 +158,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	}
 
 	if reportImage != nil {
-		report.Images = append(report.Images, reportImage)
+		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatTimeDistribution"})
 	}
 
 	reportImage, err = r.getChatDateDistribution(messages)
@@ -164,7 +167,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	}
 
 	if reportImage != nil {
-		report.Images = append(report.Images, reportImage)
+		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatDateDistribution"})
 	}
 
 	reportImage, err = r.getMostToxicUsers(messages, getter)
@@ -173,7 +176,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	}
 
 	if reportImage != nil {
-		report.Images = append(report.Images, reportImage)
+		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "MostToxicUsers"})
 	}
 
 	return report, nil
