@@ -137,6 +137,7 @@ func (r *Repository) GetMessagesByChatAndUsername(
 		ctx,
 		&messages,
 		builder.Lookup(r.userCollection.Name(), "tg_user_id", "tg_id", "user"),
+		bson.M{operator.Unwind: "$user"},
 		bson.M{
 			operator.Project: bson.M{
 				"username":   "$user.tg_username",
@@ -147,8 +148,7 @@ func (r *Repository) GetMessagesByChatAndUsername(
 				"updated_at": 1,
 			},
 		},
-		bson.M{operator.Unwind: "$username"},
-		bson.M{operator.Match: bson.M{"username": username, "tg_chat_id": chatId}},
+		//bson.M{operator.Match: bson.M{"username": username, "tg_chat_id": chatId}},
 	)
 	if err != nil {
 		return nil, errors.WithStack(err)

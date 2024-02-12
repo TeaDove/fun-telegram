@@ -50,10 +50,10 @@ type AnaliseReport struct {
 }
 
 func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
-	//user, err := r.mongoRepository.GetUserByUsername(ctx, username)
-	//if err != nil {
-	//	return AnaliseReport{}, errors.WithStack(err)
-	//}
+	user, err := r.mongoRepository.GetUserByUsername(ctx, username)
+	if err != nil {
+		return AnaliseReport{}, errors.WithStack(err)
+	}
 
 	messages, err := r.mongoRepository.GetMessagesByChatAndUsername(ctx, chatId, username)
 	if err != nil {
@@ -91,17 +91,29 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 
 	report.Images = append(report.Images, reportImage)
 
-	//reportImage, err = r.getInterlocutors(ctx, chatId, user.TgId)
-	//if err != nil {
-	//	return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
-	//}
-	//
-	//report.Images = append(report.Images, reportImage)
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
+	}
+
+	getter := r.getNameGetter(usersInChat)
+
+	reportImage, err = r.getInterlocutors(ctx, chatId, user.TgId, getter)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
+	}
+
+	report.Images = append(report.Images, reportImage)
 
 	return report, nil
 }
 
 func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (AnaliseReport, error) {
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
+	}
+
 	messages, err := r.mongoRepository.GetMessagesByChat(ctx, chatId)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
@@ -111,10 +123,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		return AnaliseReport{}, nil
 	}
 
-	getter, err := r.getNameGetter(ctx, chatId)
-	if err != nil {
-		return AnaliseReport{}, errors.WithStack(err)
-	}
+	getter := r.getNameGetter(usersInChat)
 
 	report := AnaliseReport{
 		Images:         make([][]byte, 0, 6),

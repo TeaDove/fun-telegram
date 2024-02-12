@@ -136,7 +136,7 @@ func (r *Service) getInterlocutors(ctx context.Context, chatId int64, userId int
 	}
 
 	barChart := getBarChart()
-	barChart.Title = fmt.Sprintf("User %d interlocutors", getter.Get(userId))
+	barChart.Title = fmt.Sprintf("User %s interlocutors", getter.Get(userId))
 	barChart.Bars = values
 
 	var popularWordsBuffer bytes.Buffer

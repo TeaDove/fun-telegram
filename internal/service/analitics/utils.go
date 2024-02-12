@@ -1,9 +1,8 @@
 package analitics
 
 import (
-	"context"
 	"fmt"
-	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"strings"
 )
 
@@ -20,16 +19,11 @@ func (r *nameGetter) Get(userId int64) string {
 	return name
 }
 
-func (r *Service) getNameGetter(ctx context.Context, chatId int64) (nameGetter, error) {
-	tgUsers, err := r.mongoRepository.GetUsersByChatId(ctx, chatId)
-	if err != nil {
-		return nameGetter{}, errors.WithStack(err)
-	}
-
-	idToName := make(map[int64]string, len(tgUsers))
-	for _, user := range tgUsers {
+func (r *Service) getNameGetter(usersInChat mongo_repository.UsersInChat) nameGetter {
+	idToName := make(map[int64]string, len(usersInChat))
+	for _, user := range usersInChat {
 		idToName[user.TgId] = user.TgName
 	}
 
-	return nameGetter{m: idToName}, nil
+	return nameGetter{m: idToName}
 }

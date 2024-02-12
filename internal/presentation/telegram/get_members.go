@@ -7,13 +7,30 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
-	"github.com/teadove/goteleout/internal/shared"
 	"go.mongodb.org/mongo-driver/mongo"
 	"strings"
 	"time"
 )
 
 var ErrNotChatOrChannel = errors.New("is not chat or channel")
+
+func tgStatusToRepositoryStatus(status members.Status) mongo_repository.MemberStatus {
+	switch status {
+	case members.Left:
+		return mongo_repository.Left
+	case members.Plain:
+		return mongo_repository.Plain
+	case members.Creator:
+		return mongo_repository.Creator
+	case members.Admin:
+		return mongo_repository.Admin
+	case members.Banned:
+		return mongo_repository.Banned
+	default:
+		return mongo_repository.Unknown
+
+	}
+}
 
 func (r *Presentation) updateMembers(
 	ctx context.Context,
@@ -36,7 +53,6 @@ func (r *Presentation) updateMembers(
 			Status:     tgStatusToRepositoryStatus(chatMember.Status()),
 		}
 		usersInChat = append(usersInChat, userInChat)
-		shared.SendInterface(userInChat)
 
 		err := r.dbRepository.UserUpsert(ctx, &mongo_repository.User{
 			TgId:       userInChat.TgId,
@@ -130,8 +146,6 @@ func (r *Presentation) getOrUpdateMembers(
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get users by chat id")
 	}
-
-	shared.SendInterface(usersInChat)
 
 	return usersInChat, nil
 }
