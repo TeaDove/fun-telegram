@@ -14,6 +14,12 @@ type Message struct {
 	Text     string
 }
 
+type RestartMessage struct {
+	mgm.DefaultModel `bson:",inline"`
+
+	MessageId primitive.ObjectID `bson:"message_id,omitempty"`
+}
+
 type StorageStats struct {
 	TotalSizeBytes           int
 	Count                    int
@@ -23,14 +29,58 @@ type StorageStats struct {
 type User struct {
 	mgm.DefaultModel `bson:",inline"`
 
-	TgUserId   int64  `bson:"tg_user_id"`
+	TgId       int64  `bson:"tg_id"`
 	TgUsername string `bson:"tg_username"`
 	TgName     string `bson:"tg_name"`
 	IsBot      bool   `bson:"is_bot"`
 }
 
-type RestartMessage struct {
+type MemberStatus string
+
+const (
+	Plain MemberStatus = "PLAIN"
+	// Creator is status for chat/channel creator.
+	Creator MemberStatus = "CREATOR"
+	// Admin is status for chat/channel admin.
+	Admin MemberStatus = "ADMIN"
+	// Banned is status for banned user.
+	Banned MemberStatus = "BANNED"
+	// Left is status for user that left chat/channel.
+	Left MemberStatus = "LEFT"
+
+	Unknown MemberStatus = "UNKNOWN"
+)
+
+type Member struct {
 	mgm.DefaultModel `bson:",inline"`
 
-	MessageId primitive.ObjectID `bson:"message_id,omitempty"`
+	TgUserId int64 `bson:"tg_user_id"`
+	TgChatId int64 `bson:"tg_chat_id"`
+	Status   MemberStatus
+}
+
+type Chat struct {
+	mgm.DefaultModel `bson:",inline"`
+
+	TgId  int64 `bson:"tg_chat_id"`
+	Title string
+}
+
+type UserInChat struct {
+	TgId       int64  `bson:"tg_id"`
+	TgUsername string `bson:"tg_username"`
+	TgName     string `bson:"tg_name"`
+	IsBot      bool   `bson:"is_bot"`
+	Status     MemberStatus
+}
+
+type UsersInChat []UserInChat
+
+func (r UsersInChat) ToMap() map[int64]UserInChat {
+	map_ := make(map[int64]UserInChat, len(r))
+	for _, user := range r {
+		map_[user.TgId] = user
+	}
+
+	return map_
 }

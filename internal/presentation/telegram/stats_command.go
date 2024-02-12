@@ -1,10 +1,8 @@
 package telegram
 
 import (
-	"context"
 	"fmt"
 	"github.com/celestix/gotgproto/ext"
-	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/query"
@@ -13,7 +11,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/service/resource"
 	"github.com/teadove/goteleout/internal/shared"
@@ -179,37 +176,6 @@ func (r *Presentation) uploadMessageToRepository(
 
 		zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
 	}
-}
-
-func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, chat types.EffectiveChat) {
-	defer wg.Done()
-
-	chatMembers, err := r.getMembers(ctx, chat)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.get.members").Send()
-		return
-	}
-
-	for _, chatMember := range chatMembers {
-		user := chatMember.User()
-		_, isBot := user.ToBot()
-
-		username, _ := user.Username()
-		repositoryUser := &mongo_repository.User{
-			TgUserId:   user.ID(),
-			TgUsername: strings.ToLower(username),
-			TgName:     GetNameFromPeerUser(&user),
-			IsBot:      isBot,
-		}
-		err = r.dbRepository.UserUpsert(ctx, repositoryUser)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.insert.user").Send()
-			return
-		}
-		zerolog.Ctx(ctx).Debug().Str("status", "user.uploaded").Interface("user", repositoryUser).Send()
-	}
-
-	zerolog.Ctx(ctx).Info().Str("status", "users.uploaded").Int("count", len(chatMembers)).Send()
 }
 
 func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.Update, input *Input) error {

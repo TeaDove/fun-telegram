@@ -72,21 +72,30 @@ func TestIntegration_DbRepository_MessageCreate_Ok(t *testing.T) {
 func TestIntegration_DbRepository_UserUpsert_Ok(t *testing.T) {
 	t.Parallel()
 	r := getRepository(t)
+	ctx := shared.GetCtx()
 
 	id := rand.Int63n(1_000_000)
-	err := r.UserUpsert(context.Background(), &User{
-		TgUserId:   id,
+	err := r.UserUpsert(ctx, &User{
+		TgId:       id,
 		TgUsername: "teadove",
 		TgName:     "teadove",
 	})
 	assert.NoError(t, err)
 
-	err = r.UserUpsert(context.Background(), &User{
-		TgUserId:   id,
+	user, err := r.GetUserById(ctx, id)
+	assert.Equal(t, user.TgName, "teadove")
+	assert.Equal(t, user.TgUsername, "teadove")
+
+	err = r.UserUpsert(ctx, &User{
+		TgId:       id,
 		TgUsername: "tainella",
 		TgName:     "tainella",
 	})
 	assert.NoError(t, err)
+
+	user, err = r.GetUserById(ctx, id)
+	assert.Equal(t, user.TgName, "tainella")
+	assert.Equal(t, user.TgUsername, "tainella")
 }
 
 func TestIntegration_DbRepository_DeleteOldMessages_Ok(t *testing.T) {
@@ -122,7 +131,7 @@ func TestIntegration_DbRepository_GetUsersByUserId_Ok(t *testing.T) {
 	ctx := context.Background()
 	id := rand.Int63n(1_000_000)
 	err := r.UserUpsert(context.Background(), &User{
-		TgUserId:   id,
+		TgId:       id,
 		TgUsername: "teadove",
 		TgName:     "teadove",
 	})
@@ -174,7 +183,7 @@ func TestIntegration_DbRepository_CheckUserExists_Ok(t *testing.T) {
 	ctx := context.Background()
 	id := rand.Int63n(1_000_000)
 	err := r.UserUpsert(ctx, &User{
-		TgUserId:   id,
+		TgId:       id,
 		TgUsername: "teadove",
 		TgName:     "teadove",
 	})
@@ -204,7 +213,7 @@ func TestIntegration_DbRepository_GetUserById_Ok(t *testing.T) {
 	ctx := context.Background()
 	id := rand.Int63n(1_000_000)
 	err := r.UserUpsert(ctx, &User{
-		TgUserId:   id,
+		TgId:       id,
 		TgUsername: "teadove",
 		TgName:     "teadove",
 	})

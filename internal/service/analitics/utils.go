@@ -28,7 +28,7 @@ func (r *Service) getNameGetter(ctx context.Context, chatId int64) (nameGetter, 
 
 	idToName := make(map[int64]string, len(tgUsers))
 	for _, user := range tgUsers {
-		idToName[user.TgUserId] = user.TgName
+		idToName[user.TgId] = user.TgName
 	}
 
 	return nameGetter{m: idToName}, nil

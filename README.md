@@ -11,3 +11,4 @@ Telegram client utils for making telegram more fun!
 - [ ] Better golint
 - [ ] Docker-build from github actions
 - [ ] Revork errors to go-fast-errors
+- [ ] Add https://github.com/dominikbraun/graph

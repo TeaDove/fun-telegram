@@ -50,6 +50,11 @@ type AnaliseReport struct {
 }
 
 func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
+	//user, err := r.mongoRepository.GetUserByUsername(ctx, username)
+	//if err != nil {
+	//	return AnaliseReport{}, errors.WithStack(err)
+	//}
+
 	messages, err := r.mongoRepository.GetMessagesByChatAndUsername(ctx, chatId, username)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
@@ -85,6 +90,13 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 	}
 
 	report.Images = append(report.Images, reportImage)
+
+	//reportImage, err = r.getInterlocutors(ctx, chatId, user.TgId)
+	//if err != nil {
+	//	return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
+	//}
+	//
+	//report.Images = append(report.Images, reportImage)
 
 	return report, nil
 }
@@ -163,22 +175,4 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int, usernam
 		return r.analiseUserChat(ctx, chatId, tz, username)
 	}
 	return r.analiseWholeChat(ctx, chatId, tz)
-}
-
-func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (int64, error) {
-	count, err := r.mongoRepository.DeleteMessagesByChat(ctx, chatId)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to delete messages")
-	}
-
-	return count, nil
-}
-
-func (r *Service) DeleteAllMessages(ctx context.Context) (int64, error) {
-	count, err := r.mongoRepository.DeleteAllMessages(ctx)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to delete messages")
-	}
-
-	return count, nil
 }

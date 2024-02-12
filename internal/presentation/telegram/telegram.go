@@ -264,12 +264,32 @@ func (r *Presentation) errorHandler(
 	update *ext.Update,
 	errorString string,
 ) error {
-	zerolog.Ctx(ctx.Context).Error().
+	zerolog.Ctx(ctx).Error().
 		Stack().
 		Err(errors.New(errorString)).
 		Str("status", "error.while.processing.update").
 		Interface("update", update).
 		Send()
+
+	locale, err := r.getLocale(ctx, update.EffectiveChat().GetID())
+	if err != nil {
+		zerolog.Ctx(ctx).Error().
+			Stack().
+			Err(err).
+			Str("status", "failed.to.get.locale").
+			Send()
+		return nil
+	}
+
+	_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.ErrISE, locale, errorString), nil)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().
+			Stack().
+			Err(err).
+			Str("status", "failed.to.reply").
+			Send()
+		return nil
+	}
 
 	return nil
 }

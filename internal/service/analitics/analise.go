@@ -2,56 +2,16 @@ package analitics
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
-	"image/jpeg"
-	"image/png"
-	"net/http"
 	"sort"
 	"strings"
+	"time"
 )
-
-func PngToJpeg(image []byte) ([]byte, error) {
-	contentType := http.DetectContentType(image)
-
-	switch contentType {
-	case "image/png":
-		// Decode the PNG image bytes
-		img, err := png.Decode(bytes.NewReader(image))
-
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-
-		buf := new(bytes.Buffer)
-
-		if err = jpeg.Encode(buf, img, nil); err != nil {
-			return nil, err
-		}
-
-		return buf.Bytes(), nil
-	}
-
-	return nil, errors.Errorf("unable to convert %#v to jpeg", contentType)
-}
-
-func getBarChart() chart.BarChart {
-	return chart.BarChart{
-		ColorPalette: chart.AlternateColorPalette,
-		Width:        1000,
-		Height:       1000,
-		Background: chart.Style{
-			Padding: chart.Box{
-				Top: 40,
-			},
-		},
-		BarWidth: 30,
-		XAxis:    chart.Style{TextRotationDegrees: -90, FontSize: 13, TextHorizontalAlign: 7},
-	}
-}
 
 func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, error) {
 	const maxWords = 20
@@ -146,6 +106,42 @@ func (r *Service) getChatterBoxes(messages []mongo_repository.Message, getter na
 	var popularWordsBuffer bytes.Buffer
 
 	err := barChart.Render(chart.PNG, &popularWordsBuffer)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return jpgImg, nil
+}
+
+func (r *Service) getInterlocutors(ctx context.Context, chatId int64, userId int64, getter nameGetter) ([]byte, error) {
+	interlocutors, err := r.chRepository.MessageFindInterlocutors(ctx, chatId, userId, 10, time.Minute*5)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	values := make([]chart.Value, 0, 10)
+	for _, user := range interlocutors {
+		values = append(values, chart.Value{
+			Value: float64(user.MessagesCount),
+			Label: getter.Get(user.TgUserId),
+		})
+	}
+	if len(values) <= 1 {
+		return nil, nil
+	}
+
+	barChart := getBarChart()
+	barChart.Title = fmt.Sprintf("User %d interlocutors", getter.Get(userId))
+	barChart.Bars = values
+
+	var popularWordsBuffer bytes.Buffer
+
+	err = barChart.Render(chart.PNG, &popularWordsBuffer)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

@@ -23,34 +23,28 @@ func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, 
 		styling.Plain(fmt.Sprintf("Ping requested by @%s\n\n", requestedUser.Username)),
 	)
 
-	chatMembers, err := r.getMembers(ctx, update.EffectiveChat())
+	chatMembers, err := r.getOrUpdateMembers(ctx, update.EffectiveChat())
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	for _, chatMember := range chatMembers {
-		user := chatMember.User()
-
-		_, isBot := user.ToBot()
-		if isBot {
+		if chatMember.IsBot {
 			continue
 		}
 
 		count += 1
 
-		name := GetNameFromPeerUser(&user)
-
-		username, ok := user.Username()
-		if ok {
+		if chatMember.TgUsername != "" {
 			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
-				styling.MentionName(name, user.InputUser()),
+				styling.Plain(chatMember.TgName),
 				styling.Plain(": @"),
-				styling.Mention(username),
+				styling.Mention(chatMember.TgUsername),
 				styling.Plain("\n"),
 			}...)
 		} else {
 			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
-				styling.MentionName(name, user.InputUser()),
+				styling.Plain(chatMember.TgName), styling.Plain("\n"),
 			}...)
 		}
 	}

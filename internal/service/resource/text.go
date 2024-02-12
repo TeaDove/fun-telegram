@@ -20,6 +20,7 @@ type Code int
 const (
 	Err Code = iota
 	ErrLocaleNotFound
+	ErrISE
 	ErrUsernameRequired
 	ErrInsufficientPrivilegesAdmin
 	ErrInsufficientPrivilegesOwner
@@ -74,6 +75,7 @@ var localizer = map[Code]map[Locale]string{
 	ErrAccessDenies:                               {Ru: "Ошибка: Доступ запрещен", En: "Err: Access denied"},
 	ErrNiceTry:                                    {Ru: "Ошибка: Хорошая попытка", En: "Err: Nice try"},
 	ErrUnprocessableEntity:                        {Ru: "Ошибка: Необрабатываемая сущность: %s", En: "Err: Unprocessable entity: %s"},
+	ErrISE:                                        {Ru: "Ошибка: Что-то пошло не так... : %s", En: "Err: Something went wrong... : %s"},
 	AdminRequires:                                 {Ru: "необходимы права администратора", En: "requires admin rights"},
 	OwnerRequires:                                 {Ru: "необходимы права владельца", En: "requires owner rights"},
 	CommandToxicMessageFound:                      {Ru: "!УВАГА! ТОКСИЧНОЕ СООБЩЕНИЕ НАЙДЕНО", En: "!ALERT! TOXIC MESSAGE FOUND"},

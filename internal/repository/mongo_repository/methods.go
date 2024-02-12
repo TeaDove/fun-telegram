@@ -42,37 +42,6 @@ func (r *Repository) MessageCreateOrNothingAndSetTime(ctx context.Context, messa
 	return nil
 }
 
-func (r *Repository) UserUpsert(ctx context.Context, user *User) error {
-	user.UpdatedAt = time.Now().UTC()
-
-	filter := bson.M{"tg_user_id": user.TgUserId}
-	update := bson.M{"$set": bson.M{
-		"tg_user_id":  user.TgUserId,
-		"tg_username": user.TgUsername,
-		"tg_name":     user.TgName,
-		"updated_at":  user.UpdatedAt,
-	}}
-	opts := options.Update().SetUpsert(true)
-
-	result, err := r.userCollection.UpdateOne(ctx, filter, update, opts)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if result.UpsertedCount == 1 {
-		_, err = r.userCollection.UpdateOne(ctx,
-			bson.M{"tg_user_id": user.TgUserId},
-			bson.M{"$set": bson.M{
-				"created_at": user.UpdatedAt,
-			}})
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
-}
-
 func (r *Repository) MessageGetSortedLimited(ctx context.Context, limit int64) ([]Message, error) {
 	messages := make([]Message, 0, 100)
 
@@ -167,7 +136,7 @@ func (r *Repository) GetMessagesByChatAndUsername(
 	err := r.messageCollection.SimpleAggregateWithCtx(
 		ctx,
 		&messages,
-		builder.Lookup(r.userCollection.Name(), "tg_user_id", "tg_user_id", "user"),
+		builder.Lookup(r.userCollection.Name(), "tg_user_id", "tg_id", "user"),
 		bson.M{
 			operator.Project: bson.M{
 				"username":   "$user.tg_username",
@@ -186,48 +155,6 @@ func (r *Repository) GetMessagesByChatAndUsername(
 	}
 
 	return messages, nil
-}
-
-func (r *Repository) GetUsersById(ctx context.Context, usersId []int64) ([]User, error) {
-	users := make([]User, 0, len(usersId))
-
-	err := r.userCollection.SimpleFindWithCtx(ctx, &users, bson.M{"tg_user_id": bson.M{"$in": usersId}})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return users, nil
-}
-
-func (r *Repository) GetUsersByChatId(ctx context.Context, chatId int64) ([]User, error) {
-	userIds, err := r.messageCollection.Distinct(ctx, "tg_user_id", bson.M{"tg_chat_id": chatId})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	usersIdsConcrete := make([]int64, 0, len(userIds))
-
-	for _, userId := range userIds {
-		userIdConcrete, ok := userId.(int64)
-		if !ok {
-			return nil, errors.New("non int64 type")
-		}
-
-		usersIdsConcrete = append(usersIdsConcrete, userIdConcrete)
-	}
-
-	return r.GetUsersById(ctx, usersIdsConcrete)
-}
-
-func (r *Repository) GetUserById(ctx context.Context, userId int64) (User, error) {
-	var user User
-
-	err := r.userCollection.FirstWithCtx(ctx, bson.M{"tg_user_id": userId}, &user)
-	if err != nil {
-		return User{}, errors.WithStack(err)
-	}
-
-	return user, nil
 }
 
 func (r *Repository) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {

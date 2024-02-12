@@ -34,3 +34,26 @@ func (r *Service) InsertNewMessage(ctx context.Context, message *Message) error 
 	}
 	return nil
 }
+
+func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (int64, error) {
+	count, err := r.mongoRepository.DeleteMessagesByChat(ctx, chatId)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to delete messages from mongo repository")
+	}
+
+	err = r.chRepository.MessageDeleteByChatId(ctx, chatId)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to delete messages from ch repository")
+	}
+
+	return count, nil
+}
+
+func (r *Service) DeleteAllMessages(ctx context.Context) (int64, error) {
+	count, err := r.mongoRepository.DeleteAllMessages(ctx)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to delete messages")
+	}
+
+	return count, nil
+}

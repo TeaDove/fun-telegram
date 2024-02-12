@@ -3,8 +3,9 @@ package telegram
 import (
 	"context"
 	"github.com/celestix/gotgproto/ext"
-	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/repository/redis_repository"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ func (r *Presentation) isBanned(ctx context.Context, username string) (bool, err
 }
 
 func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok bool, err error) {
-	chatMembers, err := r.getMembers(ctx, update.EffectiveChat())
+	chatMembers, err := r.getOrUpdateMembers(ctx, update.EffectiveChat())
 	if err != nil {
 		if errors.Is(err, ErrNotChatOrChannel) {
 			// Expects, that in private conversation everyone is admin
@@ -46,14 +47,20 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 		return false, errors.WithStack(err)
 	}
 
-	userMember, ok := chatMembers[update.EffectiveUser().GetID()]
+	userMember, ok := chatMembers.ToMap()[update.EffectiveUser().GetID()]
 	if !ok {
+		go func() {
+			_, err = r.updateMembers(ctx, update.EffectiveChat())
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.update.members").Send()
+			}
+		}()
 		return false, errors.New("user not found in members")
 	}
 
-	return userMember.Status() == members.Admin ||
+	return userMember.Status == mongo_repository.Admin ||
 		r.checkFromOwner(ctx, update) ||
-		userMember.Status() == members.Creator, nil
+		userMember.Status == mongo_repository.Creator, nil
 }
 
 func (r *Presentation) checkFromOwner(ctx *ext.Context, update *ext.Update) (ok bool) {
