@@ -19,6 +19,7 @@ func (r *Repository) UserUpsert(ctx context.Context, user *User) error {
 		"tg_name":     user.TgName,
 		"updated_at":  user.UpdatedAt,
 		"created_at":  user.CreatedAt,
+		"is_bot":      user.IsBot,
 	}}
 	opts := options.Update().SetUpsert(true)
 
