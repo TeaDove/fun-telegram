@@ -129,11 +129,6 @@ func MustNewTelegramPresentation(
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.catchMessages, Outgoing: true,
-		},
-	)
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
 			Callback: presentation.deleteOut, Outgoing: true,
 		},
 	)

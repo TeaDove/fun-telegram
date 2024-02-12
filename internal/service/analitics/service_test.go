@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/require"
+	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/teadove/goteleout/internal/shared"
 	"image"
@@ -24,9 +25,14 @@ func draw(t *testing.T, name string, imageBytes []byte) {
 }
 
 func getService(t *testing.T) *Service {
+	ctx := shared.GetCtx()
 	dbRepository, err := mongo_repository.New()
 	require.NoError(t, err)
-	r, err := New(dbRepository)
+
+	chRepository, err := ch_repository.New(ctx)
+	require.NoError(t, err)
+
+	r, err := New(dbRepository, chRepository)
 	require.NoError(t, err)
 
 	return r

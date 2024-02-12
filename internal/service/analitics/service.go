@@ -6,19 +6,21 @@ import (
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"time"
 )
 
 type Service struct {
-	dbRepository *mongo_repository.Repository
+	mongoRepository *mongo_repository.Repository
+	chRepository    *ch_repository.Repository
 
 	toxicityExp *regexp2.Regexp
 	lemmatizer  *golem.Lemmatizer
 }
 
-func New(dbRepository *mongo_repository.Repository) (*Service, error) {
-	r := Service{dbRepository: dbRepository}
+func New(mongoRepository *mongo_repository.Repository, chRepository *ch_repository.Repository) (*Service, error) {
+	r := Service{mongoRepository: mongoRepository, chRepository: chRepository}
 
 	exp, err := regexp2.Compile(
 		`((у|[нз]а|(хитро|не)?вз?[ыьъ]|с[ьъ]|(и|ра)[зс]ъ?|(о[тб]|под)[ьъ]?|(.\B)+?[оаеи])?-?([её]б(?!о[рй])|и[пб][ае][тц]).*?|(н[иеа]|[дп]о|ра[зс]|з?а|с(ме)?|о(т|дно)?|апч)?-?х[уy]([яйиеёю]|ли(?!ган)).*?|(в[зы]|(три|два|четыре)жды|(н|сук)а)?-?[б6]л(я(?!(х|ш[кн]|мб)[ауеыио]).*?|[еэ][дт]ь?)|(ра[сз]|[зн]а|[со]|вы?|п(р[ои]|од)|и[зс]ъ?|[ао]т)?п[иеё]зд.*?|(за)?п[ие]д[аое]?р((ас)?(и(ли)?[нщктл]ь?)?|(о(ч[еи])?)?к|юг)[ауеы]?|манд([ауеы]|ой|[ао]вошь?(е?к[ауе])?|юк(ов|[ауи])?)|муд([аио].*?|е?н([ьюия]|ей))|мля([тд]ь)?|лять|([нз]а|по)х|м[ао]л[ао]фь[яию]|(жоп|чмо|гнид)[а-я]*|г[ао]ндон|[а-я]*(с[рс]ать|хрен|хер|дрист|дроч|минет|говн|шлюх|г[а|о]вн)[а-я]*|мраз(ь|ота)|сук[а-я])|cock|fuck(er|ing)?`,
@@ -48,7 +50,7 @@ type AnaliseReport struct {
 }
 
 func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
-	messages, err := r.dbRepository.GetMessagesByChatAndUsername(ctx, chatId, username)
+	messages, err := r.mongoRepository.GetMessagesByChatAndUsername(ctx, chatId, username)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
@@ -88,7 +90,7 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 }
 
 func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (AnaliseReport, error) {
-	messages, err := r.dbRepository.GetMessagesByChat(ctx, chatId)
+	messages, err := r.mongoRepository.GetMessagesByChat(ctx, chatId)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
@@ -164,7 +166,7 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int, usernam
 }
 
 func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (int64, error) {
-	count, err := r.dbRepository.DeleteMessagesByChat(ctx, chatId)
+	count, err := r.mongoRepository.DeleteMessagesByChat(ctx, chatId)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to delete messages")
 	}
@@ -173,7 +175,7 @@ func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (int
 }
 
 func (r *Service) DeleteAllMessages(ctx context.Context) (int64, error) {
-	count, err := r.dbRepository.DeleteAllMessages(ctx)
+	count, err := r.mongoRepository.DeleteAllMessages(ctx)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to delete messages")
 	}

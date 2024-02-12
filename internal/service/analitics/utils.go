@@ -21,7 +21,7 @@ func (r *nameGetter) Get(userId int64) string {
 }
 
 func (r *Service) getNameGetter(ctx context.Context, chatId int64) (nameGetter, error) {
-	tgUsers, err := r.dbRepository.GetUsersByChatId(ctx, chatId)
+	tgUsers, err := r.mongoRepository.GetUsersByChatId(ctx, chatId)
 	if err != nil {
 		return nameGetter{}, errors.WithStack(err)
 	}

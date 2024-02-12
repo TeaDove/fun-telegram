@@ -11,10 +11,10 @@ import (
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
-	"github.com/kamva/mgm/v3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
+	"github.com/teadove/goteleout/internal/service/analitics"
 	"github.com/teadove/goteleout/internal/service/resource"
 	"github.com/teadove/goteleout/internal/shared"
 	"strconv"
@@ -144,29 +144,29 @@ func (r *Presentation) uploadMessageToRepository(
 	ctx *ext.Context,
 	wg *sync.WaitGroup,
 	update *ext.Update,
-	elemChan chan messages.Elem,
+	elemChan <-chan messages.Elem,
 ) {
 	defer wg.Done()
-	for elem := range elemChan {
+	var elem messages.Elem
+	for elem = range elemChan {
 		msg, ok := elem.Msg.(*tg.Message)
 		if !ok {
-			return
+			continue
 		}
 
 		msgFrom, ok := msg.FromID.(*tg.PeerUser)
 		if !ok {
-			return
+			continue
 		}
 
-		err := r.dbRepository.MessageCreateOrNothingAndSetTime(ctx, &mongo_repository.Message{
-			DefaultModel: mgm.DefaultModel{
-				DateFields: mgm.DateFields{CreatedAt: time.Unix(int64(msg.Date), 0)},
-			},
-			TgChatID: update.EffectiveChat().GetID(),
-			TgUserId: msgFrom.UserID,
-			Text:     msg.Message,
-			TgId:     msg.ID,
+		err := r.analiticsService.InsertNewMessage(ctx, &analitics.Message{
+			CreatedAt: time.Unix(int64(msg.Date), 0),
+			TgChatID:  update.EffectiveChat().GetID(),
+			TgUserId:  msgFrom.UserID,
+			Text:      msg.Message,
+			TgId:      msg.ID,
 		})
+
 		if err != nil {
 			zerolog.Ctx(ctx).
 				Error().
@@ -174,7 +174,7 @@ func (r *Presentation) uploadMessageToRepository(
 				Err(errors.WithStack(err)).
 				Str("status", "failed.to.upload.message.to.repository").
 				Send()
-			return
+			continue
 		}
 
 		zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
@@ -404,10 +404,10 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	var lastDate time.Time
 
 	for {
-		//zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
+		zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
 		ok := historyIter.Next(ctx)
 		if ok {
-			//zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
+			zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
 
 			elem := historyIter.Value()
 			offset = elem.Msg.GetID()
@@ -422,8 +422,8 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			count++
 			elemChan <- elem
 
-			if count%100 == 0 {
-				time.Sleep(time.Millisecond * 900)
+			if count%batchSize == 0 {
+				time.Sleep(time.Millisecond * 500)
 				go r.updateUploadStatsMessage(ctx, count, barChatId, barMessageId, barPeer, offset, startedAt, lastDate)
 			}
 
@@ -454,6 +454,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 
 	}
 
+	zerolog.Ctx(ctx).Info().Str("status", "waiting.for.uploading.to.repository").Int("count", count).Send()
 	close(elemChan)
 	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
