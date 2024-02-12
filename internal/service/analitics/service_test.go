@@ -2,7 +2,6 @@ package analitics
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
@@ -17,7 +16,7 @@ func draw(t *testing.T, reportImage RepostImage) {
 	img, _, err := image.Decode(bytes.NewReader(reportImage.Content))
 	require.NoError(t, err)
 
-	out, err := os.Create(fmt.Sprintf("./%s.jpeg", reportImage.Name))
+	out, err := os.Create(reportImage.Filename())
 	defer out.Close()
 
 	err = jpeg.Encode(out, img, nil)

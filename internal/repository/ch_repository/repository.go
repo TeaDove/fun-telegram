@@ -12,15 +12,16 @@ import (
 )
 
 type Repository struct {
-	conn driver.Conn
+	conn         driver.Conn
+	databaseName string
 }
 
 func New(ctx context.Context) (*Repository, error) {
-	r := Repository{}
+	r := Repository{databaseName: "default"}
 	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{shared.AppSettings.Storage.ClickhouseUtl},
 		Auth: clickhouse.Auth{
-			Database: "default",
+			Database: r.databaseName,
 			Username: "default",
 		},
 		Settings: clickhouse.Settings{

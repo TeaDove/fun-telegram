@@ -2,6 +2,7 @@ package analitics
 
 import (
 	"context"
+	"fmt"
 	"github.com/aaaton/golem/v4"
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
@@ -45,6 +46,10 @@ func New(mongoRepository *mongo_repository.Repository, chRepository *ch_reposito
 type RepostImage struct {
 	Name    string
 	Content []byte
+}
+
+func (r *RepostImage) Filename() string {
+	return fmt.Sprintf("%s.jpeg", r.Name)
 }
 
 type AnaliseReport struct {

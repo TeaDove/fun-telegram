@@ -20,12 +20,6 @@ type RestartMessage struct {
 	MessageId primitive.ObjectID `bson:"message_id,omitempty"`
 }
 
-type StorageStats struct {
-	TotalSizeBytes           int
-	Count                    int
-	AvgObjWithIndexSizeBytes int
-}
-
 type User struct {
 	mgm.DefaultModel `bson:",inline"`
 

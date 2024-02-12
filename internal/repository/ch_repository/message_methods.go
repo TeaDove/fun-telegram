@@ -38,17 +38,19 @@ func (r *Repository) MessageFindInterlocutors(
 	limit int,
 	interlocutorLimit time.Duration,
 ) ([]MessageFindInterlocutorsOutput, error) {
-	rows, err := r.conn.Query(ctx, `select m.tg_user_id as tg_user_id, count(1) as count
+	rows, err := r.conn.Query(ctx, `
+select m.tg_user_id as tg_user_id, count(1) as count
 from message am final
          join default.message m
               on am.tg_chat_id = m.tg_chat_id
-where am.tg_chat_id = ?
-  and am.tg_user_id = ?
-  and abs(am.created_at - m.created_at) - ? < 0
-  and am.tg_user_id != m.tg_user_id
-group by 1
-order by 2 desc 
-limit ?;`, chatId, userId, int(interlocutorLimit.Seconds()), limit)
+	where am.tg_chat_id = ?
+	  and am.tg_user_id = ?
+	  and abs(am.created_at - m.created_at) - ? < 0
+	  and am.tg_user_id != m.tg_user_id
+	group by 1
+	order by 2 desc 
+	limit ?
+`, chatId, userId, int(interlocutorLimit.Seconds()), limit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find interlocutors")
 	}

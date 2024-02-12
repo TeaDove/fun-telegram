@@ -5,20 +5,23 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
+	"github.com/teadove/goteleout/internal/schemas"
 	"github.com/teadove/goteleout/internal/shared"
 	"time"
 )
 
 type Service struct {
-	dbRepository *mongo_repository.Repository
+	mongoRepository *mongo_repository.Repository
+	chRepository    *ch_repository.Repository
 
 	checkers map[string]ServiceChecker
 }
 
-func New(ctx context.Context, dbRepository *mongo_repository.Repository, checkers map[string]ServiceChecker) (*Service, error) {
+func New(ctx context.Context, dbRepository *mongo_repository.Repository, chRepository *ch_repository.Repository, checkers map[string]ServiceChecker) (*Service, error) {
 	ctx = shared.AddModuleCtx(ctx, "job")
-	r := Service{dbRepository: dbRepository, checkers: checkers}
+	r := Service{mongoRepository: dbRepository, checkers: checkers, chRepository: chRepository}
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
@@ -45,6 +48,24 @@ type DeleteOldMessagesOutput struct {
 	BytesFreed int
 }
 
+func (r *Service) Stats(ctx context.Context) (map[string]map[string]schemas.StorageStats, error) {
+	statsByDatabase := make(map[string]map[string]schemas.StorageStats, 2)
+
+	stats, err := r.mongoRepository.StatsForDatabase(ctx)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	statsByDatabase["MongoDB"] = stats
+
+	stats, err = r.chRepository.StatsForDatabase(ctx)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	statsByDatabase["Clickhouse"] = stats
+
+	return statsByDatabase, nil
+}
+
 func (r *Service) deleteOldMessagesChecked(ctx context.Context) {
 	_, err := r.DeleteOldMessages(ctx)
 	if err != nil {
@@ -53,7 +74,7 @@ func (r *Service) deleteOldMessagesChecked(ctx context.Context) {
 }
 
 func (r *Service) DeleteOldMessages(ctx context.Context) (DeleteOldMessagesOutput, error) {
-	stats, err := r.dbRepository.StatsForMessages(ctx)
+	stats, err := r.mongoRepository.StatsForMessages(ctx)
 	if err != nil {
 		return DeleteOldMessagesOutput{}, errors.WithStack(err)
 	}
@@ -70,17 +91,17 @@ func (r *Service) DeleteOldMessages(ctx context.Context) (DeleteOldMessagesOutpu
 		return DeleteOldMessagesOutput{}, nil
 	}
 
-	_, err = r.dbRepository.DeleteMessagesOldWithCount(ctx, int64(countToDelete))
+	_, err = r.mongoRepository.DeleteMessagesOldWithCount(ctx, int64(countToDelete))
 	if err != nil {
 		return DeleteOldMessagesOutput{}, errors.WithStack(err)
 	}
 
-	bytesFreed, err := r.dbRepository.ReleaseMemory(ctx)
+	bytesFreed, err := r.mongoRepository.ReleaseMemory(ctx)
 	if err != nil {
 		return DeleteOldMessagesOutput{}, errors.WithStack(err)
 	}
 
-	newStats, err := r.dbRepository.StatsForMessages(ctx)
+	newStats, err := r.mongoRepository.StatsForMessages(ctx)
 	if err != nil {
 		return DeleteOldMessagesOutput{}, errors.WithStack(err)
 	}

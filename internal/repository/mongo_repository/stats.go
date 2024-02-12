@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/kamva/mgm/v3"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/schemas"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -16,31 +17,31 @@ func (r *Repository) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *Repository) StatsForMessages(ctx context.Context) (StorageStats, error) {
+func (r *Repository) StatsForMessages(ctx context.Context) (schemas.StorageStats, error) {
 	return r.StatsForTable(ctx, mgm.CollName(&Message{}))
 }
 
-func (r *Repository) StatsForTable(ctx context.Context, collName string) (StorageStats, error) {
+func (r *Repository) StatsForTable(ctx context.Context, collName string) (schemas.StorageStats, error) {
 	result := r.client.Database(databaseName).RunCommand(ctx, bson.M{"collStats": collName})
 
 	var document bson.M
 	err := result.Decode(&document)
 	if err != nil {
-		return StorageStats{}, errors.WithStack(err)
+		return schemas.StorageStats{}, errors.WithStack(err)
 	}
 
-	stats := StorageStats{}
+	stats := schemas.StorageStats{}
 
 	count, ok := document["count"].(int32)
 	if !ok {
-		return StorageStats{}, errors.New("failed to get count from stats")
+		return schemas.StorageStats{}, errors.New("failed to get count from stats")
 	}
 
 	stats.Count = int(count)
 
 	totalSize, ok := document["totalSize"].(int32)
 	if !ok {
-		return StorageStats{}, errors.New("failed to get totalSize from stats")
+		return schemas.StorageStats{}, errors.New("failed to get totalSize from stats")
 	}
 
 	stats.TotalSizeBytes = int(totalSize)
@@ -52,13 +53,13 @@ func (r *Repository) StatsForTable(ctx context.Context, collName string) (Storag
 	return stats, nil
 }
 
-func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]StorageStats, error) {
+func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]schemas.StorageStats, error) {
 	colls, err := r.client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	map_ := make(map[string]StorageStats, len(colls))
+	map_ := make(map[string]schemas.StorageStats, len(colls))
 	for _, coll := range colls {
 		map_[coll], err = r.StatsForTable(ctx, coll)
 		if err != nil {

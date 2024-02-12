@@ -84,15 +84,15 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		return nil
 	}
 
-	firstFile, err := fileUploader.FromBytes(ctx, "image.jpeg", report.Images[0])
+	firstFile, err := fileUploader.FromBytes(ctx, report.Images[0].Filename(), report.Images[0].Content)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	album := make([]message.MultiMediaOption, 0, 10)
 
-	for _, imageBytes := range report.Images[1:] {
-		file, err := fileUploader.FromBytes(ctx, "image.jpeg", imageBytes)
+	for _, repostImage := range report.Images[1:] {
+		file, err := fileUploader.FromBytes(ctx, repostImage.Filename(), repostImage.Content)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -389,7 +389,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			elemChan <- elem
 
 			if count%batchSize == 0 {
-				time.Sleep(time.Millisecond * 500)
+				time.Sleep(time.Millisecond * 800)
 				go r.updateUploadStatsMessage(ctx, count, barChatId, barMessageId, barPeer, offset, startedAt, lastDate)
 			}
 

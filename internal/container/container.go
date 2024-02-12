@@ -46,7 +46,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	protoClient := telegram.MustNewProtoClient(ctx)
 
-	jobService, err := job.New(ctx, dbRepository, map[string]job.ServiceChecker{
+	jobService, err := job.New(ctx, dbRepository, chRepository, map[string]job.ServiceChecker{
 		"MongoDB":    {Checker: dbRepository.Ping, ForFrequent: true},
 		"Telegram":   {Checker: protoClient.Ping, ForFrequent: true},
 		"Redis":      {Checker: persistentStorage.Ping, ForFrequent: true},
