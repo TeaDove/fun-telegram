@@ -23,7 +23,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 
 	ok, err := r.isEnabled(ctx, update.EffectiveChat().GetID())
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to check if enabled")
 	}
 	if !ok {
 		return nil
@@ -35,7 +35,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	}
 
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to load from repository")
 	}
 
 	zerolog.Ctx(ctx.Context).
@@ -50,7 +50,8 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 
 	err = reactionRequest.Decode(&buf)
 	if err != nil {
-		return errors.WithStack(err)
+		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.decode.buffer").Send()
+		return nil
 	}
 
 	reactionRequest.MsgID = update.EffectiveMessage.ID
@@ -58,7 +59,8 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 
 	_, err = r.telegramApi.MessagesSendReaction(ctx, &reactionRequest)
 	if err != nil {
-		return errors.WithStack(err)
+		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.send.reaction").Send()
+		return nil
 	}
 
 	return nil
@@ -135,11 +137,9 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 
 	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi, r.protoClient.PeerStorage)
 	if err != nil {
-		if !input.Silent {
-			_, err = ctx.Reply(update, "Err: reply not found", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
+		err = r.replyIfNotSilent(ctx, update, input, "Err: reply not found")
+		if err != nil {
+			return errors.WithStack(err)
 		}
 
 		return nil
@@ -162,11 +162,9 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 	}
 
 	if len(reactionRequest.Reaction) == 0 {
-		if !input.Silent {
-			_, err = ctx.Reply(update, "Err: no reactions found", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
+		err = r.replyIfNotSilent(ctx, update, input, "Err: no reactions found")
+		if err != nil {
+			return errors.WithStack(err)
 		}
 
 		return nil
@@ -192,18 +190,20 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 		Interface("reactions", reactionRequest).
 		Send()
 
-	if !input.Silent {
-		_, err = ctx.Reply(update, "Ok: reactions were saved", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
+	err = r.replyIfNotSilent(ctx, update, input, "Ok: reactions were saved")
+	if err != nil {
+		return errors.WithStack(err)
 	}
 
 	return nil
 }
 
 var (
-	FlagSpamReactionStop = OptFlag{Long: "stop", Short: "s", Description: resource.CommandSpamReactionFlagStopDescription}
+	FlagSpamReactionStop = OptFlag{
+		Long:        "stop",
+		Short:       "s",
+		Description: resource.CommandSpamReactionFlagStopDescription,
+	}
 )
 
 func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {

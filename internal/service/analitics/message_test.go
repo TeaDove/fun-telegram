@@ -13,7 +13,7 @@ func generateMessage() Message {
 	return Message{
 		CreatedAt: time.Now().UTC(),
 		TgChatID:  rand.Int64N(100000),
-		TgId:      rand.IntN(100000),
+		TgId:      rand.Int64N(100000),
 		TgUserId:  rand.Int64N(100000),
 		Text:      shared.RandomString(),
 	}

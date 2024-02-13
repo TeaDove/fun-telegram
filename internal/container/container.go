@@ -30,7 +30,12 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		shared.AppSettings.KandinskySecret,
 	)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.create.kandinsky.supplier").Send()
+		zerolog.Ctx(ctx).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.create.kandinsky.supplier").
+			Send()
 	}
 
 	locator := ip_locator.Supplier{}

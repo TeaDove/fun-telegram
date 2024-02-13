@@ -31,7 +31,12 @@ func (r *Presentation) getLocale(ctx context.Context, chatId int64) (resource.Lo
 func (r *Presentation) localeCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	locale := resource.Locale(strings.ToLower(strings.TrimSpace(input.Text)))
 	if !r.resourceService.Locales.Contains(locale) {
-		err := r.replyIfNotSilent(ctx, update, input, r.resourceService.Localizef(ctx, resource.ErrLocaleNotFound, input.Locale, locale))
+		err := r.replyIfNotSilent(
+			ctx,
+			update,
+			input,
+			r.resourceService.Localizef(ctx, resource.ErrLocaleNotFound, input.Locale, locale),
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}

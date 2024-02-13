@@ -38,7 +38,7 @@ type Presentation struct {
 	kandinskySupplier *kandinsky_supplier.Supplier
 	ipLocator         *ip_locator.Supplier
 	redisRepository   *redis_repository.Repository
-	dbRepository      *mongo_repository.Repository
+	mongoRepository   *mongo_repository.Repository
 	resourceService   *resource.Service
 	analiticsService  *analitics.Service
 	jobService        *job.Service
@@ -116,7 +116,7 @@ func MustNewTelegramPresentation(
 		telegramManager:   peers.Options{}.Build(api),
 		kandinskySupplier: kandinskySupplier,
 		ipLocator:         ipLocator,
-		dbRepository:      dbRepository,
+		mongoRepository:   dbRepository,
 		analiticsService:  analiticsService,
 		jobService:        jobService,
 		resourceService:   resourceService,

@@ -37,7 +37,12 @@ func (r *Presentation) replyIfNotSilent(ctx *ext.Context, update *ext.Update, in
 	return nil
 }
 
-func (r *Presentation) replyIfNotSilentLocalized(ctx *ext.Context, update *ext.Update, input *Input, code resource.Code) error {
+func (r *Presentation) replyIfNotSilentLocalized(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *Input,
+	code resource.Code,
+) error {
 	text := r.resourceService.Localize(ctx, code, input.Locale)
 
 	err := r.replyIfNotSilent(ctx, update, input, text)
@@ -48,7 +53,13 @@ func (r *Presentation) replyIfNotSilentLocalized(ctx *ext.Context, update *ext.U
 	return nil
 }
 
-func (r *Presentation) replyIfNotSilentLocalizedf(ctx *ext.Context, update *ext.Update, input *Input, code resource.Code, args ...any) error {
+func (r *Presentation) replyIfNotSilentLocalizedf(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *Input,
+	code resource.Code,
+	args ...any,
+) error {
 	text := r.resourceService.Localizef(ctx, code, input.Locale, args)
 
 	err := r.replyIfNotSilent(ctx, update, input, text)

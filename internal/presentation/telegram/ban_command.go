@@ -46,7 +46,11 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return errors.WithStack(err)
 		}
 
-		_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower), nil)
+		_, err = ctx.Reply(
+			update,
+			r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower),
+			nil,
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -57,7 +61,11 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 	}
 
 	if update.EffectiveUser().GetID() != ctx.Self.ID {
-		_, err := ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, input.Locale), nil)
+		_, err := ctx.Reply(
+			update,
+			r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, input.Locale),
+			nil,
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -75,7 +83,11 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 				return errors.WithStack(err)
 			}
 
-			_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower), nil)
+			_, err = ctx.Reply(
+				update,
+				r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower),
+				nil,
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/repository/mongo_repository"
+	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
 	"sort"
@@ -24,7 +24,7 @@ func getChart() chart.Chart {
 	}
 }
 
-func getChatterBoxes(messages []mongo_repository.Message, maxUsers int) ([]int64, map[int64]int) {
+func getChatterBoxes(messages []ch_repository.Message, maxUsers int) ([]int64, map[int64]int) {
 	userToCount := make(map[int64]int, 100)
 	for _, message := range messages {
 		wordsCount := len(strings.Fields(message.Text))
@@ -47,7 +47,7 @@ func getChatterBoxes(messages []mongo_repository.Message, maxUsers int) ([]int64
 	return users, userToCount
 }
 
-func (r *Service) getChatTimeDistribution(messages []mongo_repository.Message, tz int) ([]byte, error) {
+func (r *Service) getChatTimeDistribution(messages []ch_repository.Message, tz int) ([]byte, error) {
 	const minuteRate = 30
 	timeToCount := make(map[float64]int, 100)
 	for _, message := range messages {
@@ -95,7 +95,7 @@ func (r *Service) getChatTimeDistribution(messages []mongo_repository.Message, t
 	return jpgImg, nil
 }
 
-func (r *Service) getChatDateDistribution(messages []mongo_repository.Message) ([]byte, error) {
+func (r *Service) getChatDateDistribution(messages []ch_repository.Message) ([]byte, error) {
 	timeToCount := make(map[time.Time]int, 100)
 	for _, message := range messages {
 		messageDate := time.Date(

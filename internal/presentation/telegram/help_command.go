@@ -13,15 +13,25 @@ import (
 
 func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []styling.StyledTextOption {
 	helpMessage := make([]styling.StyledTextOption, 0, 20)
-	helpMessage = append(helpMessage, styling.Plain(r.resourceService.Localize(ctx, resource.CommandHelpBegin, input.Locale)))
+	helpMessage = append(
+		helpMessage,
+		styling.Plain(r.resourceService.Localize(ctx, resource.CommandHelpBegin, input.Locale)),
+	)
 
 	keys := maps.Keys(r.router)
 	slices.Sort(keys)
 
 	for _, commandName := range keys {
 		command := r.router[commandName]
-		helpMessage = append(helpMessage,
-			styling.Plain(fmt.Sprintf("/%s - %s\n", commandName, r.resourceService.Localize(ctx, command.description, input.Locale))),
+		helpMessage = append(
+			helpMessage,
+			styling.Plain(
+				fmt.Sprintf(
+					"/%s - %s\n",
+					commandName,
+					r.resourceService.Localize(ctx, command.description, input.Locale),
+				),
+			),
 		)
 		if command.requireAdmin {
 			helpMessage = append(helpMessage,
@@ -54,7 +64,14 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []s
 		for _, flag := range command.flags {
 			helpMessage = append(
 				helpMessage,
-				styling.Plain(fmt.Sprintf("%s/%s - %s\n", flag.Long, flag.Short, r.resourceService.Localize(ctx, flag.Description, input.Locale))),
+				styling.Plain(
+					fmt.Sprintf(
+						"%s/%s - %s\n",
+						flag.Long,
+						flag.Short,
+						r.resourceService.Localize(ctx, flag.Description, input.Locale),
+					),
+				),
 			)
 		}
 		helpMessage = append(helpMessage, styling.Plain("\n"))

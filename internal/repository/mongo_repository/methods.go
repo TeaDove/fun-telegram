@@ -113,6 +113,8 @@ func (r *Repository) MessageDeleteOld(ctx context.Context) (int64, error) {
 	return result.DeletedCount, nil
 }
 
+// GetMessagesByChat
+// Deprecated
 func (r *Repository) GetMessagesByChat(ctx context.Context, chatId int64) ([]Message, error) {
 	messages := make([]Message, 0, 100)
 
@@ -126,6 +128,8 @@ func (r *Repository) GetMessagesByChat(ctx context.Context, chatId int64) ([]Mes
 	return messages, nil
 }
 
+// GetMessagesByChatAndUsername
+// Deprecated
 func (r *Repository) GetMessagesByChatAndUsername(
 	ctx context.Context,
 	chatId int64,
@@ -148,7 +152,7 @@ func (r *Repository) GetMessagesByChatAndUsername(
 				"updated_at": 1,
 			},
 		},
-		//bson.M{operator.Match: bson.M{"username": username, "tg_chat_id": chatId}},
+		bson.M{operator.Match: bson.M{"username": username, "tg_chat_id": chatId}},
 	)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -157,6 +161,8 @@ func (r *Repository) GetMessagesByChatAndUsername(
 	return messages, nil
 }
 
+// GetLastMessage
+// Deprecated
 func (r *Repository) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {
 	var message Message
 
@@ -173,6 +179,8 @@ func (r *Repository) GetLastMessage(ctx context.Context, chatId int64) (Message,
 	return message, nil
 }
 
+// CheckUserExists
+// Deprecated
 func (r *Repository) CheckUserExists(ctx context.Context, userId int64) (bool, error) {
 	count, err := r.userCollection.CountDocuments(ctx, bson.M{"tg_user_id": userId})
 	if err != nil {

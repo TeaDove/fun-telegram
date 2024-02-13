@@ -36,10 +36,13 @@ func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Up
 
 		for _, collName := range collNames {
 			collStats := stats[collName]
-			message = append(message,
+			message = append(
+				message,
 				styling.Plain(fmt.Sprintf("    %s\n", collName)),
 				styling.Plain(fmt.Sprintf("        count: %d\n", collStats.Count)),
-				styling.Plain(fmt.Sprintf("        totalSize: %.2fmb\n", shared.BytesToKiloBytes(collStats.TotalSizeBytes)/1024)),
+				styling.Plain(
+					fmt.Sprintf("        totalSize: %.2fmb\n", shared.BytesToKiloBytes(collStats.TotalSizeBytes)/1024),
+				),
 				styling.Plain(fmt.Sprintf("        avgObjWithIndexSize: %db\n", collStats.AvgObjWithIndexSizeBytes)),
 			)
 		}

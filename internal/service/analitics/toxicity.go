@@ -3,7 +3,7 @@ package analitics
 import (
 	"bytes"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/internal/repository/mongo_repository"
+	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
 	"sort"
@@ -16,7 +16,7 @@ type toxicLevel struct {
 	Percent    float64
 }
 
-func (r *Service) getMostToxicUsers(messages []mongo_repository.Message, getter nameGetter) ([]byte, error) {
+func (r *Service) getMostToxicUsers(messages []ch_repository.Message, getter nameGetter) ([]byte, error) {
 	const maxUsers = 20
 
 	userToToxic := make(map[int64]*toxicLevel, 100)

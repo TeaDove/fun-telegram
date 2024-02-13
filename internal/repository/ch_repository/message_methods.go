@@ -68,3 +68,76 @@ from message am final
 
 	return output, err
 }
+
+func (r *Repository) MessageGetByChatIdAndUserId(
+	ctx context.Context,
+	chatId int64,
+	userId int64,
+) ([]Message, error) {
+	rows, err := r.conn.Query(ctx, `
+select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
+	where tg_chat_id = ?
+		and tg_user_id = ?
+`, chatId, userId)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find interlocutors")
+	}
+
+	output := make([]Message, 0, 100)
+	for rows.Next() {
+		row := Message{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, err
+}
+
+func (r *Repository) MessageGetByChatId(
+	ctx context.Context,
+	chatId int64,
+) ([]Message, error) {
+	rows, err := r.conn.Query(ctx, `
+select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
+	where tg_chat_id = ?
+`, chatId)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find interlocutors")
+	}
+
+	output := make([]Message, 0, 100)
+	for rows.Next() {
+		row := Message{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, err
+}
+
+func (r *Repository) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {
+	row := r.conn.QueryRow(ctx, `
+select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
+	where tg_chat_id = ? 
+		order by created_at limit 1
+`, chatId)
+	if row.Err() != nil {
+		return Message{}, errors.Wrap(row.Err(), "failed to select row from clickhouse")
+	}
+
+	var message Message
+	err := row.ScanStruct(&message)
+	if err != nil {
+		return Message{}, errors.Wrap(row.Err(), "failed to scan row")
+	}
+
+	return message, err
+}

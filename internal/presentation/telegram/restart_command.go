@@ -20,7 +20,7 @@ func (r *Presentation) restartCommandHandler(ctx *ext.Context, update *ext.Updat
 
 	zerolog.Ctx(ctx).Warn().Str("status", "reload.begin").Send()
 
-	err = r.dbRepository.RestartMessageCreate(ctx, &mongo_repository.Message{
+	err = r.mongoRepository.RestartMessageCreate(ctx, &mongo_repository.Message{
 		TgChatID: ctx.Self.ID,
 		TgUserId: ctx.Self.ID,
 		Text:     reloadMessage.Text,
@@ -36,7 +36,7 @@ func (r *Presentation) restartCommandHandler(ctx *ext.Context, update *ext.Updat
 }
 
 func (r *Presentation) updateRestartMessages(ctx context.Context) error {
-	messages, err := r.dbRepository.RestartMessageGetAndDelete(ctx)
+	messages, err := r.mongoRepository.RestartMessageGetAndDelete(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}

@@ -54,7 +54,7 @@ func (r *Presentation) updateMembers(
 		}
 		usersInChat = append(usersInChat, userInChat)
 
-		err := r.dbRepository.UserUpsert(ctx, &mongo_repository.User{
+		err := r.mongoRepository.UserUpsert(ctx, &mongo_repository.User{
 			TgId:       userInChat.TgId,
 			TgUsername: userInChat.TgUsername,
 			TgName:     userInChat.TgName,
@@ -64,7 +64,7 @@ func (r *Presentation) updateMembers(
 			return errors.Wrap(err, "failed to upsert user")
 		}
 
-		err = r.dbRepository.MemberUpsert(ctx, &mongo_repository.Member{
+		err = r.mongoRepository.MemberUpsert(ctx, &mongo_repository.Member{
 			TgUserId: userInChat.TgId,
 			TgChatId: effectiveChat.GetID(),
 			Status:   userInChat.Status,
@@ -106,7 +106,7 @@ func (r *Presentation) updateMembers(
 		return nil, errors.WithStack(ErrNotChatOrChannel)
 	}
 
-	err := r.dbRepository.ChatUpsert(ctx, &mongo_repository.Chat{
+	err := r.mongoRepository.ChatUpsert(ctx, &mongo_repository.Chat{
 		TgId:  effectiveChat.GetID(),
 		Title: chatTitle,
 	})
@@ -114,7 +114,12 @@ func (r *Presentation) updateMembers(
 		return nil, errors.Wrap(err, "failed to upsert chat in mongo repository")
 	}
 
-	zerolog.Ctx(ctx).Info().Str("status", "members.uploaded").Dur("elapsed", time.Since(t0)).Int("count", len(usersInChat)).Send()
+	zerolog.Ctx(ctx).
+		Info().
+		Str("status", "members.uploaded").
+		Dur("elapsed", time.Since(t0)).
+		Int("count", len(usersInChat)).
+		Send()
 
 	return usersInChat, nil
 }
@@ -124,7 +129,7 @@ func (r *Presentation) getOrUpdateMembers(
 	effectiveChat types.EffectiveChat,
 ) (mongo_repository.UsersInChat, error) {
 	needUpload := false
-	chat, err := r.dbRepository.GetChat(ctx, effectiveChat.GetID())
+	chat, err := r.mongoRepository.GetChat(ctx, effectiveChat.GetID())
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.Wrap(err, "failed to get chat from repository")
@@ -142,7 +147,7 @@ func (r *Presentation) getOrUpdateMembers(
 		return usersInChat, nil
 	}
 
-	usersInChat, err := r.dbRepository.GetUsersInChat(ctx, effectiveChat.GetID())
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, effectiveChat.GetID())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get users by chat id")
 	}

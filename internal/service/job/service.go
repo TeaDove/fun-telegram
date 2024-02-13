@@ -19,7 +19,12 @@ type Service struct {
 	checkers map[string]ServiceChecker
 }
 
-func New(ctx context.Context, dbRepository *mongo_repository.Repository, chRepository *ch_repository.Repository, checkers map[string]ServiceChecker) (*Service, error) {
+func New(
+	ctx context.Context,
+	dbRepository *mongo_repository.Repository,
+	chRepository *ch_repository.Repository,
+	checkers map[string]ServiceChecker,
+) (*Service, error) {
 	ctx = shared.AddModuleCtx(ctx, "job")
 	r := Service{mongoRepository: dbRepository, checkers: checkers, chRepository: chRepository}
 

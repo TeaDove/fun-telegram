@@ -65,7 +65,7 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		return AnaliseReport{}, errors.WithStack(err)
 	}
 
-	messages, err := r.mongoRepository.GetMessagesByChatAndUsername(ctx, chatId, username)
+	messages, err := r.chRepository.MessageGetByChatIdAndUserId(ctx, chatId, user.TgId)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
@@ -80,14 +80,7 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		MessagesCount:  len(messages),
 	}
 
-	reportImage, err := r.getPopularWords(messages)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile popular words")
-	}
-
-	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "PopularWords"})
-
-	reportImage, err = r.getChatTimeDistribution(messages, tz)
+	reportImage, err := r.getChatTimeDistribution(messages, tz)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat time distribution")
 	}
@@ -122,7 +115,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
 	}
 
-	messages, err := r.mongoRepository.GetMessagesByChat(ctx, chatId)
+	messages, err := r.chRepository.MessageGetByChatId(ctx, chatId)
 	if err != nil {
 		return AnaliseReport{}, errors.WithStack(err)
 	}
@@ -139,16 +132,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		MessagesCount:  len(messages),
 	}
 
-	reportImage, err := r.getPopularWords(messages)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile popular words")
-	}
-
-	if reportImage != nil {
-		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "PopularWords"})
-	}
-
-	reportImage, err = r.getChatterBoxes(messages, getter)
+	reportImage, err := r.getChatterBoxes(messages, getter)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chatterboxes")
 	}

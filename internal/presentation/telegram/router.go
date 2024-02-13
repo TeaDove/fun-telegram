@@ -85,7 +85,11 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			return errors.WithStack(err)
 		}
 		if !ok {
-			_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesAdmin, locale), nil)
+			_, err = ctx.Reply(
+				update,
+				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesAdmin, locale),
+				nil,
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -96,7 +100,11 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	if route.requireOwner {
 		ok = r.checkFromOwner(ctx, update)
 		if !ok {
-			_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, locale), nil)
+			_, err = ctx.Reply(
+				update,
+				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, locale),
+				nil,
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}

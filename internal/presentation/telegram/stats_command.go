@@ -161,7 +161,7 @@ func (r *Presentation) uploadMessageToRepository(
 			TgChatID:  update.EffectiveChat().GetID(),
 			TgUserId:  msgFrom.UserID,
 			Text:      msg.Message,
-			TgId:      msg.ID,
+			TgId:      int64(msg.ID),
 		})
 
 		if err != nil {
@@ -345,11 +345,11 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			return nil
 		}
 	} else {
-		lastMessage, err := r.dbRepository.GetLastMessage(ctx, update.EffectiveChat().GetID())
+		lastMessage, err := r.analiticsService.GetLastMessage(ctx, update.EffectiveChat().GetID())
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.get.last.message").Send()
 		} else {
-			offset = lastMessage.TgId - 1
+			offset = int(lastMessage.TgId) - 1
 		}
 		zerolog.Ctx(ctx).Info().Str("status", "stats.upload.begin").Int("offset", offset).Send()
 	}

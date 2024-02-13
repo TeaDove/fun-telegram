@@ -19,8 +19,16 @@ const (
 )
 
 var (
-	FlagKandinskyNegativePrompt = OptFlag{Long: "negative", Short: "n", Description: resource.CommandKandinskyFlagNegativePromptDescription}
-	FlagKandinskyStyle          = OptFlag{Long: "style", Short: "s", Description: resource.CommandKandinskyFlagStyleDescription}
+	FlagKandinskyNegativePrompt = OptFlag{
+		Long:        "negative",
+		Short:       "n",
+		Description: resource.CommandKandinskyFlagNegativePromptDescription,
+	}
+	FlagKandinskyStyle = OptFlag{
+		Long:        "style",
+		Short:       "s",
+		Description: resource.CommandKandinskyFlagStyleDescription,
+	}
 )
 
 // kandkinskyCommandHandler

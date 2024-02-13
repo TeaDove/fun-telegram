@@ -39,7 +39,12 @@ func getLogger() zerolog.Logger {
 	if err != nil {
 		level = zerolog.DebugLevel
 	}
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger().Level(level).Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	logger := zerolog.New(os.Stderr).
+		With().
+		Timestamp().
+		Logger().
+		Level(level).
+		Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	return logger
 }

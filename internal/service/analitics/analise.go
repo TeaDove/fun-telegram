@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/internal/repository/ch_repository"
 	"github.com/teadove/goteleout/internal/repository/mongo_repository"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
@@ -85,7 +86,7 @@ func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, 
 	return jpgImg, nil
 }
 
-func (r *Service) getChatterBoxes(messages []mongo_repository.Message, getter nameGetter) ([]byte, error) {
+func (r *Service) getChatterBoxes(messages []ch_repository.Message, getter nameGetter) ([]byte, error) {
 	users, userToCount := getChatterBoxes(messages, 20)
 
 	values := make([]chart.Value, 0, 10)
@@ -122,7 +123,13 @@ func (r *Service) getInterlocutors(ctx context.Context, chatId int64, userId int
 	const interlocutorsLimit = 10
 	const interlocutorsTimeLimit = time.Minute * 5
 
-	interlocutors, err := r.chRepository.MessageFindInterlocutors(ctx, chatId, userId, interlocutorsLimit, interlocutorsTimeLimit)
+	interlocutors, err := r.chRepository.MessageFindInterlocutors(
+		ctx,
+		chatId,
+		userId,
+		interlocutorsLimit,
+		interlocutorsTimeLimit,
+	)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
