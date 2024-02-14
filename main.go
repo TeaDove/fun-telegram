@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/teadove/goteleout/internal/presentation"
+	"github.com/teadove/goteleout/core/presentation"
 )
 
 func main() {
