@@ -23,11 +23,11 @@ def health() -> dict[str, bool]:
     return {"success": True}
 
 
-@app.post("/draw-points", response_class=StreamingResponse)
+@app.post("/points", response_class=StreamingResponse)
 def draw_fig(points: Points) -> StreamingResponse:
     return StreamingResponse(service.draw_points(points), media_type="image/jpeg")
 
 
-@app.post("/draw-histogram", response_class=StreamingResponse)
+@app.post("/histogram", response_class=StreamingResponse)
 def draw_histogram(input_: Bar) -> StreamingResponse:
     return StreamingResponse(service.draw_bar(input_), media_type="image/jpeg")

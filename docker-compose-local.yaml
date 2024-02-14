@@ -8,6 +8,7 @@ services:
       fun_storage__redis_host: "redis"
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
       fun_storage__clickhouse_url: "clickhouse:9000"
+      fun_ds_supplier_url: "http://ds"
     build:
       context: .
       dockerfile: DockerfileCore

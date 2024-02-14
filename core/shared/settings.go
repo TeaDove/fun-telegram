@@ -45,6 +45,8 @@ type Settings struct {
 
 	KandinskyKey    string `env:"kandinsky_key"`
 	KandinskySecret string `env:"kandinsky_secret"`
+
+	DsSupplierUrl string `env:"ds_supplier_url" envDefault:"http://0.0.0.0:8000"`
 }
 
 func mustNewSettings() Settings {

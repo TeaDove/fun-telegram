@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -47,7 +48,10 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	chRepository, err := ch_repository.New(ctx)
 	shared.Check(ctx, err)
 
-	analiticsService, err := analitics.New(dbRepository, chRepository)
+	dsSupplier, err := ds_supplier.New(ctx)
+	shared.Check(ctx, err)
+
+	analiticsService, err := analitics.New(dbRepository, chRepository, dsSupplier)
 	shared.Check(ctx, err)
 
 	protoClient := telegram.MustNewProtoClient(ctx)
@@ -59,6 +63,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		"ClickHouse": {Checker: chRepository.Ping, ForFrequent: true},
 		"Kandinsky":  {Checker: kandinskySupplier.Ping},
 		"IpLocator":  {Checker: locator.Ping},
+		"DSSupplier": {Checker: dsSupplier.Ping},
 	})
 	shared.Check(ctx, err)
 
