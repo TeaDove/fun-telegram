@@ -2,6 +2,8 @@ package analitics
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"image"
 	"image/jpeg"
 	"os"
@@ -17,7 +19,7 @@ func draw(t *testing.T, reportImage RepostImage) {
 	img, _, err := image.Decode(bytes.NewReader(reportImage.Content))
 	require.NoError(t, err)
 
-	out, err := os.Create(reportImage.Filename())
+	out, err := os.Create(fmt.Sprintf(".test-%s", reportImage.Filename()))
 	defer out.Close()
 
 	err = jpeg.Encode(out, img, nil)
@@ -32,7 +34,10 @@ func getService(t *testing.T) *Service {
 	chRepository, err := ch_repository.New(ctx)
 	require.NoError(t, err)
 
-	r, err := New(dbRepository, chRepository)
+	dsSupplier, err := ds_supplier.New(ctx)
+	require.NoError(t, err)
+
+	r, err := New(dbRepository, chRepository, dsSupplier)
 	require.NoError(t, err)
 
 	return r
@@ -54,7 +59,7 @@ func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 	r := getService(t)
 	ctx := shared.GetModuleCtx("tests")
 
-	report, err := r.AnaliseChat(ctx, 1701683862, 3, "abaturoff") //1779431332 1350141926 1178533048
+	report, err := r.AnaliseChat(ctx, 1701683862, 3, "teadove") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
 	for _, reportImage := range report.Images {

@@ -23,7 +23,7 @@ func (r *nameGetter) Get(userId int64) string {
 func (r *Service) getNameGetter(usersInChat mongo_repository.UsersInChat) nameGetter {
 	idToName := make(map[int64]string, len(usersInChat))
 	for _, user := range usersInChat {
-		idToName[user.TgId] = fmt.Sprintf("%s: @%s", user.TgName, user.TgUsername)
+		idToName[user.TgId] = fmt.Sprintf("%s", user.TgName)
 	}
 
 	return nameGetter{m: idToName}

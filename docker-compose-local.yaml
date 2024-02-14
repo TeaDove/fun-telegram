@@ -10,7 +10,7 @@ services:
       fun_storage__clickhouse_url: "clickhouse:9000"
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: DockerfileCore
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
@@ -35,14 +35,6 @@ services:
     image: willfarrell/autoheal
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-
-#  restarter:
-#    image: docker:25.0.2-git
-#    volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
-#    command: [ "/bin/sh", "-c", "while true; sleep 600; docker restart $(docker ps --format '{{.Names}}' | grep 'fun-telegram' | grep 'client'); done" ]
-#    restart: unless-stopped
-#    depends_on:
-#      - client
 
   redis:
     image: redis:7.2-alpine

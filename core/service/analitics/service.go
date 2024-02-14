@@ -3,6 +3,7 @@ package analitics
 import (
 	"context"
 	"fmt"
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"time"
 
 	"github.com/aaaton/golem/v4"
@@ -16,13 +17,14 @@ import (
 type Service struct {
 	mongoRepository *mongo_repository.Repository
 	chRepository    *ch_repository.Repository
+	dsSupplier      *ds_supplier.Supplier
 
 	toxicityExp *regexp2.Regexp
 	lemmatizer  *golem.Lemmatizer
 }
 
-func New(mongoRepository *mongo_repository.Repository, chRepository *ch_repository.Repository) (*Service, error) {
-	r := Service{mongoRepository: mongoRepository, chRepository: chRepository}
+func New(mongoRepository *mongo_repository.Repository, chRepository *ch_repository.Repository, dsSupplier *ds_supplier.Supplier) (*Service, error) {
+	r := Service{mongoRepository: mongoRepository, chRepository: chRepository, dsSupplier: dsSupplier}
 
 	exp, err := regexp2.Compile(
 		`((у|[нз]а|(хитро|не)?вз?[ыьъ]|с[ьъ]|(и|ра)[зс]ъ?|(о[тб]|под)[ьъ]?|(.\B)+?[оаеи])?-?([её]б(?!о[рй])|и[пб][ае][тц]).*?|(н[иеа]|[дп]о|ра[зс]|з?а|с(ме)?|о(т|дно)?|апч)?-?х[уy]([яйиеёю]|ли(?!ган)).*?|(в[зы]|(три|два|четыре)жды|(н|сук)а)?-?[б6]л(я(?!(х|ш[кн]|мб)[ауеыио]).*?|[еэ][дт]ь?)|(ра[сз]|[зн]а|[со]|вы?|п(р[ои]|од)|и[зс]ъ?|[ао]т)?п[иеё]зд.*?|(за)?п[ие]д[аое]?р((ас)?(и(ли)?[нщктл]ь?)?|(о(ч[еи])?)?к|юг)[ауеы]?|манд([ауеы]|ой|[ао]вошь?(е?к[ауе])?|юк(ов|[ауи])?)|муд([аио].*?|е?н([ьюия]|ей))|мля([тд]ь)?|лять|([нз]а|по)х|м[ао]л[ао]фь[яию]|(жоп|чмо|гнид)[а-я]*|г[ао]ндон|[а-я]*(с[рс]ать|хрен|хер|дрист|дроч|минет|говн|шлюх|г[а|о]вн)[а-я]*|мраз(ь|ота)|сук[а-я])|cock|fuck(er|ing)?`,
@@ -133,7 +135,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		MessagesCount:  len(messages),
 	}
 
-	reportImage, err := r.getChatterBoxes(messages, getter)
+	reportImage, err := r.getChatterBoxes(ctx, messages, getter)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to compile chatterboxes")
 	}
@@ -142,14 +144,14 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatterBoxes"})
 	}
 
-	reportImage, err = r.getInterlocutors(ctx, chatId, usersInChat, getter)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile chatterboxes")
-	}
-
-	if reportImage != nil {
-		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatterBoxes"})
-	}
+	//reportImage, err = r.getInterlocutors(ctx, chatId, usersInChat, getter)
+	//if err != nil {
+	//	return AnaliseReport{}, errors.Wrap(err, "failed to compile chatterboxes")
+	//}
+	//
+	//if reportImage != nil {
+	//	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatterBoxes"})
+	//}
 
 	reportImage, err = r.getChatTimeDistribution(messages, tz)
 	if err != nil {

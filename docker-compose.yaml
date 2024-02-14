@@ -34,15 +34,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
-#  restarter:
-#    image: docker:25.0.2-git
-#    volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
-#    command: [ "/bin/sh", "-c", "while true; sleep 600; docker restart $(docker ps --format '{{.Names}}' | grep 'fun-telegram' | grep 'client'); done" ]
-#    restart: unless-stopped
-#    depends_on:
-#      client:
-#        condition: service_healthy
-
   redis:
     image: redis:7.2-alpine
     restart: always

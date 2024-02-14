@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"sort"
 	"strings"
 	"time"
@@ -88,32 +89,20 @@ func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, 
 	return jpgImg, nil
 }
 
-func (r *Service) getChatterBoxes(messages []ch_repository.Message, getter nameGetter) ([]byte, error) {
-	users, userToCount := getChatterBoxes(messages, 20)
-
-	values := make([]chart.Value, 0, 10)
-	for _, user := range users {
-		values = append(values, chart.Value{
-			Value: float64(userToCount[user]),
-			Label: getter.Get(user),
-		})
-	}
-	if len(values) <= 1 {
-		return nil, nil
+func (r *Service) getChatterBoxes(ctx context.Context, messages []ch_repository.Message, getter nameGetter) ([]byte, error) {
+	const maxUsers = 15
+	userToCount := make(map[string]float64, 100)
+	for _, message := range messages {
+		userToCount[getter.Get(message.TgUserId)]++
 	}
 
-	barChart := getBarChart()
-	barChart.Title = fmt.Sprintf("%d most chatter-boxes by amount of words", len(users))
-	barChart.Bars = values
-
-	var popularWordsBuffer bytes.Buffer
-
-	err := barChart.Render(chart.PNG, &popularWordsBuffer)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
+	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
+		Values: userToCount,
+		Title:  fmt.Sprintf("Most chatter-boxes by amount of messages"),
+		XLabel: "User",
+		YLabel: "Message count",
+		Limit:  maxUsers,
+	})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -136,32 +125,47 @@ func (r *Service) getInterlocutorsForUser(ctx context.Context, chatId int64, use
 		return nil, errors.WithStack(err)
 	}
 
-	values := make([]chart.Value, 0, interlocutorsLimit)
-	for _, user := range interlocutors {
-		values = append(values, chart.Value{
-			Value: float64(user.MessagesCount),
-			Label: getter.Get(user.TgUserId),
-		})
-	}
-	if len(values) <= 1 {
-		return nil, nil
+	userToCount := make(map[string]float64, len(interlocutors))
+	for _, interlocutor := range interlocutors {
+		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
-	barChart := getBarChart()
-	barChart.Title = "Users interlocutors"
-	barChart.Bars = values
-
-	var popularWordsBuffer bytes.Buffer
-
-	err = barChart.Render(chart.PNG, &popularWordsBuffer)
+	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
+		Values: userToCount,
+		Title:  fmt.Sprintf("Users interlocutors"),
+		XLabel: "User",
+		YLabel: "Message count",
+	})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+	//values := make([]chart.Value, 0, interlocutorsLimit)
+	//for _, user := range interlocutors {
+	//	values = append(values, chart.Value{
+	//		Value: float64(user.MessagesCount),
+	//		Label: getter.Get(user.TgUserId),
+	//	})
+	//}
+	//if len(values) <= 1 {
+	//	return nil, nil
+	//}
+	//
+	//barChart := getBarChart()
+	//barChart.Title = "Users interlocutors"
+	//barChart.Bars = values
+	//
+	//var popularWordsBuffer bytes.Buffer
+	//
+	//err = barChart.Render(chart.PNG, &popularWordsBuffer)
+	//if err != nil {
+	//	return nil, errors.WithStack(err)
+	//}
+	//
+	//jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
+	//if err != nil {
+	//	return nil, errors.WithStack(err)
+	//}
 
 	return jpgImg, nil
 }

@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "visualisation"
+version = "0.1.0"
+description = ""
+authors = ["pibragimov <pibragimov@whoosh.bike>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.0.1"
+matplotlib = "^3.7.1"
+fastapi = "^0.95.2"
+uvicorn = "^0.22.0"
+jupyterlab = "^4.0.9"
+ujson = "^5.9.0"
+seaborn = "^0.13.2"
