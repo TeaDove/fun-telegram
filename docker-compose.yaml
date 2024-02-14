@@ -8,8 +8,8 @@ services:
       fun_storage__redis_host: "redis"
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
       fun_storage__clickhouse_url: "clickhouse:9000"
-      fun_ds_supplier_url: "http://ds"
-    image: ghcr.io/teadove/fun-telegram-core:v1.11.8
+      fun_ds_supplier_url: "http://ds:8000"
+    image: ghcr.io/teadove/fun-telegram-core:v1.11.9
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
@@ -34,12 +34,12 @@ services:
   ds:
     restart: always
     environment: {}
-    image: ghcr.io/teadove/fun-telegram-ds:v1.11.7
+    image: ghcr.io/teadove/fun-telegram-ds:v1.11.9
     volumes: []
     labels:
       - "autoheal=true"
     healthcheck:
-      test: curl -f http://127.0.0.1:8080/health || exit 1
+      test: curl -f http://127.0.0.1:8000/health || exit 1
       interval: 2m
       timeout: 20s
       retries: 3

@@ -43,6 +43,11 @@ run-core:
 run-docker-rebuild:
 	docker-compose -f docker-compose-local.yaml up -d --build
 
+update-local:
+	git pull
+	docker-compose -f docker-compose-local.yaml up -d --build
+	docker-compose logs -f client ds
+
 run-infra:
 	docker-compose -f docker-compose-infra.yaml up -d
 
