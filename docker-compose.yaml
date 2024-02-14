@@ -1,14 +1,14 @@
 version: '3.9'
 
 services:
-  client:
+  core:
     restart: always
     environment:
       fun_file_storage_path: "/config"
       fun_storage__redis_host: "redis"
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
       fun_storage__clickhouse_url: "clickhouse:9000"
-    image: ghcr.io/teadove/fun-telegram:v1.11.7
+    image: ghcr.io/teadove/fun-telegram-core:v1.11.7
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
@@ -19,10 +19,26 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
+      ds:
+        condition: service_healthy
     labels:
       - "autoheal=true"
     healthcheck:
       test: curl -f http://127.0.0.1:3333/health || exit 1
+      interval: 2m
+      timeout: 20s
+      retries: 3
+      start_period: 5s
+
+  ds:
+    restart: always
+    environment: {}
+    image: ghcr.io/teadove/fun-telegram-ds:v1.11.7
+    volumes: []
+    labels:
+      - "autoheal=true"
+    healthcheck:
+      test: curl -f http://127.0.0.1:8080/health || exit 1
       interval: 2m
       timeout: 20s
       retries: 3
