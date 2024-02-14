@@ -18,6 +18,6 @@ RUN poetry config virtualenvs.create false \
 
 COPY ./ds /backend
 
-WORKDIR /backend/app
+WORKDIR /backend
 
-CMD ["python3", "app.py"]
+CMD ["python3", "main.py"]
