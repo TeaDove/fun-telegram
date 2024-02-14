@@ -125,11 +125,16 @@ func (r *Service) getInterlocutorsForUser(ctx context.Context, chatId int64, use
 		return nil, errors.WithStack(err)
 	}
 
+	if len(interlocutors) == 0 {
+		return nil, nil
+	}
+
 	userToCount := make(map[string]float64, len(interlocutors))
 	for _, interlocutor := range interlocutors {
 		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
-
+	shared.SendInterface(userToCount)
+	
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		Values: userToCount,
 		Title:  fmt.Sprintf("Users interlocutors"),

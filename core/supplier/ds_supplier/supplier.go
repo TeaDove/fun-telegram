@@ -28,7 +28,7 @@ type DrawBarInput struct {
 	Title  string             `json:"title"`
 	XLabel string             `json:"xlabel"`
 	YLabel string             `json:"ylabel"`
-	Limit  int                `json:"limit"`
+	Limit  int                `json:"limit,omitempty"`
 }
 
 func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, error) {

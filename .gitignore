@@ -166,4 +166,4 @@ dmypy.json
 .terragrunt-cache
 .terraform
 
-/internal/service/analitics/*.jpeg
+/core/service/analitics/.test-*.jpeg
