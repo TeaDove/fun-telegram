@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/shared"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/teadove/goteleout/core/shared"
 )
 
 type Supplier struct {
@@ -42,21 +44,13 @@ func (r *Supplier) Ping(ctx context.Context) error {
 	return nil
 }
 
-type DrawBarInput struct {
-	Values map[string]float64 `json:"values"`
-	Title  string             `json:"title"`
-	XLabel string             `json:"xlabel"`
-	YLabel string             `json:"ylabel"`
-	Limit  int                `json:"limit,omitempty"`
-}
-
-func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, error) {
+func (r *Supplier) draw(ctx context.Context, path string, input any) ([]byte, error) {
 	reqBody, err := json.Marshal(&input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal request body")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/histogram", r.basePath), bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s", r.basePath, path), bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to make request")
 	}
@@ -73,6 +67,44 @@ func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, er
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to do request")
+	}
+
+	return body, nil
+}
+
+type DrawInput struct {
+	Title  string `json:"title"`
+	XLabel string `json:"xlabel"`
+	YLabel string `json:"ylabel"`
+}
+
+type DrawBarInput struct {
+	DrawInput
+
+	Values map[string]float64 `json:"values"`
+	Limit  int                `json:"limit,omitempty"`
+}
+
+func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, error) {
+	body, err := r.draw(ctx, "histogram", input)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to draw")
+	}
+
+	return body, nil
+}
+
+type DrawTimeseriesInput struct {
+	DrawInput
+
+	Values   map[time.Time]float64 `json:"values"`
+	OnlyTime bool                  `json:"only_time"`
+}
+
+func (r *Supplier) DrawTimeseries(ctx context.Context, input *DrawTimeseriesInput) ([]byte, error) {
+	body, err := r.draw(ctx, "timeseries", input)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to draw")
 	}
 
 	return body, nil

@@ -145,7 +145,7 @@ var localizer = map[Code]map[Locale]string{
 	},
 	CommandToxicDescription: {
 		Ru: "находит токсичные сообщения и кричит о них",
-		En: "find toxic words and screem about them",
+		En: "find toxic words and scream about them",
 	},
 	CommandHealthDescription: {Ru: "проверить здоровье сервиса", En: "checks service health"},
 	CommandInfraStatsDescription: {

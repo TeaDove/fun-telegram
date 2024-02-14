@@ -1,7 +1,7 @@
 from pydantic import Field, BaseModel
 import uuid
 
-
+from datetime import datetime
 from numpy import random
 
 colors = ("RED", "BLUE", "GREEN")
@@ -68,7 +68,13 @@ class Points(BaseModel):
     )
 
 
-class Bar(BaseModel):
+class Plot(BaseModel):
+    title: str = "Title"
+    ylabel: str = "Y Label"
+    xlabel: str = "X Label"
+
+
+class Bar(Plot):
     values: dict[str, float] = Field(
         example={
             random.choice(_random_names): random.randint(0, 100)
@@ -76,7 +82,18 @@ class Bar(BaseModel):
         }
     )
 
-    title: str = "Title"
-    ylabel: str = "Y Label"
-    xlabel: str = "X Label"
     limit: int | None = None
+
+
+class TimeSeries(Bar):
+    values: dict[datetime, float] = Field(
+        example={
+            datetime(2023, 1, 1): random.randint(0, 100),
+            datetime(2023, 2, 1): random.randint(0, 100),
+            datetime(2023, 3, 1): random.randint(0, 100),
+            datetime(2023, 4, 1): random.randint(0, 100),
+            datetime(2023, 5, 1): random.randint(0, 100),
+        }
+    )
+
+    only_time: bool = False

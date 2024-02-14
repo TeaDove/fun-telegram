@@ -7,12 +7,12 @@ import (
 	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/core/repository/ch_repository"
 	"github.com/teadove/goteleout/core/repository/mongo_repository"
-	"github.com/teadove/goteleout/core/shared"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
 )
@@ -89,31 +89,74 @@ func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, 
 	return jpgImg, nil
 }
 
-func (r *Service) getChatterBoxes(ctx context.Context, messages []ch_repository.Message, getter nameGetter) ([]byte, error) {
+func (r *Service) getChatterBoxes(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	statsRepostChan chan<- statsRepost,
+	messages []ch_repository.Message,
+	getter nameGetter,
+) {
+	defer wg.Done()
 	const maxUsers = 15
+	output := statsRepost{
+		repostImage: RepostImage{
+			Name: "ChatterBoxes",
+		},
+	}
+
 	userToCount := make(map[string]float64, 100)
 	for _, message := range messages {
 		userToCount[getter.Get(message.TgUserId)]++
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
+		DrawInput: ds_supplier.DrawInput{
+			Title:  "Most toxic users",
+			XLabel: "User",
+			YLabel: "Toxic words percent",
+		},
 		Values: userToCount,
-		Title:  fmt.Sprintf("Most chatter-boxes by amount of messages"),
-		XLabel: "User",
-		YLabel: "Message count",
 		Limit:  maxUsers,
 	})
 	if err != nil {
-		return nil, errors.WithStack(err)
+		output.err = errors.Wrap(err, "failed to draw in ds supplier")
+		statsRepostChan <- output
+
+		return
 	}
 
-	return jpgImg, nil
+	output.repostImage.Content = jpgImg
+	statsRepostChan <- output
 }
 
 const interlocutorsLimit = 10
 const interlocutorsTimeLimit = time.Minute * 5
 
-func (r *Service) getInterlocutorsForUser(ctx context.Context, chatId int64, userId int64, getter nameGetter) ([]byte, error) {
+func (r *Service) getInterlocutorsForUser(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	statsRepostChan chan<- statsRepost,
+	chatId int64,
+	userId int64,
+) {
+	defer wg.Done()
+	output := statsRepost{
+		repostImage: RepostImage{
+			Name: "Interlocutors",
+		},
+	}
+
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
+	if err != nil {
+		println("sending")
+		output.err = errors.Wrap(err, "failed to get users in chat from mongo repository")
+		statsRepostChan <- output
+
+		return
+	}
+
+	getter := r.getNameGetter(usersInChat)
+
 	interlocutors, err := r.chRepository.MessageFindInterlocutors(
 		ctx,
 		chatId,
@@ -122,57 +165,42 @@ func (r *Service) getInterlocutorsForUser(ctx context.Context, chatId int64, use
 		interlocutorsTimeLimit,
 	)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
+		statsRepostChan <- output
+
+		return
 	}
 
 	if len(interlocutors) == 0 {
-		return nil, nil
+		statsRepostChan <- output
+
+		return
 	}
 
 	userToCount := make(map[string]float64, len(interlocutors))
 	for _, interlocutor := range interlocutors {
 		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
-	shared.SendInterface(userToCount)
-	
+
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
+		DrawInput: ds_supplier.DrawInput{
+			Title:  "Most toxic users",
+			XLabel: "User",
+			YLabel: "Toxic words percent",
+		},
 		Values: userToCount,
-		Title:  fmt.Sprintf("Users interlocutors"),
-		XLabel: "User",
-		YLabel: "Message count",
 	})
 	if err != nil {
-		return nil, errors.WithStack(err)
+		output.err = errors.Wrap(err, "failed to draw bar in ds supplier")
+		statsRepostChan <- output
+
+		return
 	}
 
-	//values := make([]chart.Value, 0, interlocutorsLimit)
-	//for _, user := range interlocutors {
-	//	values = append(values, chart.Value{
-	//		Value: float64(user.MessagesCount),
-	//		Label: getter.Get(user.TgUserId),
-	//	})
-	//}
-	//if len(values) <= 1 {
-	//	return nil, nil
-	//}
-	//
-	//barChart := getBarChart()
-	//barChart.Title = "Users interlocutors"
-	//barChart.Bars = values
-	//
-	//var popularWordsBuffer bytes.Buffer
-	//
-	//err = barChart.Render(chart.PNG, &popularWordsBuffer)
-	//if err != nil {
-	//	return nil, errors.WithStack(err)
-	//}
-	//
-	//jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
-	//if err != nil {
-	//	return nil, errors.WithStack(err)
-	//}
+	output.repostImage.Content = jpgImg
+	statsRepostChan <- output
 
-	return jpgImg, nil
+	return
 }
 
 func (r *Service) getInterlocutors(ctx context.Context, chatId int64, usersInChat mongo_repository.UsersInChat, getter nameGetter) ([]byte, error) {
@@ -190,37 +218,7 @@ func (r *Service) getInterlocutors(ctx context.Context, chatId int64, usersInCha
 		}
 
 		userToInterlocutors[userInChat.TgId] = interlocutors
-		println("user done")
 	}
-
-	shared.SendInterface(userToInterlocutors)
-
-	//values := make([]chart.Value, 0, interlocutorsLimit)
-	//for _, user := range interlocutors {
-	//	values = append(values, chart.Value{
-	//		Value: float64(user.MessagesCount),
-	//		Label: getter.Get(user.TgUserId),
-	//	})
-	//}
-	//if len(values) <= 1 {
-	//	return nil, nil
-	//}
-	//
-	//barChart := getBarChart()
-	//barChart.Title = "Users interlocutors"
-	//barChart.Bars = values
-	//
-	//var popularWordsBuffer bytes.Buffer
-	//
-	//err = barChart.Render(chart.PNG, &popularWordsBuffer)
-	//if err != nil {
-	//	return nil, errors.WithStack(err)
-	//}
-	//
-	//jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
-	//if err != nil {
-	//	return nil, errors.WithStack(err)
-	//}
 
 	return nil, nil
 }

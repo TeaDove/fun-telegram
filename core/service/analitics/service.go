@@ -3,8 +3,11 @@ package analitics
 import (
 	"context"
 	"fmt"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
+	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/aaaton/golem/v4"
 	"github.com/aaaton/golem/v4/dicts/ru"
@@ -62,6 +65,40 @@ type AnaliseReport struct {
 	MessagesCount  int
 }
 
+type statsRepost struct {
+	repostImage RepostImage
+	err         error
+}
+
+func (r *AnaliseReport) appendFromChan(ctx context.Context, statsRepostChan chan statsRepost) {
+	for statsReport := range statsRepostChan {
+		if statsReport.err != nil {
+			zerolog.Ctx(ctx).
+				Error().Stack().Err(statsReport.err).
+				Str("status", "failed.to.compile.statistics").
+				Str("stats.name", statsReport.repostImage.Name).
+				Send()
+			continue
+		}
+
+		if statsReport.repostImage.Content == nil {
+			zerolog.Ctx(ctx).
+				Warn().
+				Str("status", "no.image.created").
+				Str("stats.name", statsReport.repostImage.Name).
+				Send()
+			continue
+		}
+
+		r.Images = append(r.Images, statsReport.repostImage)
+		zerolog.Ctx(ctx).
+			Info().
+			Str("status", "analitics.image.compiled").
+			Str("stats.name", statsReport.repostImage.Name).
+			Send()
+	}
+}
+
 func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
 	user, err := r.mongoRepository.GetUserByUsername(ctx, username)
 	if err != nil {
@@ -83,31 +120,22 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		MessagesCount:  len(messages),
 	}
 
-	reportImage, err := r.getChatTimeDistribution(messages, tz)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat time distribution")
-	}
+	statsRepostChan := make(chan statsRepost, 3)
 
-	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatTimeDistribution"})
+	var wg sync.WaitGroup
 
-	reportImage, err = r.getChatDateDistribution(messages)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
-	}
+	wg.Add(1)
+	go r.getChatDateDistribution(ctx, &wg, statsRepostChan, messages)
 
-	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatDateDistribution"})
+	wg.Add(1)
+	go r.getChatTimeDistribution(ctx, &wg, statsRepostChan, messages, tz)
 
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
-	}
+	wg.Add(1)
+	go r.getInterlocutorsForUser(ctx, &wg, statsRepostChan, chatId, user.TgId)
 
-	reportImage, err = r.getInterlocutorsForUser(ctx, chatId, user.TgId, r.getNameGetter(usersInChat))
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
-	}
-
-	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "Interlocutors"})
+	wg.Wait()
+	close(statsRepostChan)
+	report.appendFromChan(ctx, statsRepostChan)
 
 	return report, nil
 }
@@ -135,57 +163,38 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		MessagesCount:  len(messages),
 	}
 
-	reportImage, err := r.getChatterBoxes(ctx, messages, getter)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile chatterboxes")
-	}
+	statsRepostChan := make(chan statsRepost, 4)
 
-	if reportImage != nil {
-		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatterBoxes"})
-	}
+	var wg sync.WaitGroup
 
-	//reportImage, err = r.getInterlocutors(ctx, chatId, usersInChat, getter)
-	//if err != nil {
-	//	return AnaliseReport{}, errors.Wrap(err, "failed to compile chatterboxes")
-	//}
-	//
-	//if reportImage != nil {
-	//	report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatterBoxes"})
-	//}
+	wg.Add(1)
+	go r.getChatterBoxes(ctx, &wg, statsRepostChan, messages, getter)
 
-	reportImage, err = r.getChatTimeDistribution(messages, tz)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat time distribution")
-	}
+	wg.Add(1)
+	go r.getChatTimeDistribution(ctx, &wg, statsRepostChan, messages, tz)
 
-	if reportImage != nil {
-		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatTimeDistribution"})
-	}
+	wg.Add(1)
+	go r.getChatDateDistribution(ctx, &wg, statsRepostChan, messages)
 
-	reportImage, err = r.getChatDateDistribution(messages)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile chat date distribution")
-	}
+	wg.Add(1)
+	go r.getMostToxicUsers(ctx, &wg, statsRepostChan, messages, getter)
 
-	if reportImage != nil {
-		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "ChatDateDistribution"})
-	}
-
-	reportImage, err = r.getMostToxicUsers(messages, getter)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to compile toxic users")
-	}
-
-	if reportImage != nil {
-		report.Images = append(report.Images, RepostImage{Content: reportImage, Name: "MostToxicUsers"})
-	}
+	wg.Wait()
+	close(statsRepostChan)
+	report.appendFromChan(ctx, statsRepostChan)
 
 	return report, nil
 }
 
-func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
+func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int, username string) (report AnaliseReport, err error) {
 	if username != "" {
-		return r.analiseUserChat(ctx, chatId, tz, username)
+		report, err = r.analiseUserChat(ctx, chatId, tz, username)
+	} else {
+		report, err = r.analiseWholeChat(ctx, chatId, tz)
 	}
-	return r.analiseWholeChat(ctx, chatId, tz)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to analise chat")
+	}
+
+	return report, nil
 }

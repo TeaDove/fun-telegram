@@ -11,7 +11,7 @@ from io import BytesIO
 from numpy import random
 from starlette.responses import StreamingResponse
 from service import Service
-from schemas import Points, Bar
+from schemas import Points, Bar, TimeSeries
 
 
 app = FastAPI()
@@ -29,5 +29,10 @@ def draw_fig(points: Points) -> StreamingResponse:
 
 
 @app.post("/histogram", response_class=StreamingResponse)
-def draw_histogram(input_: Bar) -> StreamingResponse:
+def draw_bar(input_: Bar) -> StreamingResponse:
     return StreamingResponse(service.draw_bar(input_), media_type="image/jpeg")
+
+
+@app.post("/timeseries", response_class=StreamingResponse)
+def draw_timeseries(input_: TimeSeries) -> StreamingResponse:
+    return StreamingResponse(service.draw_timeseries(input_), media_type="image/jpeg")

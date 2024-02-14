@@ -15,7 +15,10 @@ from numpy import random
 from starlette.responses import StreamingResponse
 import seaborn as sns
 from typing import Hashable
-from schemas import Points, Bar
+import matplotlib.dates as mdates
+from schemas import Points, Bar, TimeSeries
+
+X, Y = "x", "y"
 
 
 @dataclass
@@ -63,12 +66,12 @@ class Service:
         fig = plt.figure(figsize=self.default_figsize)
         ax = fig.gca()
 
-        df = pd.DataFrame(input_.values.items(), columns=["x", "y"])
-        df = df.sort_values(by="y", ascending=False)
+        df = pd.DataFrame(input_.values.items(), columns=[X, Y])
+        df = df.sort_values(by=Y, ascending=False)
         if input_.limit is not None:
             df = df.head(input_.limit)
 
-        my_plot = sns.barplot(data=df, ax=ax, palette=self.palette, x="x", y="y")
+        my_plot = sns.barplot(data=df, ax=ax, palette=self.palette, x=X, y=Y)
         my_plot.set(yticklabels=[])
         my_plot.set_xticklabels(
             my_plot.get_xticklabels(), rotation=45, horizontalalignment="right"
@@ -87,5 +90,23 @@ class Service:
                 xytext=(0, 10),
                 textcoords="offset points",
             )
+
+        return self._fig_to_bytes(fig)
+
+    def draw_timeseries(self, input_: TimeSeries) -> BytesIO:
+        fig = plt.figure(figsize=self.default_figsize)
+        ax = fig.gca()
+
+        df = pd.DataFrame(input_.values.items(), columns=[X, Y])
+
+        sns.lineplot(data=df, ax=ax, palette=self.palette, x=X, y=Y)
+
+        plt.title(input_.title)
+        plt.ylabel(input_.ylabel)
+        plt.xlabel(input_.xlabel)
+
+        if input_.only_time:
+            ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 
         return self._fig_to_bytes(fig)
