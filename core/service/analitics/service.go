@@ -70,8 +70,8 @@ type statsReport struct {
 	err         error
 }
 
-func (r *AnaliseReport) appendFromChan(ctx context.Context, statsRepostChan chan statsReport) {
-	for statsReport := range statsRepostChan {
+func (r *AnaliseReport) appendFromChan(ctx context.Context, statsReportChan chan statsReport) {
+	for statsReport := range statsReportChan {
 		if statsReport.err != nil {
 			zerolog.Ctx(ctx).
 				Error().Stack().Err(statsReport.err).
@@ -125,22 +125,22 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		MessagesCount:  int(count),
 	}
 
-	statsRepostChan := make(chan statsReport, 3)
+	statsReportChan := make(chan statsReport, 3)
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsRepostChan, chatId, user.TgId)
+	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsReportChan, chatId, user.TgId)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsRepostChan, chatId, user.TgId, tz)
+	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsReportChan, chatId, user.TgId, tz)
 
 	wg.Add(1)
-	go r.getInterlocutorsForUser(ctx, &wg, statsRepostChan, chatId, user.TgId)
+	go r.getInterlocutorsForUser(ctx, &wg, statsReportChan, chatId, user.TgId)
 
 	wg.Wait()
-	close(statsRepostChan)
-	report.appendFromChan(ctx, statsRepostChan)
+	close(statsReportChan)
+	report.appendFromChan(ctx, statsReportChan)
 
 	return report, nil
 }
@@ -193,6 +193,9 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 
 	wg.Add(1)
 	go r.getMostToxicUsers(ctx, &wg, statsReportChan, messages, getter)
+
+	wg.Add(1)
+	go r.getInterlocutors(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
 
 	wg.Wait()
 	close(statsReportChan)

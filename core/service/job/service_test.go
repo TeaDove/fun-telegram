@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/teadove/goteleout/core/utils"
+	"github.com/teadove/goteleout/core/shared"
 )
 
 func TestIntegration_JobService_DeleteMessage_Ok(t *testing.T) {
 	r := getService(t)
 
-	_, err := r.DeleteOldMessages(utils.GetCtx())
+	_, err := r.DeleteOldMessages(shared.GetCtx())
 	assert.NoError(t, err)
 }

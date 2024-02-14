@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/teadove/goteleout/core/shared"
 	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
@@ -93,7 +94,7 @@ func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, 
 func (r *Service) getChatterBoxes(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsReport,
+	statsReportChan chan<- statsReport,
 	chatId int64,
 	getter nameGetter,
 ) {
@@ -108,7 +109,7 @@ func (r *Service) getChatterBoxes(
 	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(ctx, chatId, maxUsers)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to get chatter boxes")
-		statsRepostChan <- output
+		statsReportChan <- output
 
 		return
 	}
@@ -128,13 +129,13 @@ func (r *Service) getChatterBoxes(
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw in ds supplier")
-		statsRepostChan <- output
+		statsReportChan <- output
 
 		return
 	}
 
 	output.repostImage.Content = jpgImg
-	statsRepostChan <- output
+	statsReportChan <- output
 }
 
 const interlocutorsLimit = 10
@@ -143,14 +144,14 @@ const interlocutorsTimeLimit = time.Minute * 5
 func (r *Service) getInterlocutorsForUser(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsReport,
+	statsReportChan chan<- statsReport,
 	chatId int64,
 	userId int64,
 ) {
 	defer wg.Done()
 	output := statsReport{
 		repostImage: RepostImage{
-			Name: "Interlocutors",
+			Name: "InterlocutorsForUser",
 		},
 	}
 
@@ -158,7 +159,7 @@ func (r *Service) getInterlocutorsForUser(
 	if err != nil {
 		println("sending")
 		output.err = errors.Wrap(err, "failed to get users in chat from mongo repository")
-		statsRepostChan <- output
+		statsReportChan <- output
 
 		return
 	}
@@ -174,13 +175,13 @@ func (r *Service) getInterlocutorsForUser(
 	)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
-		statsRepostChan <- output
+		statsReportChan <- output
 
 		return
 	}
 
 	if len(interlocutors) == 0 {
-		statsRepostChan <- output
+		statsReportChan <- output
 
 		return
 	}
@@ -200,20 +201,39 @@ func (r *Service) getInterlocutorsForUser(
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw bar in ds supplier")
-		statsRepostChan <- output
+		statsReportChan <- output
 
 		return
 	}
 
 	output.repostImage.Content = jpgImg
-	statsRepostChan <- output
-
-	return
+	statsReportChan <- output
 }
 
-func (r *Service) getInterlocutors(ctx context.Context, chatId int64, usersInChat mongo_repository.UsersInChat, getter nameGetter) ([]byte, error) {
+func (r *Service) getInterlocutors(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	statsReportChan chan<- statsReport,
+	chatId int64,
+	usersInChat mongo_repository.UsersInChat,
+	getter nameGetter,
+) {
+	defer wg.Done()
+	output := statsReport{
+		repostImage: RepostImage{
+			Name: "Interlocutors",
+		},
+	}
+
+	userIdToMatrixId := make(map[int]int64, interlocutorsLimit)
+	matrixIdToUserId := make(map[int64]int, interlocutorsLimit)
+	adjacencyMatrix := make([][]uint64, len(usersInChat))
+	for idx := range adjacencyMatrix {
+		adjacencyMatrix[idx] = make([]uint64, len(usersInChat))
+	}
+
 	userToInterlocutors := make(map[int64][]ch_repository.MessageFindInterlocutorsOutput, len(usersInChat))
-	for _, userInChat := range usersInChat {
+	for idx, userInChat := range usersInChat {
 		interlocutors, err := r.chRepository.MessageFindInterlocutors(
 			ctx,
 			chatId,
@@ -222,11 +242,28 @@ func (r *Service) getInterlocutors(ctx context.Context, chatId int64, usersInCha
 			interlocutorsTimeLimit,
 		)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			output.err = errors.Wrap(err, "failed to get users interlocurotr")
+			statsReportChan <- output
+
+			return
 		}
 
 		userToInterlocutors[userInChat.TgId] = interlocutors
+
+		userIdToMatrixId[idx] = userInChat.TgId
+		matrixIdToUserId[userInChat.TgId] = idx
 	}
 
-	return nil, nil
+	for userId, userToInterlocutors := range userToInterlocutors {
+		for _, interlocutor := range userToInterlocutors {
+			interlocutorMatrixIdx, ok := matrixIdToUserId[interlocutor.TgUserId]
+			if !ok {
+				continue
+			}
+
+			adjacencyMatrix[matrixIdToUserId[userId]][interlocutorMatrixIdx] = interlocutor.MessagesCount
+		}
+	}
+
+	shared.SendInterface(adjacencyMatrix)
 }

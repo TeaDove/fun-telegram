@@ -32,7 +32,6 @@ services:
       retries: 3
       start_period: 5s
 
-
   clickhouse:
     image: clickhouse/clickhouse-server:23.12
     ports:

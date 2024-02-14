@@ -40,7 +40,7 @@ func getChatterBoxes(messages []ch_repository.Message, maxUsers int) ([]int64, m
 func (r *Service) getMessagesGroupedByDateByChatId(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsReport,
+	statsReportChan chan<- statsReport,
 	chatId int64,
 ) {
 	defer wg.Done()
@@ -52,7 +52,7 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatId(ctx, chatId, 86400*7)
 	if err != nil {
 		statsReport.err = errors.Wrap(err, "failed to get messages from ch repository")
-		statsRepostChan <- statsReport
+		statsReportChan <- statsReport
 
 		return
 	}
@@ -72,19 +72,19 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 	})
 	if err != nil {
 		statsReport.err = errors.Wrap(err, "failed to draw image in ds supplier")
-		statsRepostChan <- statsReport
+		statsReportChan <- statsReport
 
 		return
 	}
 
 	statsReport.repostImage.Content = jpgImg
-	statsRepostChan <- statsReport
+	statsReportChan <- statsReport
 }
 
 func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsReport,
+	statsReportChan chan<- statsReport,
 	chatId int64,
 	userId int64,
 ) {
@@ -97,7 +97,7 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatIdByUserId(ctx, chatId, userId, 86400*7)
 	if err != nil {
 		statsReport.err = errors.Wrap(err, "failed to get messages from ch repository")
-		statsRepostChan <- statsReport
+		statsReportChan <- statsReport
 
 		return
 	}
@@ -117,13 +117,13 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 	})
 	if err != nil {
 		statsReport.err = errors.Wrap(err, "failed to draw image in ds supplier")
-		statsRepostChan <- statsReport
+		statsReportChan <- statsReport
 
 		return
 	}
 
 	statsReport.repostImage.Content = jpgImg
-	statsRepostChan <- statsReport
+	statsReportChan <- statsReport
 }
 
 func (r *Service) getMessagesGroupedByTimeByChatId(

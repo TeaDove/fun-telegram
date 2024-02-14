@@ -20,7 +20,7 @@ type toxicLevel struct {
 func (r *Service) getMostToxicUsers(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsReport,
+	statsReportChan chan<- statsReport,
 	messages []ch_repository.Message,
 	getter nameGetter,
 ) {
@@ -44,7 +44,7 @@ func (r *Service) getMostToxicUsers(
 			isToxic, err := r.IsToxic(word)
 			if err != nil {
 				output.err = errors.Wrap(err, "failed to check is toxic word")
-				statsRepostChan <- output
+				statsReportChan <- output
 				return
 			}
 
@@ -83,12 +83,12 @@ func (r *Service) getMostToxicUsers(
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw image in ds supplier")
-		statsRepostChan <- output
+		statsReportChan <- output
 		return
 	}
 
 	output.repostImage.Content = jpgImg
-	statsRepostChan <- output
+	statsReportChan <- output
 	return
 }
 

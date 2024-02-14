@@ -16,7 +16,7 @@ from starlette.responses import StreamingResponse
 import seaborn as sns
 from typing import Hashable
 import matplotlib.dates as mdates
-from schemas import Points, Bar, TimeSeries
+from schemas import Points, Bar, TimeSeries, Graph
 
 X, Y = "x", "y"
 
@@ -105,8 +105,26 @@ class Service:
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 
-        plt.title(input_.title)
-        plt.ylabel(input_.ylabel)
-        plt.xlabel(input_.xlabel)
+        ax.set_title(input_.title)
+        ax.set_xlabel(input_.ylabel)
+        ax.set_xlabel(input_.xlabel)
+
+        return self._fig_to_bytes(fig)
+
+    def draw_graph(self, input_: Graph) -> BytesIO:
+        fig = plt.figure(figsize=self.default_figsize)
+        ax = fig.gca()
+
+        df = pd.DataFrame(input_.values.items(), columns=[X, Y])
+
+        sns.lineplot(data=df, ax=ax, palette=self.palette, x=X, y=Y)
+
+        if input_.only_time:
+            ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+
+        ax.set_title(input_.title)
+        ax.set_xlabel(input_.ylabel)
+        ax.set_xlabel(input_.xlabel)
 
         return self._fig_to_bytes(fig)

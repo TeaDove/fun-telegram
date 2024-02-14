@@ -2,6 +2,7 @@ from pydantic import Field, BaseModel
 import uuid
 
 from datetime import datetime
+from examples import adj_matrix
 from numpy import random
 
 colors = ("RED", "BLUE", "GREEN")
@@ -97,3 +98,9 @@ class TimeSeries(Bar):
     )
 
     only_time: bool = False
+
+
+class Graph(Bar):
+    values: list[list[int]] = Field(example=adj_matrix)
+
+    names: list[str] = Field(example=[random.choice(_random_names) for _ in range(50)])
