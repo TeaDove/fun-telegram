@@ -3,11 +3,12 @@ package analitics
 import (
 	"bytes"
 	"fmt"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"image"
 	"image/jpeg"
 	"os"
 	"testing"
+
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/goteleout/core/repository/ch_repository"

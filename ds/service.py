@@ -101,12 +101,12 @@ class Service:
 
         sns.lineplot(data=df, ax=ax, palette=self.palette, x=X, y=Y)
 
-        plt.title(input_.title)
-        plt.ylabel(input_.ylabel)
-        plt.xlabel(input_.xlabel)
-
         if input_.only_time:
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+
+        plt.title(input_.title)
+        plt.ylabel(input_.ylabel)
+        plt.xlabel(input_.xlabel)
 
         return self._fig_to_bytes(fig)

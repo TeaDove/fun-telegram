@@ -116,7 +116,8 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	text = append(text,
 		styling.Plain("First message in stats send at "),
 		styling.Code(report.FirstMessageAt.String()),
-		styling.Plain(fmt.Sprintf("\nMessages processed: %d", report.MessagesCount)),
+		styling.Plain(fmt.Sprintf("\nMessages processed: %d\n", report.MessagesCount)),
+		styling.Plain(fmt.Sprintf("Compiled in: %.2fs", time.Since(input.StartedAt).Seconds())),
 	)
 
 	var requestBuilder *message.RequestBuilder
@@ -435,7 +436,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 				"Seconds elapsed: %.2f\n"+
 				"LastDate: %s",
 			count,
-			time.Now().Sub(startedAt).Seconds(),
+			time.Since(startedAt).Seconds(),
 			lastDate.String(),
 		),
 	})

@@ -124,6 +124,8 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Str("command", firstWord).
 		Send()
 
+	opts.StartedAt = t0
+
 	err = route.executor(ctx, update, &opts)
 	elapsed := time.Now().UTC().Sub(t0)
 

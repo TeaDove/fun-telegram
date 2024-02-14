@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/core/repository/ch_repository"
@@ -92,21 +93,29 @@ func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, 
 func (r *Service) getChatterBoxes(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsRepost,
-	messages []ch_repository.Message,
+	statsRepostChan chan<- statsReport,
+	chatId int64,
 	getter nameGetter,
 ) {
 	defer wg.Done()
 	const maxUsers = 15
-	output := statsRepost{
+	output := statsReport{
 		repostImage: RepostImage{
 			Name: "ChatterBoxes",
 		},
 	}
 
-	userToCount := make(map[string]float64, 100)
-	for _, message := range messages {
-		userToCount[getter.Get(message.TgUserId)]++
+	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(ctx, chatId, maxUsers)
+	if err != nil {
+		output.err = errors.Wrap(err, "failed to get chatter boxes")
+		statsRepostChan <- output
+
+		return
+	}
+
+	userToCount := make(map[string]float64, maxUsers)
+	for _, message := range userToCountArray {
+		userToCount[getter.Get(message.TgUserId)] = float64(message.Count)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
@@ -116,7 +125,6 @@ func (r *Service) getChatterBoxes(
 			YLabel: "Toxic words percent",
 		},
 		Values: userToCount,
-		Limit:  maxUsers,
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw in ds supplier")
@@ -135,12 +143,12 @@ const interlocutorsTimeLimit = time.Minute * 5
 func (r *Service) getInterlocutorsForUser(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsRepost,
+	statsRepostChan chan<- statsReport,
 	chatId int64,
 	userId int64,
 ) {
 	defer wg.Done()
-	output := statsRepost{
+	output := statsReport{
 		repostImage: RepostImage{
 			Name: "Interlocutors",
 		},
@@ -184,9 +192,9 @@ func (r *Service) getInterlocutorsForUser(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  "Most toxic users",
-			XLabel: "User",
-			YLabel: "Toxic words percent",
+			Title:  "User interlocusts",
+			XLabel: "Interlocusts",
+			YLabel: "Amount of messages in conversations",
 		},
 		Values: userToCount,
 	})

@@ -65,12 +65,12 @@ type AnaliseReport struct {
 	MessagesCount  int
 }
 
-type statsRepost struct {
+type statsReport struct {
 	repostImage RepostImage
 	err         error
 }
 
-func (r *AnaliseReport) appendFromChan(ctx context.Context, statsRepostChan chan statsRepost) {
+func (r *AnaliseReport) appendFromChan(ctx context.Context, statsRepostChan chan statsReport) {
 	for statsReport := range statsRepostChan {
 		if statsReport.err != nil {
 			zerolog.Ctx(ctx).
@@ -105,30 +105,35 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		return AnaliseReport{}, errors.WithStack(err)
 	}
 
-	messages, err := r.chRepository.MessageGetByChatIdAndUserId(ctx, chatId, user.TgId)
+	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, chatId, user.TgId)
 	if err != nil {
-		return AnaliseReport{}, errors.WithStack(err)
+		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
 
-	if len(messages) == 0 {
+	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(ctx, chatId, user.TgId)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
+	}
+
+	if count == 0 {
 		return AnaliseReport{}, nil
 	}
 
 	report := AnaliseReport{
 		Images:         make([]RepostImage, 0, 6),
-		FirstMessageAt: messages[len(messages)-1].CreatedAt,
-		MessagesCount:  len(messages),
+		FirstMessageAt: lastMessage.CreatedAt,
+		MessagesCount:  int(count),
 	}
 
-	statsRepostChan := make(chan statsRepost, 3)
+	statsRepostChan := make(chan statsReport, 3)
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go r.getChatDateDistribution(ctx, &wg, statsRepostChan, messages)
+	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsRepostChan, chatId, user.TgId)
 
 	wg.Add(1)
-	go r.getChatTimeDistribution(ctx, &wg, statsRepostChan, messages, tz)
+	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsRepostChan, chatId, user.TgId, tz)
 
 	wg.Add(1)
 	go r.getInterlocutorsForUser(ctx, &wg, statsRepostChan, chatId, user.TgId)
@@ -155,33 +160,43 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		return AnaliseReport{}, nil
 	}
 
+	count, err := r.chRepository.CountGetByChatId(ctx, chatId)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
+	}
+
+	lastMessage, err := r.chRepository.GetLastMessageByChatId(ctx, chatId)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
+	}
+
 	getter := r.getNameGetter(usersInChat)
 
 	report := AnaliseReport{
 		Images:         make([]RepostImage, 0, 6),
-		FirstMessageAt: messages[len(messages)-1].CreatedAt,
-		MessagesCount:  len(messages),
+		FirstMessageAt: lastMessage.CreatedAt,
+		MessagesCount:  int(count),
 	}
 
-	statsRepostChan := make(chan statsRepost, 4)
+	statsReportChan := make(chan statsReport, 4)
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go r.getChatterBoxes(ctx, &wg, statsRepostChan, messages, getter)
+	go r.getChatterBoxes(ctx, &wg, statsReportChan, chatId, getter)
 
 	wg.Add(1)
-	go r.getChatTimeDistribution(ctx, &wg, statsRepostChan, messages, tz)
+	go r.getMessagesGroupedByDateByChatId(ctx, &wg, statsReportChan, chatId)
 
 	wg.Add(1)
-	go r.getChatDateDistribution(ctx, &wg, statsRepostChan, messages)
+	go r.getMessagesGroupedByTimeByChatId(ctx, &wg, statsReportChan, chatId, tz)
 
 	wg.Add(1)
-	go r.getMostToxicUsers(ctx, &wg, statsRepostChan, messages, getter)
+	go r.getMostToxicUsers(ctx, &wg, statsReportChan, messages, getter)
 
 	wg.Wait()
-	close(statsRepostChan)
-	report.appendFromChan(ctx, statsRepostChan)
+	close(statsReportChan)
+	report.appendFromChan(ctx, statsReportChan)
 
 	return report, nil
 }

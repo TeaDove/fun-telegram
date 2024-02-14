@@ -2,9 +2,10 @@ package analitics
 
 import (
 	"context"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"strings"
 	"sync"
+
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/core/repository/ch_repository"
@@ -19,14 +20,14 @@ type toxicLevel struct {
 func (r *Service) getMostToxicUsers(
 	ctx context.Context,
 	wg *sync.WaitGroup,
-	statsRepostChan chan<- statsRepost,
+	statsRepostChan chan<- statsReport,
 	messages []ch_repository.Message,
 	getter nameGetter,
 ) {
 	defer wg.Done()
 	const maxUsers = 15
 	const minWordsToCount = 300
-	output := statsRepost{
+	output := statsReport{
 		repostImage: RepostImage{
 			Name: "MostToxicUsers",
 		},

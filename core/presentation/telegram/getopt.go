@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"strings"
+	"time"
 
 	"github.com/teadove/goteleout/core/service/resource"
 )
@@ -13,10 +14,11 @@ type OptFlag struct {
 }
 
 type Input struct {
-	Text   string
-	Silent bool
-	Ops    map[string]string
-	Locale resource.Locale
+	Text      string
+	Silent    bool
+	Ops       map[string]string
+	Locale    resource.Locale
+	StartedAt time.Time
 }
 
 var FlagSilent = OptFlag{Long: "silent", Short: "q"}
