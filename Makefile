@@ -22,11 +22,18 @@ run-ds:
 docker-login:
 	docker login ghcr.io
 
-docker-build-core: docker-login
+docker-buildx-core: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 -f=DockerfileCore . --tag $(CORE_DOCKER_IMAGE) --no-cache --push
 
-docker-build-ds: docker-login
+docker-buildx-ds: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 -f=DockerfileDS . --tag $(DS_DOCKER_IMAGE) --no-cache --push
+
+
+docker-build-core: docker-login
+	docker build -f=DockerfileCore . --tag $(CORE_DOCKER_IMAGE) --no-cache --push
+
+docker-build-ds: docker-login
+	docker build -f=DockerfileDS . --tag $(DS_DOCKER_IMAGE) --no-cache --push
 
 test-integration:
 	go test ./... --run 'TestIntegration_*' -cover -count=1 -p=100
