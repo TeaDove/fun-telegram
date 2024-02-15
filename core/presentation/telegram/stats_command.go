@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"github.com/guregu/null/v5"
 	"strconv"
 	"strings"
 	"sync"
@@ -158,13 +159,22 @@ func (r *Presentation) uploadMessageToRepository(
 			continue
 		}
 
-		err := r.analiticsService.InsertNewMessage(ctx, &analitics.Message{
+		analiticsMessage := analitics.Message{
 			CreatedAt: time.Unix(int64(msg.Date), 0),
 			TgChatID:  update.EffectiveChat().GetID(),
 			TgUserId:  msgFrom.UserID,
 			Text:      msg.Message,
 			TgId:      int64(msg.ID),
-		})
+		}
+
+		if msg.ReplyTo != nil {
+			messageReplyHeader, ok := msg.ReplyTo.(*tg.MessageReplyHeader)
+			if ok {
+				analiticsMessage.ReplyToMsgID = null.IntFrom(int64(messageReplyHeader.ReplyToMsgID))
+			}
+		}
+
+		err := r.analiticsService.InsertNewMessage(ctx, &analiticsMessage)
 
 		if err != nil {
 			zerolog.Ctx(ctx).
@@ -426,6 +436,11 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	close(elemChan)
 	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
+
+	err = r.analiticsService.MessageSetReplyToUserId(ctx, update.EffectiveChat().GetID())
+	if err != nil {
+		return errors.Wrap(err, "failed to set reply to user id")
+	}
 
 	_, err = ctx.EditMessage(barChatId, &tg.MessagesEditMessageRequest{
 		Peer: barPeer,

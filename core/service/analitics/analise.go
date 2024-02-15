@@ -4,16 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 	"sort"
 	"strings"
 	"sync"
-	"time"
-
-	"github.com/teadove/goteleout/core/shared"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/repository/ch_repository"
 	"github.com/teadove/goteleout/core/repository/mongo_repository"
 	"github.com/wcharczuk/go-chart/v2"
 	"golang.org/x/exp/maps"
@@ -121,9 +117,9 @@ func (r *Service) getChatterBoxes(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  "Most toxic users",
+			Title:  "Chatter boxes",
 			XLabel: "User",
-			YLabel: "Toxic words percent",
+			YLabel: "Amount of messages sent",
 		},
 		Values: userToCount,
 	})
@@ -138,40 +134,30 @@ func (r *Service) getChatterBoxes(
 	statsReportChan <- output
 }
 
-const interlocutorsLimit = 10
-const interlocutorsTimeLimit = time.Minute * 5
+const interlocutorsLimit = 15
+const minReplyCount = 10
 
-func (r *Service) getInterlocutorsForUser(
+func (r *Service) getMessageFindRepliedBy(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	chatId int64,
 	userId int64,
+	getter nameGetter,
 ) {
 	defer wg.Done()
 	output := statsReport{
 		repostImage: RepostImage{
-			Name: "InterlocutorsForUser",
+			Name: "MessageFindRepliedBy",
 		},
 	}
 
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
-	if err != nil {
-		println("sending")
-		output.err = errors.Wrap(err, "failed to get users in chat from mongo repository")
-		statsReportChan <- output
-
-		return
-	}
-
-	getter := r.getNameGetter(usersInChat)
-
-	interlocutors, err := r.chRepository.MessageFindInterlocutors(
+	interlocutors, err := r.chRepository.MessageFindRepliedBy(
 		ctx,
 		chatId,
 		userId,
+		3,
 		interlocutorsLimit,
-		interlocutorsTimeLimit,
 	)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
@@ -193,7 +179,7 @@ func (r *Service) getInterlocutorsForUser(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  "User interlocusts",
+			Title:  "User replied by",
 			XLabel: "Interlocusts",
 			YLabel: "Amount of messages in conversations",
 		},
@@ -210,7 +196,66 @@ func (r *Service) getInterlocutorsForUser(
 	statsReportChan <- output
 }
 
-func (r *Service) getInterlocutors(
+func (r *Service) getMessageFindRepliesTo(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	statsReportChan chan<- statsReport,
+	chatId int64,
+	userId int64,
+	getter nameGetter,
+) {
+	defer wg.Done()
+	output := statsReport{
+		repostImage: RepostImage{
+			Name: "MessageFindRepliesTo",
+		},
+	}
+
+	interlocutors, err := r.chRepository.MessageFindRepliesTo(
+		ctx,
+		chatId,
+		userId,
+		3,
+		interlocutorsLimit,
+	)
+	if err != nil {
+		output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
+		statsReportChan <- output
+
+		return
+	}
+
+	if len(interlocutors) == 0 {
+		statsReportChan <- output
+
+		return
+	}
+
+	userToCount := make(map[string]float64, len(interlocutors))
+	for _, interlocutor := range interlocutors {
+		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
+	}
+
+	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
+		DrawInput: ds_supplier.DrawInput{
+			Title:  "User replies to",
+			XLabel: "Interlocusts",
+			YLabel: "Amount of messages in conversations",
+		},
+		Values: userToCount,
+	})
+	if err != nil {
+		output.err = errors.Wrap(err, "failed to draw bar in ds supplier")
+		statsReportChan <- output
+
+		return
+	}
+
+	output.repostImage.Content = jpgImg
+	statsReportChan <- output
+}
+
+func (r *Service) getMessageFindAllRepliedBy(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
@@ -221,49 +266,71 @@ func (r *Service) getInterlocutors(
 	defer wg.Done()
 	output := statsReport{
 		repostImage: RepostImage{
-			Name: "Interlocutors",
+			Name: "MessageFindAllRepliedBy",
 		},
 	}
 
-	userIdToMatrixId := make(map[int]int64, interlocutorsLimit)
-	matrixIdToUserId := make(map[int64]int, interlocutorsLimit)
-	adjacencyMatrix := make([][]uint64, len(usersInChat))
-	for idx := range adjacencyMatrix {
-		adjacencyMatrix[idx] = make([]uint64, len(usersInChat))
-	}
-
-	userToInterlocutors := make(map[int64][]ch_repository.MessageFindInterlocutorsOutput, len(usersInChat))
-	for idx, userInChat := range usersInChat {
-		interlocutors, err := r.chRepository.MessageFindInterlocutors(
+	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
+	for _, user := range usersInChat {
+		replies, err := r.chRepository.MessageFindRepliesTo(
 			ctx,
 			chatId,
-			userInChat.TgId,
+			user.TgId,
+			9,
 			interlocutorsLimit,
-			interlocutorsTimeLimit,
 		)
+
 		if err != nil {
-			output.err = errors.Wrap(err, "failed to get users interlocurotr")
+			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
 			statsReportChan <- output
 
 			return
 		}
 
-		userToInterlocutors[userInChat.TgId] = interlocutors
-
-		userIdToMatrixId[idx] = userInChat.TgId
-		matrixIdToUserId[userInChat.TgId] = idx
-	}
-
-	for userId, userToInterlocutors := range userToInterlocutors {
-		for _, interlocutor := range userToInterlocutors {
-			interlocutorMatrixIdx, ok := matrixIdToUserId[interlocutor.TgUserId]
-			if !ok {
-				continue
-			}
-
-			adjacencyMatrix[matrixIdToUserId[userId]][interlocutorMatrixIdx] = interlocutor.MessagesCount
+		for _, reply := range replies {
+			edges = append(edges, ds_supplier.GraphEdge{
+				First:  getter.Get(user.TgId),
+				Second: getter.Get(reply.TgUserId),
+				Weight: float64(reply.MessagesCount),
+			})
 		}
 	}
 
-	shared.SendInterface(adjacencyMatrix)
+	//if err != nil {
+	//	output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
+	//	statsReportChan <- output
+	//
+	//	return
+	//}
+
+	if len(edges) == 0 {
+		statsReportChan <- output
+
+		return
+	}
+
+	//edges := make([]ds_supplier.GraphEdge, 0, len(interlocutors))
+	//for _, interlocutor := range interlocutors {
+	//	edges = append(edges, ds_supplier.GraphEdge{
+	//		First:  getter.Get(interlocutor.TgUserId),
+	//		Second: getter.Get(interlocutor.RepliedTgUserId),
+	//		Weight: float64(interlocutor.Count),
+	//	})
+	//}
+
+	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
+		DrawInput: ds_supplier.DrawInput{
+			Title: "Interlocutors",
+		},
+		Edges: edges,
+	})
+	if err != nil {
+		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
+		statsReportChan <- output
+
+		return
+	}
+
+	output.repostImage.Content = jpgImg
+	statsReportChan <- output
 }

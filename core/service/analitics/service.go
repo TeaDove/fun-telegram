@@ -119,13 +119,20 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		return AnaliseReport{}, nil
 	}
 
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
+	if err != nil {
+		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
+	}
+
+	getter := r.getNameGetter(usersInChat)
+
 	report := AnaliseReport{
 		Images:         make([]RepostImage, 0, 6),
 		FirstMessageAt: lastMessage.CreatedAt,
 		MessagesCount:  int(count),
 	}
 
-	statsReportChan := make(chan statsReport, 3)
+	statsReportChan := make(chan statsReport, 4)
 
 	var wg sync.WaitGroup
 
@@ -136,7 +143,10 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsReportChan, chatId, user.TgId, tz)
 
 	wg.Add(1)
-	go r.getInterlocutorsForUser(ctx, &wg, statsReportChan, chatId, user.TgId)
+	go r.getMessageFindRepliedBy(ctx, &wg, statsReportChan, chatId, user.TgId, getter)
+
+	wg.Add(1)
+	go r.getMessageFindRepliesTo(ctx, &wg, statsReportChan, chatId, user.TgId, getter)
 
 	wg.Wait()
 	close(statsReportChan)
@@ -178,7 +188,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		MessagesCount:  int(count),
 	}
 
-	statsReportChan := make(chan statsReport, 4)
+	statsReportChan := make(chan statsReport, 5)
 
 	var wg sync.WaitGroup
 
@@ -195,7 +205,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	go r.getMostToxicUsers(ctx, &wg, statsReportChan, messages, getter)
 
 	wg.Add(1)
-	go r.getInterlocutors(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
+	go r.getMessageFindAllRepliedBy(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
 
 	wg.Wait()
 	close(statsReportChan)

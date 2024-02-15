@@ -8,9 +8,42 @@ import (
 )
 
 func (r *Repository) MessageCreate(ctx context.Context, message *Message) error {
-	err := r.conn.AsyncInsert(ctx, `INSERT INTO message VALUES (
-			?, ?, ?, ?, ?, ?
-		)`, false, message.Id, message.CreatedAt, message.TgChatID, message.TgId, message.TgUserId, message.Text)
+	err := r.conn.AsyncInsert(ctx, `
+INSERT INTO message VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?
+		)`,
+		false,
+		message.Id,
+		message.CreatedAt,
+		message.TgChatID,
+		message.TgId,
+		message.TgUserId,
+		message.Text,
+		message.ReplyToMsgID,
+		message.ReplyToUserID,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to async insert")
+	}
+
+	return nil
+}
+
+func (r *Repository) MessageSetReplyToUserId(ctx context.Context, chatId int64) error {
+	err := r.conn.AsyncInsert(ctx, `
+insert into message
+select am.id,
+       am.created_at,
+       am.tg_chat_id,
+       am.tg_id,
+       am.tg_user_id,
+       am.text,
+       am.reply_to_msg_id,
+       m.tg_user_id
+from message am
+         join default.message m on m.tg_chat_id = am.tg_chat_id AND m.tg_id = am.reply_to_msg_id
+where reply_to_msg_id is not null and reply_to_user_id is null and am.tg_chat_id = ?;
+`, false, chatId)
 	if err != nil {
 		return errors.Wrap(err, "failed to async insert")
 	}
@@ -70,13 +103,117 @@ from message am final
 	return output, err
 }
 
+func (r *Repository) MessageFindRepliesTo(
+	ctx context.Context,
+	chatId int64,
+	userId int64,
+	minReplyCount int,
+	limit int,
+) ([]MessageFindInterlocutorsOutput, error) {
+	rows, err := r.conn.Query(ctx, `
+select am.reply_to_user_id as tg_user_id, count(1) as count
+from message am final
+where am.tg_chat_id = ? and am.tg_user_id = ? and am.reply_to_user_id != am.tg_user_id
+group by 1
+	having count(1) > ?
+order by 2 desc limit ?
+`, chatId, userId, minReplyCount, limit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find interlocutors")
+	}
+
+	output := make([]MessageFindInterlocutorsOutput, 0, limit)
+	for rows.Next() {
+		row := MessageFindInterlocutorsOutput{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, err
+}
+
+func (r *Repository) MessageFindRepliedBy(
+	ctx context.Context,
+	chatId int64,
+	userId int64,
+	minReplyCount int,
+	limit int,
+) ([]MessageFindInterlocutorsOutput, error) {
+	rows, err := r.conn.Query(ctx, `
+select am.tg_user_id as tg_user_id, count(1) as count
+	from message am final
+		where am.tg_chat_id = ? and am.reply_to_user_id = ? and am.reply_to_user_id != am.tg_user_id
+		having count(1) > ?
+	group by 1
+		order by 2 desc
+limit ?
+`, chatId, userId, minReplyCount, limit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find interlocutors")
+	}
+
+	output := make([]MessageFindInterlocutorsOutput, 0, limit)
+	for rows.Next() {
+		row := MessageFindInterlocutorsOutput{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, err
+}
+
+type MessageFindAllRepliedByOutput struct {
+	TgUserId        int64  `ch:"tg_user_id"`
+	RepliedTgUserId int64  `ch:"replied_tg_user_id"`
+	Count           uint64 `ch:"count"`
+}
+
+func (r *Repository) MessageFindAllRepliedBy(
+	ctx context.Context,
+	chatId int64,
+	limit int,
+) ([]MessageFindAllRepliedByOutput, error) {
+	rows, err := r.conn.Query(ctx, `
+select am.tg_user_id as tg_user_id, am.reply_to_user_id as replied_tg_user_id, count(1) as count
+	from message am final
+		where am.reply_to_user_id != am.tg_user_id and tg_chat_id = ?
+			group by 1, 2
+			order by 3 desc
+	limit ?;
+`, chatId, limit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find interlocutors")
+	}
+
+	output := make([]MessageFindAllRepliedByOutput, 0, limit)
+	for rows.Next() {
+		row := MessageFindAllRepliedByOutput{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, err
+}
+
 func (r *Repository) MessageGetByChatIdAndUserId(
 	ctx context.Context,
 	chatId int64,
 	userId int64,
 ) ([]Message, error) {
 	rows, err := r.conn.Query(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
+select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ?
 		and tg_user_id = ?
 `, chatId, userId)
@@ -183,7 +320,7 @@ func (r *Repository) MessageGetByChatId(
 	chatId int64,
 ) ([]Message, error) {
 	rows, err := r.conn.Query(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
+select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ?
 `, chatId)
 	if err != nil {
@@ -206,7 +343,7 @@ select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
 
 func (r *Repository) GetLastMessageByChatId(ctx context.Context, chatId int64) (Message, error) {
 	row := r.conn.QueryRow(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
+select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ? 
 		order by created_at limit 1
 `, chatId)
@@ -225,7 +362,7 @@ select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
 
 func (r *Repository) GetLastMessageByChatIdByUserId(ctx context.Context, chatId int64, userId int64) (Message, error) {
 	row := r.conn.QueryRow(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text from message final
+select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ? and tg_user_id = ?
 		order by created_at limit 1
 `, chatId, userId)

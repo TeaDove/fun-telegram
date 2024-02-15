@@ -10,15 +10,26 @@ import (
 
 func (r *Service) InsertNewMessage(ctx context.Context, message *Message) error {
 	err := r.chRepository.MessageCreate(ctx, &ch_repository.Message{
-		Id:        uuid.New(),
-		CreatedAt: message.CreatedAt,
-		TgChatID:  message.TgChatID,
-		TgUserId:  message.TgUserId,
-		Text:      message.Text,
-		TgId:      message.TgId,
+		Id:            uuid.New(),
+		CreatedAt:     message.CreatedAt,
+		TgChatID:      message.TgChatID,
+		TgUserId:      message.TgUserId,
+		Text:          message.Text,
+		TgId:          message.TgId,
+		ReplyToMsgID:  message.ReplyToMsgID,
+		ReplyToUserID: message.ReplyToUserID,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to insert message in ch repository")
+	}
+
+	return nil
+}
+
+func (r *Service) MessageSetReplyToUserId(ctx context.Context, chatId int64) error {
+	err := r.chRepository.MessageSetReplyToUserId(ctx, chatId)
+	if err != nil {
+		return errors.Wrap(err, "failed to set reply to user id in ch repository")
 	}
 
 	return nil

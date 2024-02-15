@@ -7,16 +7,18 @@ from pydantic import Field, BaseModel
 from typing import List
 import uuid
 from fastapi.encoders import jsonable_encoder
+import networkx as nx
 import matplotlib
 
 
 from io import BytesIO
 from numpy import random
 from starlette.responses import StreamingResponse
+from bokeh.palettes import Spectral, TolRainbow
 import seaborn as sns
 from typing import Hashable
 import matplotlib.dates as mdates
-from schemas import Points, Bar, TimeSeries, Graph
+from schemas import Points, Bar, TimeSeries, Graph, Plot
 
 X, Y = "x", "y"
 
@@ -36,6 +38,19 @@ class Service:
         plt.close(fig)
 
         return buf
+
+    def _get_fig_and_ax(self, input_: Plot):
+        fig = plt.figure(figsize=self.default_figsize)
+        ax = fig.gca()
+
+        if input_.title is not None:
+            plt.title(input_.title)
+        if input_.ylabel is not None:
+            plt.ylabel(input_.ylabel)
+        if input_.xlabel is not None:
+            plt.xlabel(input_.xlabel)
+
+        return fig, ax
 
     def draw_points(self, points: Points) -> BytesIO:
         points_list = [
@@ -63,8 +78,7 @@ class Service:
         return self._fig_to_bytes(fig)
 
     def draw_bar(self, input_: Bar) -> BytesIO:
-        fig = plt.figure(figsize=self.default_figsize)
-        ax = fig.gca()
+        fig, ax = self._get_fig_and_ax(input_)
 
         df = pd.DataFrame(input_.values.items(), columns=[X, Y])
         df = df.sort_values(by=Y, ascending=False)
@@ -77,9 +91,6 @@ class Service:
             my_plot.get_xticklabels(), rotation=45, horizontalalignment="right"
         )
 
-        plt.title(input_.title)
-        plt.ylabel(input_.ylabel)
-        plt.xlabel(input_.xlabel)
         # add value above each bar
         for p in my_plot.patches:
             my_plot.annotate(
@@ -94,8 +105,7 @@ class Service:
         return self._fig_to_bytes(fig)
 
     def draw_timeseries(self, input_: TimeSeries) -> BytesIO:
-        fig = plt.figure(figsize=self.default_figsize)
-        ax = fig.gca()
+        fig, ax = self._get_fig_and_ax(input_)
 
         df = pd.DataFrame(input_.values.items(), columns=[X, Y])
 
@@ -104,27 +114,73 @@ class Service:
         if input_.only_time:
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-
-        ax.set_title(input_.title)
-        ax.set_xlabel(input_.ylabel)
-        ax.set_xlabel(input_.xlabel)
 
         return self._fig_to_bytes(fig)
 
     def draw_graph(self, input_: Graph) -> BytesIO:
-        fig = plt.figure(figsize=self.default_figsize)
-        ax = fig.gca()
+        fig, ax = self._get_fig_and_ax(input_)
 
-        df = pd.DataFrame(input_.values.items(), columns=[X, Y])
+        g = nx.DiGraph(directed=True)
 
-        sns.lineplot(data=df, ax=ax, palette=self.palette, x=X, y=Y)
+        nodes = set()
+        avg = 0.0
+        edgewidths = []
+        for edge in input_.edges:
+            g.add_edge(edge.first, edge.second, weight=edge.weight)
+            avg += edge.weight
+            nodes.add(edge.first)
+            nodes.add(edge.second)
+            edgewidths.append(edge.weight)
 
-        if input_.only_time:
-            ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        avg = avg / len(input_.edges)
+        max_ = max(edgewidths)
 
-        ax.set_title(input_.title)
-        ax.set_xlabel(input_.ylabel)
-        ax.set_xlabel(input_.xlabel)
+        for idx in range(len(edgewidths)):
+            edgewidths[idx] = edgewidths[idx] * 5 / max_ + 2
+
+        # edgewidth = [len(G.get_edge_data(u, v)) for u, v in H.edges()]
+
+        # elarge = [(u, v) for (u, v, d) in g.edges(data=True) if d["weight"] > avg]
+        # esmall = [(u, v) for (u, v, d) in g.edges(data=True) if d["weight"] <= avg]
+
+        pos = nx.spring_layout(g)  # positions for all nodes - seed for reproducibility
+
+        TolRainbow23 = TolRainbow[23]
+        TolRainbow23_count, TolRainbow23_mod = divmod(len(nodes), 23)
+        pallete = TolRainbow23 * TolRainbow23_count + TolRainbow23[:TolRainbow23_mod]
+
+        # nodes
+        nx.draw_networkx_nodes(g, pos, node_size=1000, ax=ax, node_color=pallete)
+
+        # edges
+        nx.draw_networkx_edges(g, pos, width=edgewidths, alpha=0.9, ax=ax)
+        # nx.draw_networkx_edges(g, pos, edgelist=esmall, width=3, alpha=0.1, ax=ax)
+
+        # nx.draw_networkx_edges(
+        #     g,
+        #     pos,
+        #     edgelist=esmall,
+        #     width=3,
+        #     alpha=0.5,
+        #     edge_color="b",
+        #     style="dashed",
+        #     ax=ax,
+        # )
+
+        # node labels
+        nx.draw_networkx_labels(
+            g,
+            pos,
+            font_size=10,
+            font_family="sans-serif",
+            ax=ax,
+            bbox={"ec": "k", "fc": "white", "alpha": 0.7},
+        )
+        # edge weight labels
+        # edge_labels = nx.get_edge_attributes(g, "weight")
+        # nx.draw_networkx_edge_labels(g, pos, edge_labels, ax=ax)
+
+        ax.margins(0.008)
+        ax.collections[0].set_edgecolor("#000000")
 
         return self._fig_to_bytes(fig)

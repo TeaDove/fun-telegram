@@ -73,9 +73,9 @@ func (r *Supplier) draw(ctx context.Context, path string, input any) ([]byte, er
 }
 
 type DrawInput struct {
-	Title  string `json:"title"`
-	XLabel string `json:"xlabel"`
-	YLabel string `json:"ylabel"`
+	Title  string `json:"title,omitempty"`
+	XLabel string `json:"xlabel,omitempty"`
+	YLabel string `json:"ylabel,omitempty"`
 }
 
 type DrawBarInput struct {
@@ -103,6 +103,27 @@ type DrawTimeseriesInput struct {
 
 func (r *Supplier) DrawTimeseries(ctx context.Context, input *DrawTimeseriesInput) ([]byte, error) {
 	body, err := r.draw(ctx, "timeseries", input)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to draw")
+	}
+
+	return body, nil
+}
+
+type GraphEdge struct {
+	First  string  `json:"first"`
+	Second string  `json:"second"`
+	Weight float64 `json:"weight"`
+}
+
+type DrawGraphInput struct {
+	DrawInput
+
+	Edges []GraphEdge `json:"edges,omitempty"`
+}
+
+func (r *Supplier) DrawGraph(ctx context.Context, input *DrawGraphInput) ([]byte, error) {
+	body, err := r.draw(ctx, "graph", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
 	}

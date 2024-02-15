@@ -70,9 +70,9 @@ class Points(BaseModel):
 
 
 class Plot(BaseModel):
-    title: str = "Title"
-    ylabel: str = "Y Label"
-    xlabel: str = "X Label"
+    title: str | None = None
+    ylabel: str | None = None
+    xlabel: str | None = None
 
 
 class Bar(Plot):
@@ -86,7 +86,7 @@ class Bar(Plot):
     limit: int | None = None
 
 
-class TimeSeries(Bar):
+class TimeSeries(Plot):
     values: dict[datetime, float] = Field(
         example={
             datetime(2023, 1, 1): random.randint(0, 100),
@@ -100,7 +100,20 @@ class TimeSeries(Bar):
     only_time: bool = False
 
 
-class Graph(Bar):
-    values: list[list[int]] = Field(example=adj_matrix)
+class GraphEdge(BaseModel):
+    first: str
+    second: str
+    weight: float
 
-    names: list[str] = Field(example=[random.choice(_random_names) for _ in range(50)])
+
+class Graph(Plot):
+    edges: list[GraphEdge] = Field(
+        example=[
+            GraphEdge(
+                first=random.choice(_random_names),
+                second=random.choice(_random_names),
+                weight=random.randint(0, 100),
+            )
+            for _ in range(30)
+        ]
+    )
