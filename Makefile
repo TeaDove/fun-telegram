@@ -28,7 +28,6 @@ docker-buildx-core: docker-login
 docker-buildx-ds: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 -f=DockerfileDS . --tag $(DS_DOCKER_IMAGE) --no-cache --push
 
-
 docker-build-core: docker-login
 	docker build -f=DockerfileCore . --tag $(CORE_DOCKER_IMAGE) --no-cache --push
 
