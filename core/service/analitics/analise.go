@@ -135,7 +135,6 @@ func (r *Service) getChatterBoxes(
 }
 
 const interlocutorsLimit = 15
-const minReplyCount = 10
 
 func (r *Service) getMessageFindRepliedBy(
 	ctx context.Context,
@@ -296,27 +295,12 @@ func (r *Service) getMessageFindAllRepliedBy(
 		}
 	}
 
-	//if err != nil {
-	//	output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
-	//	statsReportChan <- output
-	//
-	//	return
-	//}
-
 	if len(edges) == 0 {
+		output.err = errors.New("no edges of graph")
 		statsReportChan <- output
 
 		return
 	}
-
-	//edges := make([]ds_supplier.GraphEdge, 0, len(interlocutors))
-	//for _, interlocutor := range interlocutors {
-	//	edges = append(edges, ds_supplier.GraphEdge{
-	//		First:  getter.Get(interlocutor.TgUserId),
-	//		Second: getter.Get(interlocutor.RepliedTgUserId),
-	//		Weight: float64(interlocutor.Count),
-	//	})
-	//}
 
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{

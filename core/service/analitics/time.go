@@ -2,40 +2,13 @@ package analitics
 
 import (
 	"context"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/teadove/goteleout/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/repository/ch_repository"
-	"golang.org/x/exp/maps"
 )
-
-func getChatterBoxes(messages []ch_repository.Message, maxUsers int) ([]int64, map[int64]int) {
-	userToCount := make(map[int64]int, 100)
-	for _, message := range messages {
-		wordsCount := len(strings.Fields(message.Text))
-		_, ok := userToCount[message.TgUserId]
-		if ok {
-			userToCount[message.TgUserId] += wordsCount
-		} else {
-			userToCount[message.TgUserId] = wordsCount
-		}
-	}
-
-	users := maps.Keys(userToCount)
-	sort.SliceStable(users, func(i, j int) bool {
-		return userToCount[users[i]] > userToCount[users[j]]
-	})
-	if len(users) > maxUsers {
-		users = users[:maxUsers]
-	}
-
-	return users, userToCount
-}
 
 func (r *Service) getMessagesGroupedByDateByChatId(
 	ctx context.Context,
@@ -44,15 +17,15 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 	chatId int64,
 ) {
 	defer wg.Done()
-	statsReport := statsReport{
+	statsReportResult := statsReport{
 		repostImage: RepostImage{
 			Name: "MessagesGroupedByDateByChatId",
 		},
 	}
 	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatId(ctx, chatId, 86400*7)
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to get messages from ch repository")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
+		statsReportChan <- statsReportResult
 
 		return
 	}
@@ -68,17 +41,17 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 			XLabel: "Day",
 			YLabel: "Amount of messages",
 		},
-		Values: timeToCount,
+		Values: map[string]map[time.Time]float64{"day": timeToCount},
 	})
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to draw image in ds supplier")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to draw image in ds supplier")
+		statsReportChan <- statsReportResult
 
 		return
 	}
 
-	statsReport.repostImage.Content = jpgImg
-	statsReportChan <- statsReport
+	statsReportResult.repostImage.Content = jpgImg
+	statsReportChan <- statsReportResult
 }
 
 func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
@@ -89,15 +62,15 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 	userId int64,
 ) {
 	defer wg.Done()
-	statsReport := statsReport{
+	statsReportResult := statsReport{
 		repostImage: RepostImage{
 			Name: "MessagesGroupedByDateByChatIdByUserId",
 		},
 	}
 	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatIdByUserId(ctx, chatId, userId, 86400*7)
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to get messages from ch repository")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
+		statsReportChan <- statsReportResult
 
 		return
 	}
@@ -113,18 +86,20 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 			XLabel: "Day",
 			YLabel: "Amount of messages",
 		},
-		Values: timeToCount,
+		Values: map[string]map[time.Time]float64{"day": timeToCount},
 	})
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to draw image in ds supplier")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to draw image in ds supplier")
+		statsReportChan <- statsReportResult
 
 		return
 	}
 
-	statsReport.repostImage.Content = jpgImg
-	statsReportChan <- statsReport
+	statsReportResult.repostImage.Content = jpgImg
+	statsReportChan <- statsReportResult
 }
+
+var isweekendToString = map[bool]string{true: "is weekend", false: "is weekday"}
 
 func (r *Service) getMessagesGroupedByTimeByChatId(
 	ctx context.Context,
@@ -132,26 +107,31 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 	statsReportChan chan<- statsReport,
 	chatId int64,
 	tz int,
-
 ) {
 	defer wg.Done()
-	statsReport := statsReport{
+	statsReportResult := statsReport{
 		repostImage: RepostImage{
 			Name: "MessagesGroupedByTimeByChatId",
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatId(ctx, chatId, 60*30)
+	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatId(ctx, chatId, 60*30, tz)
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to get messages from ch repository")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
+		statsReportChan <- statsReportResult
 
 		return
 	}
 
-	timeToCount := make(map[time.Time]float64, 100)
+	timeToCount := make(map[string]map[time.Time]float64, 2)
 	for _, message := range messagesGrouped {
-		timeToCount[message.CreatedAt] = float64(message.Count)
+		weekday := isweekendToString[message.IsWeekend]
+		_, ok := timeToCount[weekday]
+		if ok {
+			timeToCount[weekday][message.CreatedAt] = float64(message.Count)
+		} else {
+			timeToCount[weekday] = map[time.Time]float64{message.CreatedAt: float64(message.Count)}
+		}
 	}
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
@@ -164,14 +144,14 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 		OnlyTime: true,
 	})
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to draw image in ds supplier")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to draw image in ds supplier")
+		statsReportChan <- statsReportResult
 
 		return
 	}
 
-	statsReport.repostImage.Content = jpgImg
-	statsReportChan <- statsReport
+	statsReportResult.repostImage.Content = jpgImg
+	statsReportChan <- statsReportResult
 }
 
 func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
@@ -183,23 +163,29 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 	tz int,
 ) {
 	defer wg.Done()
-	statsReport := statsReport{
+	statsReportResult := statsReport{
 		repostImage: RepostImage{
 			Name: "ChatDateDistribution",
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatIdByUserId(ctx, chatId, userId, 60*30)
+	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatIdByUserId(ctx, chatId, userId, 60*30, tz)
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to get messages from ch repository")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
+		statsReportChan <- statsReportResult
 
 		return
 	}
 
-	timeToCount := make(map[time.Time]float64, 100)
+	timeToCount := make(map[string]map[time.Time]float64, 2)
 	for _, message := range messagesGrouped {
-		timeToCount[message.CreatedAt] = float64(message.Count)
+		weekday := isweekendToString[message.IsWeekend]
+		_, ok := timeToCount[weekday]
+		if ok {
+			timeToCount[weekday][message.CreatedAt] = float64(message.Count)
+		} else {
+			timeToCount[weekday] = map[time.Time]float64{message.CreatedAt: float64(message.Count)}
+		}
 	}
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
@@ -212,14 +198,14 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 		OnlyTime: true,
 	})
 	if err != nil {
-		statsReport.err = errors.Wrap(err, "failed to draw image in ds supplier")
-		statsReportChan <- statsReport
+		statsReportResult.err = errors.Wrap(err, "failed to draw image in ds supplier")
+		statsReportChan <- statsReportResult
 
 		return
 	}
 
-	statsReport.repostImage.Content = jpgImg
-	statsReportChan <- statsReport
+	statsReportResult.repostImage.Content = jpgImg
+	statsReportChan <- statsReportResult
 
 	return
 }

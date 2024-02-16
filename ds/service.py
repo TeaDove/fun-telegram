@@ -1,22 +1,14 @@
 from dataclasses import dataclass
-from cycler import V
 import pandas as pd
 import matplotlib.pyplot as plt
-from fastapi import FastAPI
-from pydantic import Field, BaseModel
-from typing import List
-import uuid
 from fastapi.encoders import jsonable_encoder
 import networkx as nx
 import matplotlib
 
+from datetime import datetime
 
 from io import BytesIO
-from numpy import random
-from starlette.responses import StreamingResponse
-from bokeh.palettes import Spectral, TolRainbow
 import seaborn as sns
-from typing import Hashable
 import matplotlib.dates as mdates
 from schemas import Points, Bar, TimeSeries, Graph, Plot
 
@@ -111,14 +103,21 @@ class Service:
     def draw_timeseries(self, input_: TimeSeries) -> BytesIO:
         fig, ax = self._get_fig_and_ax(input_)
 
-        df = pd.DataFrame(input_.values, columns=["legent", "date", "value"])
+        # make table
+        table: list[tuple[str, datetime, float]] = []
+        for legent, values in input_.values.items():
+            row: list[tuple[str, datetime, float]] = []
+            for date, value in values.items():
+                row.append((legent, date, value))
+            table.extend(row)
+
+        df = pd.DataFrame(table, columns=["legent", "date", "value"])
         df = df.drop_duplicates(subset=["legent", "date", "value"])
-        nunique = df["legent"].nunique()
         df_wide = df.pivot_table(
             index="date", columns="legent", values="value", aggfunc="sum"
         )
 
-        sns.lineplot(data=df_wide, ax=ax, palette=self._get_palette(nunique))
+        sns.lineplot(data=df_wide, ax=ax, palette=self._get_palette(len(input_.values)))
 
         if input_.only_time:
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
@@ -162,7 +161,7 @@ class Service:
         nx.draw_networkx_labels(
             g,
             pos,
-            font_size=10,
+            font_size=15,
             font_family="sans-serif",
             ax=ax,
             bbox={"ec": "k", "fc": "white", "alpha": 1},

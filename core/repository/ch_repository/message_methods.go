@@ -147,10 +147,10 @@ func (r *Repository) MessageFindRepliedBy(
 select am.tg_user_id as tg_user_id, count(1) as count
 	from message am final
 		where am.tg_chat_id = ? and am.reply_to_user_id = ? and am.reply_to_user_id != am.tg_user_id
-		having count(1) > ?
 	group by 1
+		having count(1) > ?
 		order by 2 desc
-limit ?
+		LIMIT ?;
 `, chatId, userId, minReplyCount, limit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find interlocutors")
@@ -384,6 +384,12 @@ type MessagesGroupedByTime struct {
 	Count     uint64    `ch:"count"`
 }
 
+type MessagesGroupedByTimeByWeekday struct {
+	IsWeekend bool      `ch:"is_weekend"`
+	CreatedAt time.Time `ch:"created_at"`
+	Count     uint64    `ch:"count"`
+}
+
 // GetMessagesGroupedByDateByChatId
 // precision = 60 means per minute, 86400 - per day
 func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatId int64, precision int) ([]MessagesGroupedByTime, error) {
@@ -440,21 +446,28 @@ func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(ctx context.Contex
 
 // GetMessagesGroupedByTimeByChatId
 // precision = 60 means per minute, 86400 - per day
-func (r *Repository) GetMessagesGroupedByTimeByChatId(ctx context.Context, chatId int64, precision int) ([]MessagesGroupedByTime, error) {
+func (r *Repository) GetMessagesGroupedByTimeByChatId(
+	ctx context.Context,
+	chatId int64,
+	precision int,
+	tz int,
+) ([]MessagesGroupedByTimeByWeekday, error) {
 	rows, err := r.conn.Query(ctx, `
-	select toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?)) as "created_at", count(1) as "count"
-		from message final
+	select case when toDayOfWeek(m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
+	       toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at + interval ? hour), ?) * ?)) as "created_at", 
+	       count(1) as "count"
+		from message m final
 			where tg_chat_id = ?
-		group by 1
+		group by 1, 2
 		order by 1 desc;
-`, precision, precision, chatId)
+`, tz, tz, precision, precision, chatId)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query rows")
 	}
 
-	output := make([]MessagesGroupedByTime, 0, 100)
+	output := make([]MessagesGroupedByTimeByWeekday, 0, 100)
 	for rows.Next() {
-		row := MessagesGroupedByTime{}
+		row := MessagesGroupedByTimeByWeekday{}
 		err = rows.ScanStruct(&row)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to scan row")
@@ -466,21 +479,29 @@ func (r *Repository) GetMessagesGroupedByTimeByChatId(ctx context.Context, chatI
 	return output, err
 }
 
-func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(ctx context.Context, chatId int64, userId int64, precision int) ([]MessagesGroupedByTime, error) {
+func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
+	ctx context.Context,
+	chatId int64,
+	userId int64,
+	precision int,
+	tz int,
+) ([]MessagesGroupedByTimeByWeekday, error) {
 	rows, err := r.conn.Query(ctx, `
-	select toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?)) as "created_at", count(1) as "count"
-		from message final
-			where tg_chat_id = ? and tg_user_id = ?
-		group by 1
+	select case when toDayOfWeek(m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
+	       toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at + interval ? hour), ?) * ?)) as "created_at", 
+	       count(1) as "count"
+		from message m final
+			where tg_chat_id = ? and tg_user_id = ? 
+		group by 1, 2
 		order by 1 desc;
-`, precision, precision, chatId, userId)
+`, tz, tz, precision, precision, chatId, userId)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to query rows")
 	}
 
-	output := make([]MessagesGroupedByTime, 0, 100)
+	output := make([]MessagesGroupedByTimeByWeekday, 0, 100)
 	for rows.Next() {
-		row := MessagesGroupedByTime{}
+		row := MessagesGroupedByTimeByWeekday{}
 		err = rows.ScanStruct(&row)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to scan row")
