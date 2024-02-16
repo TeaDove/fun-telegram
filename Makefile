@@ -22,19 +22,19 @@ run-ds:
 docker-login:
 	docker login ghcr.io
 
-docker-build-core-local-amd64: docker-login
+docker-buildx-core-local-amd64: docker-login
 	rm -f bootstrap
 	GOARCH=amd64 GOOS=linux go build -o=bootstrap
-	docker build --platform linux/amd64 -f=DockerfileCoreLocal . --tag $(CORE_DOCKER_IMAGE) --push
+	docker buildx build --platform linux/amd64 -f=DockerfileCoreLocal . --tag $(CORE_DOCKER_IMAGE) --push
 	rm bootstrap
 
-docker-build-core-local-arm64: docker-login
+docker-buildx-core-local-arm64: docker-login
 	rm -f bootstrap
 	GOARCH=arm64 GOOS=linux go build -o=bootstrap
-	docker build --platform linux/arm64 -f=DockerfileCoreLocal . --tag $(CORE_DOCKER_IMAGE) --push
+	docker buildx build --platform linux/arm64 -f=DockerfileCoreLocal . --tag $(CORE_DOCKER_IMAGE) --push
 	rm bootstrap
 
-docker-buildx-core-local: docker-build-core-local-amd64 docker-build-core-local-arm64
+docker-buildx-core-local: docker-buildx-core-local-amd64 docker-buildx-core-local-arm64
 
 docker-buildx-core: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 -f=DockerfileCore . --tag $(CORE_DOCKER_IMAGE) --push
