@@ -111,10 +111,10 @@ class Service:
                 row.append((legent, date, value))
             table.extend(row)
 
-        df = pd.DataFrame(table, columns=["legent", "date", "value"])
-        df = df.drop_duplicates(subset=["legent", "date", "value"])
+        df = pd.DataFrame(table, columns=["legend", "date", "value"])
+        df = df.drop_duplicates(subset=["legend", "date", "value"])
         df_wide = df.pivot_table(
-            index="date", columns="legent", values="value", aggfunc="sum"
+            index="date", columns="legend", values="value", aggfunc="sum"
         )
 
         sns.lineplot(data=df_wide, ax=ax, palette=self._get_palette(len(input_.values)))
