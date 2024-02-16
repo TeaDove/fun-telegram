@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/jpeg"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/teadove/goteleout/core/supplier/ds_supplier"
@@ -16,15 +17,28 @@ import (
 	"github.com/teadove/goteleout/core/shared"
 )
 
-func draw(t *testing.T, reportImage RepostImage) {
-	img, _, err := image.Decode(bytes.NewReader(reportImage.Content))
-	require.NoError(t, err)
+func draw(t *testing.T, reportImages []RepostImage) {
+	files, err := filepath.Glob(".test-*.jpeg")
+	if err != nil {
+		require.NoError(t, err)
+	}
 
-	out, err := os.Create(fmt.Sprintf(".test-%s", reportImage.Filename()))
-	defer out.Close()
+	for _, f := range files {
+		if err = os.Remove(f); err != nil {
+			require.NoError(t, err)
+		}
+	}
 
-	err = jpeg.Encode(out, img, nil)
-	require.NoError(t, err)
+	for _, reportImage := range reportImages {
+		img, _, err := image.Decode(bytes.NewReader(reportImage.Content))
+		require.NoError(t, err)
+
+		out, err := os.Create(fmt.Sprintf(".test-%s", reportImage.Filename()))
+		defer out.Close()
+
+		err = jpeg.Encode(out, img, nil)
+		require.NoError(t, err)
+	}
 }
 
 func getService(t *testing.T) *Service {
@@ -51,9 +65,10 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	report, err := r.AnaliseChat(ctx, 1701683862, 3, "") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
-	for _, reportImage := range report.Images {
-		draw(t, reportImage)
-	}
+	draw(t, report.Images)
+	shared.SendInterface(report)
+	shared.SendInterface(report.MessagesCount)
+	shared.SendInterface(report.FirstMessageAt)
 }
 
 func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
@@ -63,7 +78,7 @@ func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 	report, err := r.AnaliseChat(ctx, 1701683862, 3, "teadove") //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
-	for _, reportImage := range report.Images {
-		draw(t, reportImage)
-	}
+	draw(t, report.Images)
+	shared.SendInterface(report.MessagesCount)
+	shared.SendInterface(report.FirstMessageAt)
 }

@@ -60,13 +60,13 @@ func (r *Supplier) draw(ctx context.Context, path string, input any) ([]byte, er
 		return nil, errors.Wrap(err, "failed to do request")
 	}
 
-	if resp.StatusCode >= 400 {
-		return nil, errors.Errorf("bad status code: %d", resp.StatusCode)
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to do request")
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, errors.Errorf("bad status code: %d, content: %s", resp.StatusCode, string(body))
 	}
 
 	return body, nil
