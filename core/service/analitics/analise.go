@@ -254,7 +254,7 @@ func (r *Service) getMessageFindRepliesTo(
 	statsReportChan <- output
 }
 
-func (r *Service) getMessageFindAllRepliedBy(
+func (r *Service) getMessageFindAllRepliedByGraph(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
@@ -275,7 +275,7 @@ func (r *Service) getMessageFindAllRepliedBy(
 			chatId,
 			user.TgId,
 			9,
-			5,
+			3,
 		)
 
 		if err != nil {
@@ -315,9 +315,56 @@ func (r *Service) getMessageFindAllRepliedBy(
 	}
 	output.repostImage.Content = jpgImg
 	statsReportChan <- output
+}
 
-	output.repostImage.Name = "MessageFindAllRepliedByAsHeatmap"
-	jpgImg, err = r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
+func (r *Service) getMessageFindAllRepliedByHeatmap(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	statsReportChan chan<- statsReport,
+	chatId int64,
+	usersInChat mongo_repository.UsersInChat,
+	getter nameGetter,
+) {
+	defer wg.Done()
+	output := statsReport{
+		repostImage: RepostImage{
+			Name: "MessageFindAllRepliedByAsHeatmap",
+		},
+	}
+	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
+	for _, user := range usersInChat {
+		replies, err := r.chRepository.MessageFindRepliesTo(
+			ctx,
+			chatId,
+			user.TgId,
+			0,
+			100,
+		)
+
+		if err != nil {
+			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
+			statsReportChan <- output
+
+			return
+		}
+
+		for _, reply := range replies {
+			edges = append(edges, ds_supplier.GraphEdge{
+				First:  getter.Get(reply.TgUserId),
+				Second: getter.Get(user.TgId),
+				Weight: float64(reply.MessagesCount),
+			})
+		}
+	}
+
+	if len(edges) == 0 {
+		output.err = errors.New("no edges of graph")
+		statsReportChan <- output
+
+		return
+	}
+
+	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  "Interlocutors as heatmap",
 			XLabel: "RepliedBy",

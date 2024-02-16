@@ -140,7 +140,7 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		MessagesCount:  int(count),
 	}
 
-	statsReportChan := make(chan statsReport, 4)
+	statsReportChan := make(chan statsReport)
 
 	var wg sync.WaitGroup
 
@@ -200,7 +200,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 		MessagesCount:  int(count),
 	}
 
-	statsReportChan := make(chan statsReport, 5)
+	statsReportChan := make(chan statsReport)
 	var wg sync.WaitGroup
 
 	var reportWg sync.WaitGroup
@@ -220,7 +220,10 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	go r.getMostToxicUsers(ctx, &wg, statsReportChan, messages, getter)
 
 	wg.Add(1)
-	go r.getMessageFindAllRepliedBy(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
+	go r.getMessageFindAllRepliedByGraph(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
+
+	wg.Add(1)
+	go r.getMessageFindAllRepliedByHeatmap(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
 
 	wg.Wait()
 	close(statsReportChan)

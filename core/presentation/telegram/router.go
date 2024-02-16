@@ -116,7 +116,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		}
 	}
 
-	t0 := time.Now().UTC()
+	opts.StartedAt = time.Now().UTC()
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command.begin").
@@ -124,10 +124,8 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Str("command", firstWord).
 		Send()
 
-	opts.StartedAt = t0
-
 	err = route.executor(ctx, update, &opts)
-	elapsed := time.Now().UTC().Sub(t0)
+	elapsed := time.Now().UTC().Sub(opts.StartedAt)
 
 	if err != nil {
 		zerolog.Ctx(ctx.Context).
