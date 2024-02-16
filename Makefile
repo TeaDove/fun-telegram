@@ -31,7 +31,7 @@ docker-build-core-local-amd64: docker-login
 docker-build-core-local-arm64: docker-login
 	rm -f bootstrap
 	GOARCH=arm64 GOOS=linux go build -o=bootstrap
-	docker build --platform linux/amd64 -f=DockerfileCoreLocal . --tag $(CORE_DOCKER_IMAGE) --push
+	docker build --platform linux/arm64 -f=DockerfileCoreLocal . --tag $(CORE_DOCKER_IMAGE) --push
 	rm bootstrap
 
 docker-buildx-core-local: docker-build-core-local-amd64 docker-build-core-local-arm64
