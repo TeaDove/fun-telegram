@@ -3,6 +3,7 @@ package analitics
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -70,31 +71,38 @@ type statsReport struct {
 	err         error
 }
 
-func (r *AnaliseReport) appendFromChan(ctx context.Context, statsReportChan chan statsReport) {
-	for statsReport := range statsReportChan {
-		if statsReport.err != nil {
+func (r *AnaliseReport) appendFromChan(
+	ctx context.Context,
+	reportWg *sync.WaitGroup,
+	statsReportChan chan statsReport,
+) {
+	defer reportWg.Done()
+	t0 := time.Now()
+	for statsReportValue := range statsReportChan {
+		report := zerolog.Dict().Str("stats.name", statsReportValue.repostImage.Name).Dur("elapsed", time.Since(t0))
+		if statsReportValue.err != nil {
 			zerolog.Ctx(ctx).
-				Error().Stack().Err(statsReport.err).
+				Error().Stack().Err(statsReportValue.err).
 				Str("status", "failed.to.compile.statistics").
-				Str("stats.name", statsReport.repostImage.Name).
+				Dict("report", report).
 				Send()
 			continue
 		}
 
-		if statsReport.repostImage.Content == nil {
+		if statsReportValue.repostImage.Content == nil {
 			zerolog.Ctx(ctx).
 				Warn().
 				Str("status", "no.image.created").
-				Str("stats.name", statsReport.repostImage.Name).
+				Dict("report", report).
 				Send()
 			continue
 		}
 
-		r.Images = append(r.Images, statsReport.repostImage)
+		r.Images = append(r.Images, statsReportValue.repostImage)
 		zerolog.Ctx(ctx).
 			Info().
 			Str("status", "analitics.image.compiled").
-			Str("stats.name", statsReport.repostImage.Name).
+			Dict("report", report).
 			Send()
 	}
 }
@@ -136,6 +144,10 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 
 	var wg sync.WaitGroup
 
+	var reportWg sync.WaitGroup
+	reportWg.Add(1)
+	go report.appendFromChan(ctx, &reportWg, statsReportChan)
+
 	wg.Add(1)
 	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsReportChan, chatId, user.TgId)
 
@@ -150,7 +162,7 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 
 	wg.Wait()
 	close(statsReportChan)
-	report.appendFromChan(ctx, statsReportChan)
+	reportWg.Wait()
 
 	return report, nil
 }
@@ -189,8 +201,11 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	}
 
 	statsReportChan := make(chan statsReport, 5)
-
 	var wg sync.WaitGroup
+
+	var reportWg sync.WaitGroup
+	reportWg.Add(1)
+	go report.appendFromChan(ctx, &reportWg, statsReportChan)
 
 	wg.Add(1)
 	go r.getChatterBoxes(ctx, &wg, statsReportChan, chatId, getter)
@@ -209,7 +224,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 
 	wg.Wait()
 	close(statsReportChan)
-	report.appendFromChan(ctx, statsReportChan)
+	reportWg.Wait()
 
 	return report, nil
 }
@@ -223,6 +238,14 @@ func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int, usernam
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to analise chat")
 	}
+
+	slices.SortFunc(report.Images, func(a, b RepostImage) int {
+		if a.Name > b.Name {
+			return -1
+		} else {
+			return 1
+		}
+	})
 
 	return report, nil
 }
