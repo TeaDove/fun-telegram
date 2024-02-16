@@ -10,7 +10,8 @@ from datetime import datetime
 from io import BytesIO
 import seaborn as sns
 import matplotlib.dates as mdates
-from schemas import Points, Bar, TimeSeries, Graph, Plot
+from schemas import Points, Bar, TimeSeries, Graph, Plot, GraphEdge
+from matplotlib.lines import Line2D
 
 X, Y = "x", "y"
 
@@ -20,14 +21,18 @@ class Service:
     def __post_init__(self) -> None:
         matplotlib.use("agg")
         sns.set_theme(style="whitegrid")
-        self.default_figsize = (19.20, 10.80)
+        self.default_figsize = (20, 10)
 
     def _get_palette(self, n: int):
-        return sns.color_palette("husl", n)
+        return sns.color_palette("Set2", n)
 
     def _fig_to_bytes(self, fig) -> BytesIO:
         buf = BytesIO()
-        fig.savefig(buf, format="jpeg")
+        fig.savefig(
+            buf,
+            format="jpeg",
+            dpi=300,
+        )
         buf.seek(0)
         plt.close(fig)
 
@@ -89,9 +94,14 @@ class Service:
 
         # add value above each bar
         for p in my_plot.patches:
+            height = p.get_height()
             my_plot.annotate(
-                format(p.get_height(), ".0f"),
-                (p.get_x() + p.get_width() / 2.0, p.get_height()),
+                (
+                    format(height, ".0f")
+                    if height == round(height, 2)
+                    else format(height, ".2f")
+                ),
+                (p.get_x() + p.get_width() / 2.0, height),
                 ha="center",
                 va="center",
                 xytext=(0, 10),
@@ -105,10 +115,10 @@ class Service:
 
         # make table
         table: list[tuple[str, datetime, float]] = []
-        for legent, values in input_.values.items():
+        for legend, values in input_.values.items():
             row: list[tuple[str, datetime, float]] = []
             for date, value in values.items():
-                row.append((legent, date, value))
+                row.append((legend, date, value))
             table.extend(row)
 
         df = pd.DataFrame(table, columns=["legend", "date", "value"])
@@ -125,7 +135,31 @@ class Service:
 
         return self._fig_to_bytes(fig)
 
+    def concat_graph(self, input_: Graph) -> None:
+        one_to_other: dict[str, dict[str, float]] = {}
+        for edge in input_.edges:
+            v = one_to_other.get(edge.first, None)
+            if v is None:
+                one_to_other[edge.first] = {edge.second: edge.weight}
+                continue
+
+            point = v.get(edge.second, None)
+            if point is None:
+                one_to_other[edge.first][edge.second] = edge.weight
+                continue
+
+            one_to_other[edge.first][edge.second] += edge.weight
+
+        new_input: list[GraphEdge] = []
+        for first, edge in one_to_other.items():
+            for second, v in edge.items():
+                new_input.append(GraphEdge(first=first, second=second, weight=v))
+
+        input_.edges = new_input
+
     def draw_graph(self, input_: Graph) -> BytesIO:
+        self.concat_graph(input_)
+
         fig, ax = self._get_fig_and_ax(input_)
 
         g = nx.DiGraph(directed=True)
@@ -141,21 +175,38 @@ class Service:
             edgewidths.append(edge.weight)
 
         avg = avg / len(input_.edges)
+
+        colors = [
+            "#bfdbf7",  # light blue
+            "#053c5e",  # dark blue
+            "#a31621",  # red
+        ]
         max_ = max(edgewidths)
 
         for idx in range(len(edgewidths)):
             edgewidths[idx] = edgewidths[idx] / max_
+            if edgewidths[idx] < 0.7:
+                if edgewidths[idx] < 0.3:
+                    edgewidths[idx] = colors[0]
+                    continue
+                edgewidths[idx] = colors[1]
+                continue
+            edgewidths[idx] = colors[2]
 
         # positions for all nodes - seed for reproducibility
         pos = nx.circular_layout(g)
 
         # nodes
         nx.draw_networkx_nodes(
-            g, pos, node_size=1000, ax=ax, node_color=self._get_palette(len(nodes))
+            g,
+            pos,
+            node_size=3000,
+            ax=ax,
+            node_color=sns.color_palette("Set2", len(nodes)),
         )
 
         # edges
-        nx.draw_networkx_edges(g, pos, width=3, alpha=edgewidths, ax=ax)
+        nx.draw_networkx_edges(g, pos, width=3, alpha=1, ax=ax, edge_color=edgewidths)
 
         # node labels
         nx.draw_networkx_labels(
@@ -166,7 +217,9 @@ class Service:
             ax=ax,
             bbox={"ec": "k", "fc": "white", "alpha": 1},
         )
-        ax.margins(0.008)
-        ax.collections[0].set_edgecolor("#000000")
+
+        proxies = [Line2D([0, 1], [0, 1], color=color, lw=5) for color in colors]
+        labels = ["<30% percents", "30%-70% percents", ">70% percents"]
+        ax.legend(proxies, labels)
 
         return self._fig_to_bytes(fig)
