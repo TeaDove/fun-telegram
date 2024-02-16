@@ -136,14 +136,10 @@ class Service:
         max_ = max(edgewidths)
 
         for idx in range(len(edgewidths)):
-            edgewidths[idx] = edgewidths[idx] * 5 / max_ + 2
+            edgewidths[idx] = edgewidths[idx] / max_
 
-        # edgewidth = [len(G.get_edge_data(u, v)) for u, v in H.edges()]
-
-        # elarge = [(u, v) for (u, v, d) in g.edges(data=True) if d["weight"] > avg]
-        # esmall = [(u, v) for (u, v, d) in g.edges(data=True) if d["weight"] <= avg]
-
-        pos = nx.spring_layout(g)  # positions for all nodes - seed for reproducibility
+        # positions for all nodes - seed for reproducibility
+        pos = nx.circular_layout(g)
 
         TolRainbow23 = TolRainbow[23]
         TolRainbow23_count, TolRainbow23_mod = divmod(len(nodes), 23)
@@ -153,19 +149,7 @@ class Service:
         nx.draw_networkx_nodes(g, pos, node_size=1000, ax=ax, node_color=pallete)
 
         # edges
-        nx.draw_networkx_edges(g, pos, width=edgewidths, alpha=0.9, ax=ax)
-        # nx.draw_networkx_edges(g, pos, edgelist=esmall, width=3, alpha=0.1, ax=ax)
-
-        # nx.draw_networkx_edges(
-        #     g,
-        #     pos,
-        #     edgelist=esmall,
-        #     width=3,
-        #     alpha=0.5,
-        #     edge_color="b",
-        #     style="dashed",
-        #     ax=ax,
-        # )
+        nx.draw_networkx_edges(g, pos, width=3, alpha=edgewidths, ax=ax)
 
         # node labels
         nx.draw_networkx_labels(
@@ -174,12 +158,8 @@ class Service:
             font_size=10,
             font_family="sans-serif",
             ax=ax,
-            bbox={"ec": "k", "fc": "white", "alpha": 0.7},
+            bbox={"ec": "k", "fc": "white", "alpha": 1},
         )
-        # edge weight labels
-        # edge_labels = nx.get_edge_attributes(g, "weight")
-        # nx.draw_networkx_edge_labels(g, pos, edge_labels, ax=ax)
-
         ax.margins(0.008)
         ax.collections[0].set_edgecolor("#000000")
 

@@ -78,12 +78,7 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	fileUploader := uploader.NewUploader(ctx.Raw)
 
 	if len(report.Images) == 0 {
-		_, err = ctx.Reply(update, "Err: failed to create report", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		return nil
+		return errors.Wrapf(err, "no images in report")
 	}
 
 	firstFile, err := fileUploader.FromBytes(ctx, report.Images[0].Filename(), report.Images[0].Content)
