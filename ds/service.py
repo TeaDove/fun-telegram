@@ -28,8 +28,10 @@ class Service:
     def __post_init__(self) -> None:
         matplotlib.use("agg")
         sns.set_theme(style="whitegrid")
-        self.palette = sns.color_palette("husl", 8)
         self.default_figsize = (19.20, 10.80)
+
+    def _get_palette(self, n: int):
+        return sns.color_palette("husl", n)
 
     def _fig_to_bytes(self, fig) -> BytesIO:
         buf = BytesIO()
@@ -85,7 +87,9 @@ class Service:
         if input_.limit is not None:
             df = df.head(input_.limit)
 
-        my_plot = sns.barplot(data=df, ax=ax, palette=self.palette, x=X, y=Y)
+        my_plot = sns.barplot(
+            data=df, ax=ax, palette=self._get_palette(len(input_.values)), x=X, y=Y
+        )
         my_plot.set(yticklabels=[])
         my_plot.set_xticklabels(
             my_plot.get_xticklabels(), rotation=45, horizontalalignment="right"
@@ -107,9 +111,14 @@ class Service:
     def draw_timeseries(self, input_: TimeSeries) -> BytesIO:
         fig, ax = self._get_fig_and_ax(input_)
 
-        df = pd.DataFrame(input_.values.items(), columns=[X, Y])
+        df = pd.DataFrame(input_.values, columns=["legent", "date", "value"])
+        df = df.drop_duplicates(subset=["legent", "date", "value"])
+        nunique = df["legent"].nunique()
+        df_wide = df.pivot_table(
+            index="date", columns="legent", values="value", aggfunc="sum"
+        )
 
-        sns.lineplot(data=df, ax=ax, palette=self.palette, x=X, y=Y)
+        sns.lineplot(data=df_wide, ax=ax, palette=self._get_palette(nunique))
 
         if input_.only_time:
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
@@ -141,12 +150,10 @@ class Service:
         # positions for all nodes - seed for reproducibility
         pos = nx.circular_layout(g)
 
-        TolRainbow23 = TolRainbow[23]
-        TolRainbow23_count, TolRainbow23_mod = divmod(len(nodes), 23)
-        pallete = TolRainbow23 * TolRainbow23_count + TolRainbow23[:TolRainbow23_mod]
-
         # nodes
-        nx.draw_networkx_nodes(g, pos, node_size=1000, ax=ax, node_color=pallete)
+        nx.draw_networkx_nodes(
+            g, pos, node_size=1000, ax=ax, node_color=self._get_palette(len(nodes))
+        )
 
         # edges
         nx.draw_networkx_edges(g, pos, width=3, alpha=edgewidths, ax=ax)

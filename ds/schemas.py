@@ -83,18 +83,22 @@ class Bar(Plot):
         }
     )
 
-    limit: int | None = None
+    limit: int | None = Field(None, example=None)
+
+
+TimeSeriesValue = tuple[str, datetime, float]
 
 
 class TimeSeries(Plot):
-    values: dict[datetime, float] = Field(
-        example={
-            datetime(2023, 1, 1): random.randint(0, 100),
-            datetime(2023, 2, 1): random.randint(0, 100),
-            datetime(2023, 3, 1): random.randint(0, 100),
-            datetime(2023, 4, 1): random.randint(0, 100),
-            datetime(2023, 5, 1): random.randint(0, 100),
-        }
+    values: list[TimeSeriesValue] = Field(
+        example=[
+            (
+                random.choice(_random_names[:7]),
+                datetime(2024, random.randint(1, 12), random.randint(1, 28)),
+                random.randint(0, 100),
+            )
+            for _ in range(100)
+        ]
     )
 
     only_time: bool = False
