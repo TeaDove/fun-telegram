@@ -79,8 +79,7 @@ from message am final
               on am.tg_chat_id = m.tg_chat_id
 	where am.tg_chat_id = ?
 	  and am.tg_user_id = ?
-	  and abs(am.created_at - m.created_at) - ? < 0
-	  and am.tg_user_id != m.tg_user_id
+	  and abs(am.created_at - m.created_at) - ? < 0 
 	group by 1
 	order by 2 desc 
 	limit ?
@@ -112,8 +111,8 @@ func (r *Repository) MessageFindRepliesTo(
 ) ([]MessageFindInterlocutorsOutput, error) {
 	rows, err := r.conn.Query(ctx, `
 select am.reply_to_user_id as tg_user_id, count(1) as count
-from message am final
-where am.tg_chat_id = ? and am.tg_user_id = ? and am.reply_to_user_id != am.tg_user_id
+	from message am final
+where am.tg_chat_id = ? and am.tg_user_id = ? and am.reply_to_user_id != 0 and am.reply_to_user_id is not null
 group by 1
 	having count(1) > ?
 order by 2 desc limit ?
@@ -146,7 +145,7 @@ func (r *Repository) MessageFindRepliedBy(
 	rows, err := r.conn.Query(ctx, `
 select am.tg_user_id as tg_user_id, count(1) as count
 	from message am final
-		where am.tg_chat_id = ? and am.reply_to_user_id = ? and am.reply_to_user_id != am.tg_user_id
+		where am.tg_chat_id = ? and am.reply_to_user_id = ?
 	group by 1
 		having count(1) > ?
 		order by 2 desc
@@ -184,7 +183,7 @@ func (r *Repository) MessageFindAllRepliedBy(
 	rows, err := r.conn.Query(ctx, `
 select am.tg_user_id as tg_user_id, am.reply_to_user_id as replied_tg_user_id, count(1) as count
 	from message am final
-		where am.reply_to_user_id != am.tg_user_id and tg_chat_id = ?
+		where am.reply_to_user_id != am.tg_user_id and tg_chat_id = ? and m.reply_to_user_id != 0 and m.reply_to_user_id is not null
 			group by 1, 2
 			order by 3 desc
 	limit ?;

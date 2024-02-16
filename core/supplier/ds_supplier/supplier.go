@@ -130,3 +130,12 @@ func (r *Supplier) DrawGraph(ctx context.Context, input *DrawGraphInput) ([]byte
 
 	return body, nil
 }
+
+func (r *Supplier) DrawGraphAsHeatpmap(ctx context.Context, input *DrawGraphInput) ([]byte, error) {
+	body, err := r.draw(ctx, "graph-as-heatmap", input)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to draw")
+	}
+
+	return body, nil
+}

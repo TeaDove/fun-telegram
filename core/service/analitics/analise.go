@@ -268,7 +268,6 @@ func (r *Service) getMessageFindAllRepliedBy(
 			Name: "MessageFindAllRepliedBy",
 		},
 	}
-
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
 	for _, user := range usersInChat {
 		replies, err := r.chRepository.MessageFindRepliesTo(
@@ -288,8 +287,8 @@ func (r *Service) getMessageFindAllRepliedBy(
 
 		for _, reply := range replies {
 			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.Get(user.TgId),
-				Second: getter.Get(reply.TgUserId),
+				First:  getter.Get(reply.TgUserId),
+				Second: getter.Get(user.TgId),
 				Weight: float64(reply.MessagesCount),
 			})
 		}
@@ -304,7 +303,25 @@ func (r *Service) getMessageFindAllRepliedBy(
 
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title: "Interlocutors",
+			Title: "Interlocutors (amount of replies between users)",
+		},
+		Edges: edges,
+	})
+	if err != nil {
+		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
+		statsReportChan <- output
+
+		return
+	}
+	output.repostImage.Content = jpgImg
+	statsReportChan <- output
+
+	output.repostImage.Name = "MessageFindAllRepliedByAsHeatmap"
+	jpgImg, err = r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
+		DrawInput: ds_supplier.DrawInput{
+			Title:  "Interlocutors as heatmap",
+			XLabel: "RepliedBy",
+			YLabel: "RepliedTo",
 		},
 		Edges: edges,
 	})

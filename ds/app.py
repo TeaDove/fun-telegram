@@ -41,3 +41,10 @@ def draw_timeseries(input_: TimeSeries) -> StreamingResponse:
 @app.post("/graph", response_class=StreamingResponse)
 def draw_graph(input_: Graph) -> StreamingResponse:
     return StreamingResponse(service.draw_graph(input_), media_type="image/jpeg")
+
+
+@app.post("/graph-as-heatmap", response_class=StreamingResponse)
+def draw_graph_as_heatmap(input_: Graph) -> StreamingResponse:
+    return StreamingResponse(
+        service.draw_graph_as_heatmap(input_), media_type="image/jpeg"
+    )

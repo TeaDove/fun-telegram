@@ -66,7 +66,6 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	require.NoError(t, err)
 
 	draw(t, report.Images)
-	shared.SendInterface(report)
 	shared.SendInterface(report.MessagesCount)
 	shared.SendInterface(report.FirstMessageAt)
 }

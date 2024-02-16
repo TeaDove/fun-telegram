@@ -43,11 +43,11 @@ class Service:
         ax = fig.gca()
 
         if input_.title is not None:
-            plt.title(input_.title)
+            ax.set_title(input_.title)
         if input_.ylabel is not None:
-            plt.ylabel(input_.ylabel)
+            ax.set_ylabel(input_.ylabel)
         if input_.xlabel is not None:
-            plt.xlabel(input_.xlabel)
+            ax.set_xlabel(input_.xlabel)
 
         return fig, ax
 
@@ -157,12 +157,47 @@ class Service:
 
         input_.edges = new_input
 
+    def draw_graph_as_heatmap(self, input_: Graph) -> BytesIO:
+        fig, ax = self._get_fig_and_ax(input_)
+
+        items: dict[str, dict[str, float]] = {}
+        for edge in input_.edges:
+            ok = items.get(edge.first)
+            if ok is None:
+                items[edge.first] = {edge.second: edge.weight}
+                continue
+
+            items[edge.first][edge.second] = edge.weight
+
+        df = pd.DataFrame(
+            [
+                {"first": first} | {second: weight for second, weight in item.items()}
+                for first, item in items.items()
+            ],
+        )
+        df = df.set_index("first")
+        index = df.index.union(df.columns)
+        df = df.reindex(index=index, columns=index)
+
+        plot = sns.heatmap(
+            data=df, ax=ax, annot=True, linewidth=0.5, cmap=sns.cm.rocket_r
+        )
+        plot.set_xticklabels(
+            plot.get_xticklabels(), rotation=20, horizontalalignment="right"
+        )
+        if input_.ylabel is not None:
+            plot.set_ylabel(input_.ylabel)
+        if input_.xlabel is not None:
+            plot.set_xlabel(input_.xlabel)
+
+        return self._fig_to_bytes(fig)
+
     def draw_graph(self, input_: Graph) -> BytesIO:
         self.concat_graph(input_)
 
         fig, ax = self._get_fig_and_ax(input_)
 
-        g = nx.DiGraph(directed=True)
+        g = nx.Graph()
 
         nodes = set()
         avg = 0.0
@@ -206,7 +241,14 @@ class Service:
         )
 
         # edges
-        nx.draw_networkx_edges(g, pos, width=3, alpha=1, ax=ax, edge_color=edgewidths)
+        nx.draw_networkx_edges(
+            g,
+            pos,
+            width=3,
+            alpha=1,
+            ax=ax,
+            edge_color=edgewidths,
+        )
 
         # node labels
         nx.draw_networkx_labels(
@@ -218,7 +260,7 @@ class Service:
             bbox={"ec": "k", "fc": "white", "alpha": 1},
         )
 
-        proxies = [Line2D([0, 1], [0, 1], color=color, lw=5) for color in colors]
+        proxies = [Line2D([0, 1], [0, 1], color=color, lw=7) for color in colors]
         labels = ["<30% percents", "30%-70% percents", ">70% percents"]
         ax.legend(proxies, labels)
 
