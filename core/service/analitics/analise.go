@@ -275,7 +275,7 @@ func (r *Service) getMessageFindAllRepliedBy(
 			chatId,
 			user.TgId,
 			9,
-			interlocutorsLimit,
+			5,
 		)
 
 		if err != nil {

@@ -179,11 +179,9 @@ class Service:
         index = df.index.union(df.columns)
         df = df.reindex(index=index, columns=index)
 
-        plot = sns.heatmap(
-            data=df, ax=ax, annot=True, linewidth=0.5, cmap=sns.cm.rocket_r
-        )
+        plot = sns.heatmap(data=df, ax=ax, linewidth=0.5, cmap=sns.cm.rocket_r)
         plot.set_xticklabels(
-            plot.get_xticklabels(), rotation=20, horizontalalignment="right"
+            plot.get_xticklabels(), rotation=30, horizontalalignment="right"
         )
         if input_.ylabel is not None:
             plot.set_ylabel(input_.ylabel)
