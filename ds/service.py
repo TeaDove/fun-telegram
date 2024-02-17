@@ -127,7 +127,13 @@ class Service:
             index="date", columns="legend", values="value", aggfunc="sum"
         )
 
-        sns.lineplot(data=df_wide, ax=ax, palette=self._get_palette(len(input_.values)))
+        sns.lineplot(
+            data=df_wide,
+            ax=ax,
+            palette=self._get_palette(len(input_.values)),
+            marker="o",
+            linestyle=(0, (1, 10)),
+        )
 
         if input_.only_time:
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))

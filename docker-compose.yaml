@@ -34,7 +34,7 @@ services:
   ds:
     restart: always
     environment: {}
-    image: ghcr.io/teadove/fun-telegram-ds:v1.0.9
+    image: ghcr.io/teadove/fun-telegram-ds:v1.0.10
     volumes: []
     labels:
       - "autoheal=true"
