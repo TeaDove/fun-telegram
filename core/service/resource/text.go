@@ -165,8 +165,8 @@ var localizer = map[Code]map[Locale]string{
 		En: "offsets all time-based stats by timezone UTC offset",
 	},
 	CommandStatsFlagUsernameDescription: {
-		Ru: "если подан - скомпилирует статистику относительно данного пользователя",
-		En: "if presented, will compile stats by set username",
+		Ru: "username или id юзера, если подан - скомпилирует статистику относительно данного пользователя",
+		En: "username or id of user, if presented, will compile stats by set username",
 	},
 	CommandStatsFlagCountDescription: {
 		Ru: fmt.Sprintf(

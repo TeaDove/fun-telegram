@@ -89,7 +89,7 @@ class Service:
         )
         my_plot.set(yticklabels=[])
         my_plot.set_xticklabels(
-            my_plot.get_xticklabels(), rotation=45, horizontalalignment="right"
+            my_plot.get_xticklabels(), rotation=30, horizontalalignment="right"
         )
 
         # add value above each bar

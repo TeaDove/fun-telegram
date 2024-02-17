@@ -136,7 +136,15 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			Dur("elapsed", elapsed).
 			Send()
 
-		innerErr := r.replyIfNotSilentLocalizedf(ctx, update, &opts, resource.ErrISE, err.Error())
+		errMessage := r.resourceService.Localizef(ctx, resource.ErrISE, opts.Locale, err.Error())
+		var innerErr error
+
+		if opts.Silent {
+			_, innerErr = ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{Message: errMessage})
+		} else {
+			_, innerErr = ctx.Reply(update, errMessage, nil)
+		}
+
 		if innerErr != nil {
 			zerolog.Ctx(ctx).Error().
 				Stack().

@@ -107,18 +107,13 @@ func (r *AnaliseReport) appendFromChan(
 	}
 }
 
-func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, username string) (AnaliseReport, error) {
-	user, err := r.mongoRepository.GetUserByUsername(ctx, username)
-	if err != nil {
-		return AnaliseReport{}, errors.WithStack(err)
-	}
-
-	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, chatId, user.TgId)
+func (r *Service) analiseUserChat(ctx context.Context, input *AnaliseChatInput) (AnaliseReport, error) {
+	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, input.ChatId, input.TgUserId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(ctx, chatId, user.TgId)
+	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(ctx, input.ChatId, input.TgUserId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
@@ -127,7 +122,7 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 		return AnaliseReport{}, nil
 	}
 
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.ChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
 	}
@@ -149,16 +144,16 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 	go report.appendFromChan(ctx, &reportWg, statsReportChan)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsReportChan, chatId, user.TgId)
+	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsReportChan, chatId, user.TgId, tz)
+	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId, input.Tz)
 
 	wg.Add(1)
-	go r.getMessageFindRepliedBy(ctx, &wg, statsReportChan, chatId, user.TgId, getter)
+	go r.getMessageFindRepliedBy(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId, getter)
 
 	wg.Add(1)
-	go r.getMessageFindRepliesTo(ctx, &wg, statsReportChan, chatId, user.TgId, getter)
+	go r.getMessageFindRepliesTo(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId, getter)
 
 	wg.Wait()
 	close(statsReportChan)
@@ -167,27 +162,27 @@ func (r *Service) analiseUserChat(ctx context.Context, chatId int64, tz int, use
 	return report, nil
 }
 
-func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (AnaliseReport, error) {
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
+func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput) (AnaliseReport, error) {
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.ChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
 	}
 
-	messages, err := r.chRepository.MessageGetByChatId(ctx, chatId)
+	messages, err := r.chRepository.MessageGetByChatId(ctx, input.ChatId)
 	if err != nil {
-		return AnaliseReport{}, errors.WithStack(err)
+		return AnaliseReport{}, errors.Wrap(err, "failed to get message by chat id")
 	}
 
 	if len(messages) == 0 {
 		return AnaliseReport{}, nil
 	}
 
-	count, err := r.chRepository.CountGetByChatId(ctx, chatId)
+	count, err := r.chRepository.CountGetByChatId(ctx, input.ChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatId(ctx, chatId)
+	lastMessage, err := r.chRepository.GetLastMessageByChatId(ctx, input.ChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
@@ -208,22 +203,22 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	go report.appendFromChan(ctx, &reportWg, statsReportChan)
 
 	wg.Add(1)
-	go r.getChatterBoxes(ctx, &wg, statsReportChan, chatId, getter)
+	go r.getChatterBoxes(ctx, &wg, statsReportChan, input.ChatId, getter)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByDateByChatId(ctx, &wg, statsReportChan, chatId)
+	go r.getMessagesGroupedByDateByChatId(ctx, &wg, statsReportChan, input.ChatId)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByTimeByChatId(ctx, &wg, statsReportChan, chatId, tz)
+	go r.getMessagesGroupedByTimeByChatId(ctx, &wg, statsReportChan, input.ChatId, input.Tz)
 
 	wg.Add(1)
 	go r.getMostToxicUsers(ctx, &wg, statsReportChan, messages, getter)
 
 	wg.Add(1)
-	go r.getMessageFindAllRepliedByGraph(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
+	go r.getMessageFindAllRepliedByGraph(ctx, &wg, statsReportChan, input.ChatId, usersInChat, getter)
 
 	wg.Add(1)
-	go r.getMessageFindAllRepliedByHeatmap(ctx, &wg, statsReportChan, chatId, usersInChat, getter)
+	go r.getMessageFindAllRepliedByHeatmap(ctx, &wg, statsReportChan, input.ChatId, usersInChat, getter)
 
 	wg.Wait()
 	close(statsReportChan)
@@ -232,11 +227,20 @@ func (r *Service) analiseWholeChat(ctx context.Context, chatId int64, tz int) (A
 	return report, nil
 }
 
-func (r *Service) AnaliseChat(ctx context.Context, chatId int64, tz int, username string) (report AnaliseReport, err error) {
-	if username != "" {
-		report, err = r.analiseUserChat(ctx, chatId, tz, username)
+type AnaliseChatInput struct {
+	ChatId int64
+	Tz     int
+
+	TgUserId int64
+}
+
+func (r *Service) AnaliseChat(ctx context.Context, input *AnaliseChatInput) (report AnaliseReport, err error) {
+	zerolog.Ctx(ctx).Info().Str("status", "compiling.stats.begin").Interface("input", input).Send()
+
+	if input.TgUserId != 0 {
+		report, err = r.analiseUserChat(ctx, input)
 	} else {
-		report, err = r.analiseWholeChat(ctx, chatId, tz)
+		report, err = r.analiseWholeChat(ctx, input)
 	}
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to analise chat")

@@ -62,7 +62,11 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	r := getService(t)
 	ctx := shared.GetModuleCtx("tests")
 
-	report, err := r.AnaliseChat(ctx, 1701683862, 3, "") //1779431332 1350141926 1178533048
+	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
+		ChatId:   1701683862,
+		Tz:       3,
+		TgUserId: 0,
+	}) //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
 	draw(t, report.Images)
@@ -74,7 +78,11 @@ func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 	r := getService(t)
 	ctx := shared.GetModuleCtx("tests")
 
-	report, err := r.AnaliseChat(ctx, 1701683862, 3, "teadove") //1779431332 1350141926 1178533048
+	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
+		ChatId:   1701683862,
+		Tz:       3,
+		TgUserId: 418878871,
+	}) //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
 	draw(t, report.Images)
