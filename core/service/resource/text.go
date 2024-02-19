@@ -246,5 +246,5 @@ var localizer = map[Code]map[Locale]string{
 	AnaliseChartToxicityPercentLong:  {Ru: "Процент токсичных слов по отношению ко всем словам", En: "Percent of toxic words compared to all words"},
 	AnaliseChartIsWeekend:            {Ru: "выходной", En: "is weekend"},
 	AnaliseChartIsWeekday:            {Ru: "рабочий день", En: "is weekday"},
-	CommandStatsResponseSuccess:      {Ru: "Первое сообщение в статистике датируется: %s\nСообщений обработано: \nСтатистика собрана за: %.2fs", En: "First message in stats send at %s\nMessages processed: \nCompiled in: %.2fs"},
+	CommandStatsResponseSuccess:      {Ru: "Первое сообщение в статистике отправлено %s\nСообщений обработано: %d\nСтатистика собрана за: %.2fs", En: "First message in stats send at %s\nMessages processed: %d\nCompiled in: %.2fs"},
 }

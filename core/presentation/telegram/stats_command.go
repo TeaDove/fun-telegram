@@ -160,7 +160,7 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	text = append(text,
 		styling.Plain(
 			r.resourceService.Localizef(ctx, resource.CommandStatsResponseSuccess, input.Locale,
-				report.FirstMessageAt.String(),
+				report.FirstMessageAt.Format(time.DateOnly),
 				report.MessagesCount,
 				time.Since(input.StartedAt).Seconds(),
 			),
