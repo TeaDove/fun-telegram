@@ -51,7 +51,10 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	dsSupplier, err := ds_supplier.New(ctx)
 	shared.Check(ctx, err)
 
-	analiticsService, err := analitics.New(dbRepository, chRepository, dsSupplier)
+	resourceService, err := resource.New(ctx)
+	shared.Check(ctx, err)
+
+	analiticsService, err := analitics.New(dbRepository, chRepository, dsSupplier, resourceService)
 	shared.Check(ctx, err)
 
 	protoClient := telegram.MustNewProtoClient(ctx)
@@ -65,9 +68,6 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		"IpLocator":  {Checker: locator.Ping},
 		"DSSupplier": {Checker: dsSupplier.Ping},
 	})
-	shared.Check(ctx, err)
-
-	resourceService, err := resource.New(ctx)
 	shared.Check(ctx, err)
 
 	telegramPresentation := telegram.MustNewTelegramPresentation(

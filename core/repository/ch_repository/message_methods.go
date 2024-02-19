@@ -10,7 +10,7 @@ import (
 func (r *Repository) MessageCreate(ctx context.Context, message *Message) error {
 	err := r.conn.AsyncInsert(ctx, `
 INSERT INTO message VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)`,
 		false,
 		message.Id,
@@ -21,6 +21,8 @@ INSERT INTO message VALUES (
 		message.Text,
 		message.ReplyToMsgID,
 		message.ReplyToUserID,
+		message.WordsCount,
+		message.ToxicWordsCount,
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to async insert")
@@ -39,7 +41,9 @@ select am.id,
        am.tg_user_id,
        am.text,
        am.reply_to_msg_id,
-       m.tg_user_id
+       m.tg_user_id,
+       am.words_count,
+       am.toxic_words_count
 from message am
          join default.message m on m.tg_chat_id = am.tg_chat_id AND m.tg_id = am.reply_to_msg_id
 where reply_to_msg_id is not null and reply_to_user_id is null and am.tg_chat_id = ?;
@@ -235,8 +239,9 @@ select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, rep
 }
 
 type GroupedCountGetByChatIdByUserIdOutput struct {
-	TgUserId int64  `ch:"tg_user_id"`
-	Count    uint64 `ch:"count"`
+	TgUserId        int64  `ch:"tg_user_id"`
+	WordsCount      uint64 `ch:"words_count"`
+	ToxicWordsCount uint64 `ch:"toxic_words_count"`
 }
 
 func (r *Repository) GroupedCountGetByChatIdByUserId(
@@ -245,7 +250,7 @@ func (r *Repository) GroupedCountGetByChatIdByUserId(
 	limit int64,
 ) ([]GroupedCountGetByChatIdByUserIdOutput, error) {
 	rows, err := r.conn.Query(ctx, `
-select tg_user_id, count(1) as "count"
+select tg_user_id, sum(words_count) as "words_count", sum(toxic_words_count) as "toxic_words_count"
 	from message final
 	where tg_chat_id = ?
 		group by 1
@@ -379,21 +384,21 @@ select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, rep
 }
 
 type MessagesGroupedByTime struct {
-	CreatedAt time.Time `ch:"created_at"`
-	Count     uint64    `ch:"count"`
+	CreatedAt  time.Time `ch:"created_at"`
+	WordsCount uint64    `ch:"words_count"`
 }
 
 type MessagesGroupedByTimeByWeekday struct {
-	IsWeekend bool      `ch:"is_weekend"`
-	CreatedAt time.Time `ch:"created_at"`
-	Count     uint64    `ch:"count"`
+	IsWeekend  bool      `ch:"is_weekend"`
+	CreatedAt  time.Time `ch:"created_at"`
+	WordsCount uint64    `ch:"words_count"`
 }
 
 // GetMessagesGroupedByDateByChatId
 // precision = 60 means per minute, 86400 - per day
 func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatId int64, precision int) ([]MessagesGroupedByTime, error) {
 	rows, err := r.conn.Query(ctx, `
-	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", count(1) as "count"
+	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", sum(words_count) as "words_count"
 		from message final
 			where tg_chat_id = ?
 		group by 1
@@ -419,7 +424,7 @@ func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatI
 
 func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(ctx context.Context, chatId int64, userId int64, precision int) ([]MessagesGroupedByTime, error) {
 	rows, err := r.conn.Query(ctx, `
-	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", count(1) as "count"
+	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", sum(m.words_count) as "words_count"
 		from message final
 			where tg_chat_id = ? and tg_user_id = ?
 		group by 1
@@ -454,7 +459,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatId(
 	rows, err := r.conn.Query(ctx, `
 	select case when toDayOfWeek(m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
 	       toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at + interval ? hour), ?) * ?)) as "created_at", 
-	       count(1) as "count"
+	       sum(m.words_count) as "words_count"
 		from message m final
 			where tg_chat_id = ?
 		group by 1, 2
@@ -488,7 +493,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
 	rows, err := r.conn.Query(ctx, `
 	select case when toDayOfWeek(m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
 	       toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at + interval ? hour), ?) * ?)) as "created_at", 
-	       count(1) as "count"
+	       sum(m.words_count) as "words_count"
 		from message m final
 			where tg_chat_id = ? and tg_user_id = ? 
 		group by 1, 2

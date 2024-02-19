@@ -3,6 +3,7 @@ package analitics
 import (
 	"context"
 	"fmt"
+	"github.com/teadove/goteleout/core/service/resource"
 	"slices"
 	"sync"
 	"time"
@@ -22,13 +23,19 @@ type Service struct {
 	mongoRepository *mongo_repository.Repository
 	chRepository    *ch_repository.Repository
 	dsSupplier      *ds_supplier.Supplier
+	resourceService *resource.Service
 
 	toxicityExp *regexp2.Regexp
 	lemmatizer  *golem.Lemmatizer
 }
 
-func New(mongoRepository *mongo_repository.Repository, chRepository *ch_repository.Repository, dsSupplier *ds_supplier.Supplier) (*Service, error) {
-	r := Service{mongoRepository: mongoRepository, chRepository: chRepository, dsSupplier: dsSupplier}
+func New(
+	mongoRepository *mongo_repository.Repository,
+	chRepository *ch_repository.Repository,
+	dsSupplier *ds_supplier.Supplier,
+	resourceService *resource.Service,
+) (*Service, error) {
+	r := Service{mongoRepository: mongoRepository, chRepository: chRepository, dsSupplier: dsSupplier, resourceService: resourceService}
 
 	exp, err := regexp2.Compile(
 		`((у|[нз]а|(хитро|не)?вз?[ыьъ]|с[ьъ]|(и|ра)[зс]ъ?|(о[тб]|под)[ьъ]?|(.\B)+?[оаеи])?-?([её]б(?!о[рй])|и[пб][ае][тц]).*?|(н[иеа]|[дп]о|ра[зс]|з?а|с(ме)?|о(т|дно)?|апч)?-?х[уy]([яйиеёю]|ли(?!ган)).*?|(в[зы]|(три|два|четыре)жды|(н|сук)а)?-?[б6]л(я(?!(х|ш[кн]|мб)[ауеыио]).*?|[еэ][дт]ь?)|(ра[сз]|[зн]а|[со]|вы?|п(р[ои]|од)|и[зс]ъ?|[ао]т)?п[иеё]зд.*?|(за)?п[ие]д[аое]?р((ас)?(и(ли)?[нщктл]ь?)?|(о(ч[еи])?)?к|юг)[ауеы]?|манд([ауеы]|ой|[ао]вошь?(е?к[ауе])?|юк(ов|[ауи])?)|муд([аио].*?|е?н([ьюия]|ей))|мля([тд]ь)?|лять|([нз]а|по)х|м[ао]л[ао]фь[яию]|(жоп|чмо|гнид)[а-я]*|г[ао]ндон|[а-я]*(с[рс]ать|хрен|хер|дрист|дроч|минет|говн|шлюх|г[а|о]вн)[а-я]*|мраз(ь|ота)|сук[а-я])|cock|fuck(er|ing)?`,
@@ -108,12 +115,12 @@ func (r *AnaliseReport) appendFromChan(
 }
 
 func (r *Service) analiseUserChat(ctx context.Context, input *AnaliseChatInput) (AnaliseReport, error) {
-	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, input.ChatId, input.TgUserId)
+	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, input.TgChatId, input.TgUserId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(ctx, input.ChatId, input.TgUserId)
+	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(ctx, input.TgChatId, input.TgUserId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
@@ -122,7 +129,7 @@ func (r *Service) analiseUserChat(ctx context.Context, input *AnaliseChatInput) 
 		return AnaliseReport{}, nil
 	}
 
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.ChatId)
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
 	}
@@ -144,16 +151,16 @@ func (r *Service) analiseUserChat(ctx context.Context, input *AnaliseChatInput) 
 	go report.appendFromChan(ctx, &reportWg, statsReportChan)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId)
+	go r.getMessagesGroupedByDateByChatIdByUserId(ctx, &wg, statsReportChan, input)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId, input.Tz)
+	go r.getMessagesGroupedByTimeByChatIdByUserId(ctx, &wg, statsReportChan, input)
 
 	wg.Add(1)
-	go r.getMessageFindRepliedBy(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId, getter)
+	go r.getMessageFindRepliedBy(ctx, &wg, statsReportChan, input, getter)
 
 	wg.Add(1)
-	go r.getMessageFindRepliesTo(ctx, &wg, statsReportChan, input.ChatId, input.TgUserId, getter)
+	go r.getMessageFindRepliesTo(ctx, &wg, statsReportChan, input, getter)
 
 	wg.Wait()
 	close(statsReportChan)
@@ -163,26 +170,17 @@ func (r *Service) analiseUserChat(ctx context.Context, input *AnaliseChatInput) 
 }
 
 func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput) (AnaliseReport, error) {
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.ChatId)
+	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
 	}
 
-	messages, err := r.chRepository.MessageGetByChatId(ctx, input.ChatId)
-	if err != nil {
-		return AnaliseReport{}, errors.Wrap(err, "failed to get message by chat id")
-	}
-
-	if len(messages) == 0 {
-		return AnaliseReport{}, nil
-	}
-
-	count, err := r.chRepository.CountGetByChatId(ctx, input.ChatId)
+	count, err := r.chRepository.CountGetByChatId(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatId(ctx, input.ChatId)
+	lastMessage, err := r.chRepository.GetLastMessageByChatId(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
@@ -203,22 +201,22 @@ func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput)
 	go report.appendFromChan(ctx, &reportWg, statsReportChan)
 
 	wg.Add(1)
-	go r.getChatterBoxes(ctx, &wg, statsReportChan, input.ChatId, getter)
+	go r.getChatterBoxes(ctx, &wg, statsReportChan, input, getter)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByDateByChatId(ctx, &wg, statsReportChan, input.ChatId)
+	go r.getMessagesGroupedByDateByChatId(ctx, &wg, statsReportChan, input)
 
 	wg.Add(1)
-	go r.getMessagesGroupedByTimeByChatId(ctx, &wg, statsReportChan, input.ChatId, input.Tz)
+	go r.getMessagesGroupedByTimeByChatId(ctx, &wg, statsReportChan, input)
 
 	wg.Add(1)
-	go r.getMostToxicUsers(ctx, &wg, statsReportChan, messages, getter)
+	go r.getMostToxicUsers(ctx, &wg, statsReportChan, input, getter)
 
 	wg.Add(1)
-	go r.getMessageFindAllRepliedByGraph(ctx, &wg, statsReportChan, input.ChatId, usersInChat, getter)
+	go r.getMessageFindAllRepliedByGraph(ctx, &wg, statsReportChan, input, usersInChat, getter)
 
 	wg.Add(1)
-	go r.getMessageFindAllRepliedByHeatmap(ctx, &wg, statsReportChan, input.ChatId, usersInChat, getter)
+	go r.getMessageFindAllRepliedByHeatmap(ctx, &wg, statsReportChan, input, usersInChat, getter)
 
 	wg.Wait()
 	close(statsReportChan)
@@ -228,10 +226,11 @@ func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput)
 }
 
 type AnaliseChatInput struct {
-	ChatId int64
-	Tz     int
+	TgChatId int64
+	Tz       int
 
 	TgUserId int64
+	Locale   resource.Locale
 }
 
 func (r *Service) AnaliseChat(ctx context.Context, input *AnaliseChatInput) (report AnaliseReport, err error) {
@@ -248,9 +247,9 @@ func (r *Service) AnaliseChat(ctx context.Context, input *AnaliseChatInput) (rep
 
 	slices.SortFunc(report.Images, func(a, b RepostImage) int {
 		if a.Name > b.Name {
-			return -1
-		} else {
 			return 1
+		} else {
+			return -1
 		}
 	})
 

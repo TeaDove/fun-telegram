@@ -104,8 +104,9 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 	}
 
 	analiseInput := analitics.AnaliseChatInput{
-		ChatId: update.EffectiveChat().GetID(),
-		Tz:     tz,
+		TgChatId: update.EffectiveChat().GetID(),
+		Tz:       tz,
+		Locale:   input.Locale,
 	}
 
 	targetUser, usernameFlagOk, err := r.getUserFromFlag(ctx, update, input)

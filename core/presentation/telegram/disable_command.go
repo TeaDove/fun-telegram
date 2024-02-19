@@ -13,6 +13,7 @@ import (
 )
 
 func (r *Presentation) isEnabled(ctx context.Context, chatId int64) (bool, error) {
+	// TODO rework to Toggle
 	_, err := r.redisRepository.Load(ctx, strconv.Itoa(int(chatId)))
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
@@ -26,6 +27,7 @@ func (r *Presentation) isEnabled(ctx context.Context, chatId int64) (bool, error
 }
 
 func (r *Presentation) isBanned(ctx context.Context, username string) (bool, error) {
+	// TODO rework to Toggle
 	_, err := r.redisRepository.Load(ctx, compileBanPath(strings.ToLower(username)))
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
@@ -71,6 +73,7 @@ func (r *Presentation) checkFromOwner(ctx *ext.Context, update *ext.Update) (ok 
 func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	chatId := strconv.Itoa(int(update.EffectiveChat().GetID()))
 
+	// TODO rework to Toggle
 	_, err := r.redisRepository.Load(ctx, chatId)
 	if err != nil {
 		if errors.Is(err, redis_repository.ErrKeyNotFound) {
@@ -79,6 +82,8 @@ func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Updat
 				return errors.WithStack(err)
 			}
 
+			// TODO rework to r.replyIfSilent
+			// TODO localise
 			if !input.Silent {
 				_, err = ctx.Reply(update, "Bot disabled in this chat", nil)
 				if err != nil {
@@ -95,6 +100,8 @@ func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Updat
 		return errors.WithStack(err)
 	}
 
+	// TODO rework to r.replyIfSilent
+	// TODO localise
 	if !input.Silent {
 		_, err = ctx.Reply(update, "Bot enabled in this chat", nil)
 		if err != nil {

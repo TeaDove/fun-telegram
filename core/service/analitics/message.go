@@ -2,6 +2,7 @@ package analitics
 
 import (
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -9,7 +10,7 @@ import (
 )
 
 func (r *Service) InsertNewMessage(ctx context.Context, message *Message) error {
-	err := r.chRepository.MessageCreate(ctx, &ch_repository.Message{
+	chMessage := &ch_repository.Message{
 		Id:            uuid.New(),
 		CreatedAt:     message.CreatedAt,
 		TgChatID:      message.TgChatID,
@@ -18,7 +19,27 @@ func (r *Service) InsertNewMessage(ctx context.Context, message *Message) error 
 		TgId:          message.TgId,
 		ReplyToMsgID:  message.ReplyToMsgID,
 		ReplyToUserID: message.ReplyToUserID,
-	})
+	}
+	words := strings.Fields(message.Text)
+
+	for _, word := range words {
+		word, ok := r.filterAndLemma(word)
+		if !ok {
+			continue
+		}
+		chMessage.WordsCount++
+
+		ok, err := r.IsToxic(word)
+		if err != nil {
+			return errors.Wrap(err, "failed to check if word is toxic")
+		}
+
+		if ok {
+			chMessage.ToxicWordsCount++
+		}
+	}
+
+	err := r.chRepository.MessageCreate(ctx, chMessage)
 	if err != nil {
 		return errors.Wrap(err, "failed to insert message in ch repository")
 	}

@@ -14,4 +14,6 @@ CREATE TABLE IF NOT EXISTS message
 ) ENGINE = ReplacingMergeTree() ORDER BY (tg_chat_id, tg_id)`,
 	`ALTER TABLE message ADD COLUMN IF NOT EXISTS reply_to_msg_id Nullable(Int64)`,
 	`ALTER TABLE message ADD COLUMN IF NOT EXISTS reply_to_user_id Nullable(Int64)`,
+	`ALTER TABLE message ADD COLUMN IF NOT EXISTS words_count UInt64`,
+	`ALTER TABLE message ADD COLUMN IF NOT EXISTS toxic_words_count UInt64`,
 }

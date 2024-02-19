@@ -67,18 +67,18 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 func (r *Presentation) toxicFinderCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
 	ok, err := r.redisRepository.Toggle(ctx, compileToxicFinderPath(update.EffectiveChat().GetID()))
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to toggle")
 	}
 
 	if ok {
 		err = r.replyIfNotSilentLocalized(ctx, update, input, resource.CommandToxicDisabled)
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrap(err, "failed to reply")
 		}
 	} else {
-		err = r.replyIfNotSilent(ctx, update, input, resource.CommandToxicEnabled)
+		err = r.replyIfNotSilentLocalized(ctx, update, input, resource.CommandToxicEnabled)
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrap(err, "failed to reply")
 		}
 	}
 

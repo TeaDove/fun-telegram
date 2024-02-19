@@ -72,10 +72,13 @@ func (r *Repository) Ping(ctx context.Context) error {
 }
 
 func (r *Repository) init(ctx context.Context) {
+	t0 := time.Now()
 	for _, sql := range initSQL {
 		err := r.conn.Exec(ctx, sql)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.run.init.sql").Send()
 		}
 	}
+
+	zerolog.Ctx(ctx).Info().Str("status", "ch.migration.applied").Dur("elapsed", time.Since(t0)).Send()
 }

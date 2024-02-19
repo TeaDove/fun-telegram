@@ -28,9 +28,11 @@ const (
 	ErrAccessDenies
 	ErrNiceTry
 	ErrUnprocessableEntity
+
 	AdminRequires
 	OwnerRequires
 	Example
+
 	CommandEchoDescription
 	CommandHelpDescription
 	CommandHelpBegin
@@ -65,6 +67,22 @@ const (
 	CommandStatsFlagOffsetDescription
 	CommandStatsFlagDayDescription
 	CommandStatsFlagRemoveDescription
+
+	AnaliseChartChatterBoxes
+	AnaliseChartUser
+	AnaliseChartWordsWritten
+	AnaliseChartInterlocusts
+	AnaliseChartMessagesSent
+	AnaliseChartUserRepliedBy
+	AnaliseChartUserRepliesTo
+	AnaliseChartDate
+	AnaliseChartWordsByDate
+	AnaliseChartTime
+	AnaliseChartWordsByTimeOfDay
+	AnaliseChartToxicityPercentShort
+	AnaliseChartToxicityPercentLong
+	AnaliseChartIsWeekend
+	AnaliseChartIsWeekday
 )
 
 var localizer = map[Code]map[Locale]string{
@@ -211,4 +229,20 @@ var localizer = map[Code]map[Locale]string{
 	CommandBanUserBanned:   {Ru: "%s забанен", En: "%s was banned"},
 	CommandBanUserUnbanned: {Ru: "%s разбанен", En: "%s was unbanned"},
 	Example:                {Ru: "Пример", En: "Example"},
+
+	AnaliseChartChatterBoxes:         {Ru: "Болтушки", En: "Chatter boxes"},
+	AnaliseChartUser:                 {Ru: "Пользователь", En: "User"},
+	AnaliseChartWordsWritten:         {Ru: "Слов написано", En: "Words written"},
+	AnaliseChartInterlocusts:         {Ru: "Собеседники", En: "Interlocusts"},
+	AnaliseChartMessagesSent:         {Ru: "Сообщений отправлено", En: "Messages sent"},
+	AnaliseChartUserRepliedBy:        {Ru: "Пользователи, которые отвечали данному пользователю", En: "User replied by"},
+	AnaliseChartUserRepliesTo:        {Ru: "Пользователи, которые получали ответы от данного пользователя", En: "User replies to"},
+	AnaliseChartDate:                 {Ru: "Дата", En: "Date"},
+	AnaliseChartTime:                 {Ru: "Время суток", En: "Time of day"},
+	AnaliseChartWordsByTimeOfDay:     {Ru: "Слов написано по времени суток", En: "Word written by time of day"},
+	AnaliseChartWordsByDate:          {Ru: "Слов написано по суткам", En: "Word written by date"},
+	AnaliseChartToxicityPercentShort: {Ru: "Процент токсичности", En: "Toxic words percent"},
+	AnaliseChartToxicityPercentLong:  {Ru: "Процент токсичных слов по отношению ко всем словам", En: "Percent of toxic words compared to all words"},
+	AnaliseChartIsWeekend:            {Ru: "выходной", En: "is weekend"},
+	AnaliseChartIsWeekday:            {Ru: "рабочий день", En: "is weekday"},
 }

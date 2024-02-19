@@ -21,7 +21,7 @@ class Service:
     def __post_init__(self) -> None:
         matplotlib.use("agg")
         sns.set_theme(style="whitegrid")
-        self.default_figsize = (20, 10)
+        self.default_figsize = (20, 13)
 
     def _get_palette(self, n: int):
         return sns.color_palette("Set2", n)
@@ -265,7 +265,7 @@ class Service:
         )
 
         proxies = [Line2D([0, 1], [0, 1], color=color, lw=7) for color in colors]
-        labels = ["<30% percents", "30%-70% percents", ">70% percents"]
+        labels = ["<30%", "30%-70%", ">70%"]
         ax.legend(proxies, labels)
 
         return self._fig_to_bytes(fig)

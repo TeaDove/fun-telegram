@@ -3,6 +3,7 @@ package analitics
 import (
 	"bytes"
 	"fmt"
+	"github.com/teadove/goteleout/core/service/resource"
 	"image"
 	"image/jpeg"
 	"os"
@@ -52,7 +53,10 @@ func getService(t *testing.T) *Service {
 	dsSupplier, err := ds_supplier.New(ctx)
 	require.NoError(t, err)
 
-	r, err := New(dbRepository, chRepository, dsSupplier)
+	resourceService, err := resource.New(ctx)
+	require.NoError(t, err)
+
+	r, err := New(dbRepository, chRepository, dsSupplier, resourceService)
 	require.NoError(t, err)
 
 	return r
@@ -63,9 +67,9 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
-		ChatId:   1701683862,
+		TgChatId: 1701683862,
 		Tz:       3,
-		TgUserId: 0,
+		Locale:   resource.Ru,
 	}) //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
@@ -79,9 +83,10 @@ func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
-		ChatId:   1701683862,
+		TgChatId: 1701683862,
 		Tz:       3,
 		TgUserId: 418878871,
+		Locale:   resource.En,
 	}) //1779431332 1350141926 1178533048
 	require.NoError(t, err)
 

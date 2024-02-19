@@ -1,97 +1,20 @@
 package analitics
 
 import (
-	"bytes"
 	"context"
-	"fmt"
+	"github.com/teadove/goteleout/core/service/resource"
 	"github.com/teadove/goteleout/core/supplier/ds_supplier"
-	"sort"
-	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/teadove/goteleout/core/repository/mongo_repository"
-	"github.com/wcharczuk/go-chart/v2"
-	"golang.org/x/exp/maps"
 )
-
-func (r *Service) getPopularWords(messages []mongo_repository.Message) ([]byte, error) {
-	const maxWords = 20
-
-	wordsToCount := make(map[string]int, 100)
-	lemmaToWordToCount := make(map[string]map[string]int, 100)
-	for _, message := range messages {
-		for _, word := range strings.Fields(message.Text) {
-			lemma, ok := r.filterAndLemma(word)
-			if !ok {
-				continue
-			}
-
-			wordsToCount[lemma]++
-
-			_, ok = lemmaToWordToCount[lemma]
-			if ok {
-				lemmaToWordToCount[lemma][word]++
-			} else {
-				lemmaToWordToCount[lemma] = map[string]int{word: 1}
-			}
-
-		}
-	}
-
-	words := maps.Keys(wordsToCount)
-	sort.SliceStable(words, func(i, j int) bool {
-		return wordsToCount[words[i]] > wordsToCount[words[j]]
-	})
-
-	values := make([]chart.Value, 0, 10)
-	if len(words) > maxWords {
-		words = words[:maxWords]
-	}
-
-	lemmaToOrigin := make(map[string]string, len(words))
-	for _, word := range words {
-		popularWord, popularWordCount := "", 0
-		for originalWord, originalWordCount := range lemmaToWordToCount[word] {
-			if originalWordCount > popularWordCount {
-				popularWord, popularWordCount = originalWord, originalWordCount
-			}
-		}
-
-		lemmaToOrigin[word] = popularWord
-	}
-
-	for _, word := range words {
-		values = append(values, chart.Value{
-			Value: float64(wordsToCount[word]),
-			Label: lemmaToOrigin[word],
-		})
-	}
-
-	barChart := getBarChart()
-	barChart.Title = fmt.Sprintf("%d popular words", len(words))
-	barChart.Bars = values
-
-	var popularWordsBuffer bytes.Buffer
-
-	err := barChart.Render(chart.PNG, &popularWordsBuffer)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	jpgImg, err := PngToJpeg(popularWordsBuffer.Bytes())
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return jpgImg, nil
-}
 
 func (r *Service) getChatterBoxes(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
-	chatId int64,
+	input *AnaliseChatInput,
 	getter nameGetter,
 ) {
 	defer wg.Done()
@@ -102,7 +25,7 @@ func (r *Service) getChatterBoxes(
 		},
 	}
 
-	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(ctx, chatId, maxUsers)
+	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(ctx, input.TgChatId, maxUsers)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to get chatter boxes")
 		statsReportChan <- output
@@ -112,14 +35,15 @@ func (r *Service) getChatterBoxes(
 
 	userToCount := make(map[string]float64, maxUsers)
 	for _, message := range userToCountArray {
-		userToCount[getter.Get(message.TgUserId)] = float64(message.Count)
+		userToCount[getter.Get(message.TgUserId)] = float64(message.WordsCount)
 	}
 
+	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  "Chatter boxes",
-			XLabel: "User",
-			YLabel: "Amount of messages sent",
+			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartChatterBoxes, input.Locale),
+			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUser, input.Locale),
+			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
 		},
 		Values: userToCount,
 	})
@@ -140,8 +64,7 @@ func (r *Service) getMessageFindRepliedBy(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
-	chatId int64,
-	userId int64,
+	input *AnaliseChatInput,
 	getter nameGetter,
 ) {
 	defer wg.Done()
@@ -153,8 +76,8 @@ func (r *Service) getMessageFindRepliedBy(
 
 	interlocutors, err := r.chRepository.MessageFindRepliedBy(
 		ctx,
-		chatId,
-		userId,
+		input.TgChatId,
+		input.TgUserId,
 		3,
 		interlocutorsLimit,
 	)
@@ -176,11 +99,12 @@ func (r *Service) getMessageFindRepliedBy(
 		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
+	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  "User replied by",
-			XLabel: "Interlocusts",
-			YLabel: "Amount of messages in conversations",
+			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliedBy, input.Locale),
+			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
+			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartMessagesSent, input.Locale),
 		},
 		Values: userToCount,
 	})
@@ -199,8 +123,7 @@ func (r *Service) getMessageFindRepliesTo(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
-	chatId int64,
-	userId int64,
+	input *AnaliseChatInput,
 	getter nameGetter,
 ) {
 	defer wg.Done()
@@ -212,8 +135,8 @@ func (r *Service) getMessageFindRepliesTo(
 
 	interlocutors, err := r.chRepository.MessageFindRepliesTo(
 		ctx,
-		chatId,
-		userId,
+		input.TgChatId,
+		input.TgChatId,
 		3,
 		interlocutorsLimit,
 	)
@@ -235,11 +158,12 @@ func (r *Service) getMessageFindRepliesTo(
 		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
+	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  "User replies to",
-			XLabel: "Interlocusts",
-			YLabel: "Amount of messages in conversations",
+			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliesTo, input.Locale),
+			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
+			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartMessagesSent, input.Locale),
 		},
 		Values: userToCount,
 	})
@@ -258,7 +182,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
-	chatId int64,
+	input *AnaliseChatInput,
 	usersInChat mongo_repository.UsersInChat,
 	getter nameGetter,
 ) {
@@ -272,7 +196,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	for _, user := range usersInChat {
 		replies, err := r.chRepository.MessageFindRepliesTo(
 			ctx,
-			chatId,
+			input.TgChatId,
 			user.TgId,
 			9,
 			3,
@@ -301,9 +225,10 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 		return
 	}
 
+	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title: "Interlocutors (amount of replies between users)",
+			Title: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
 		},
 		Edges: edges,
 	})
@@ -321,7 +246,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
-	chatId int64,
+	input *AnaliseChatInput,
 	usersInChat mongo_repository.UsersInChat,
 	getter nameGetter,
 ) {
@@ -335,10 +260,10 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	for _, user := range usersInChat {
 		replies, err := r.chRepository.MessageFindRepliesTo(
 			ctx,
-			chatId,
+			input.TgChatId,
 			user.TgId,
 			0,
-			100,
+			20,
 		)
 
 		if err != nil {
@@ -364,11 +289,12 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 		return
 	}
 
+	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  "Interlocutors as heatmap",
-			XLabel: "RepliedBy",
-			YLabel: "RepliedTo",
+			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
+			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliedBy, input.Locale),
+			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliesTo, input.Locale),
 		},
 		Edges: edges,
 	})
