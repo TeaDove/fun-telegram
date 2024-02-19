@@ -92,11 +92,11 @@ func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, inp
 }
 
 func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
-	var tz int = 0
+	var tz = 0
 	if tzFlag, ok := input.Ops[FlagStatsTZ.Long]; ok {
 		tz, err = strconv.Atoi(tzFlag)
 		if err != nil {
-			_, err = ctx.Reply(update, "Err: failed to parse tz argument to int", nil)
+			err = r.replyIfNotSilentLocalizedf(ctx, update, input, resource.ErrUnprocessableEntity, err)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -150,18 +150,21 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		text = append(
 			text,
 			styling.Plain(
-				fmt.Sprintf("%s report for user %s\n\n", GetChatName(update.EffectiveChat()), targetUser.TgName),
+				fmt.Sprintf("%s -> %s\n\n", GetChatName(update.EffectiveChat()), targetUser.TgName),
 			),
 		)
 	} else {
-		text = append(text, styling.Plain(fmt.Sprintf("%s report\n\n", GetChatName(update.EffectiveChat()))))
+		text = append(text, styling.Plain(fmt.Sprintf("%s \n\n", GetChatName(update.EffectiveChat()))))
 	}
 
 	text = append(text,
-		styling.Plain("First message in stats send at "),
-		styling.Code(report.FirstMessageAt.String()),
-		styling.Plain(fmt.Sprintf("\nMessages processed: %d\n", report.MessagesCount)),
-		styling.Plain(fmt.Sprintf("Compiled in: %.2fs", time.Since(input.StartedAt).Seconds())),
+		styling.Plain(
+			r.resourceService.Localizef(ctx, resource.CommandStatsResponseSuccess, input.Locale,
+				report.FirstMessageAt.String(),
+				report.MessagesCount,
+				time.Since(input.StartedAt).Seconds(),
+			),
+		),
 	)
 
 	var requestBuilder *message.RequestBuilder
