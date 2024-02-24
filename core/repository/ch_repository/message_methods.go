@@ -398,7 +398,8 @@ type MessagesGroupedByTimeByWeekday struct {
 // precision = 60 means per minute, 86400 - per day
 func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatId int64, precision int) ([]MessagesGroupedByTime, error) {
 	rows, err := r.conn.Query(ctx, `
-	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", sum(words_count) as "words_count"
+	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", 
+	       sum(words_count) as "words_count"
 		from message final
 			where tg_chat_id = ?
 		group by 1
@@ -425,7 +426,7 @@ func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatI
 func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(ctx context.Context, chatId int64, userId int64, precision int) ([]MessagesGroupedByTime, error) {
 	rows, err := r.conn.Query(ctx, `
 	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", sum(m.words_count) as "words_count"
-		from message final
+		from message m final
 			where tg_chat_id = ? and tg_user_id = ?
 		group by 1
 		order by 1 desc;
@@ -458,8 +459,8 @@ func (r *Repository) GetMessagesGroupedByTimeByChatId(
 ) ([]MessagesGroupedByTimeByWeekday, error) {
 	rows, err := r.conn.Query(ctx, `
 	select case when toDayOfWeek(m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
-	       toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at + interval ? hour), ?) * ?)) as "created_at", 
-	       sum(m.words_count) as "words_count"
+	       toTime(fromUnixTimestamp(intDiv(toUnixTimestamp(created_at + interval ? hour), ?) * ?)) as created_at, 
+	       sum(m.words_count) as words_count
 		from message m final
 			where tg_chat_id = ?
 		group by 1, 2
