@@ -5,7 +5,7 @@ import (
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Service struct {

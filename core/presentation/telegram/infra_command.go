@@ -7,7 +7,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/shared"
 	"golang.org/x/exp/maps"
 )
 

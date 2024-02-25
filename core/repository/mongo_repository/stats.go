@@ -5,7 +5,7 @@ import (
 
 	"github.com/kamva/mgm/v3"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/schemas"
+	"github.com/teadove/fun_telegram/core/schemas"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

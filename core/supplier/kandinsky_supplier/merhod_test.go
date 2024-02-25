@@ -6,7 +6,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 var ctx = context.Background()

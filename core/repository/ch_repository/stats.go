@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/schemas"
+	"github.com/teadove/fun_telegram/core/schemas"
 )
 
 func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]schemas.StorageStats, error) {

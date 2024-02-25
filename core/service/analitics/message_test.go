@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func generateMessage() Message {

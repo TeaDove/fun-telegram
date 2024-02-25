@@ -3,7 +3,7 @@ package presentation
 import (
 	"net/http"
 
-	"github.com/teadove/goteleout/core/service/job"
+	"github.com/teadove/fun_telegram/core/service/job"
 )
 
 func healthServer(job *job.Service) {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/repository/ch_repository"
+	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 )
 
 func (r *Service) InsertNewMessage(ctx context.Context, message *Message) error {

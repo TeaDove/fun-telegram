@@ -2,11 +2,12 @@ package analitics
 
 import (
 	"context"
-	"github.com/teadove/goteleout/core/service/resource"
+	"fmt"
+	"github.com/teadove/fun_telegram/core/service/resource"
 	"sync"
 	"time"
 
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
+	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 )
@@ -137,7 +138,7 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartWordsByTimeOfDay, input.Locale),
+			Title:  fmt.Sprintf("%s UTC+%d", r.resourceService.Localize(ctx, resource.AnaliseChartWordsByTimeOfDay, input.Locale), input.Tz),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
 			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
 		},
@@ -194,7 +195,7 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartWordsByTimeOfDay, input.Locale),
+			Title:  fmt.Sprintf("%s UTC+%d", r.resourceService.Localize(ctx, resource.AnaliseChartWordsByTimeOfDay, input.Locale), input.Tz),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
 			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
 		},

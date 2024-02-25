@@ -2,20 +2,20 @@ package container
 
 import (
 	"context"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
+	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/presentation/telegram"
-	"github.com/teadove/goteleout/core/repository/ch_repository"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
-	"github.com/teadove/goteleout/core/repository/redis_repository"
-	"github.com/teadove/goteleout/core/service/analitics"
-	"github.com/teadove/goteleout/core/service/job"
-	"github.com/teadove/goteleout/core/service/resource"
-	"github.com/teadove/goteleout/core/shared"
-	"github.com/teadove/goteleout/core/supplier/ip_locator"
-	"github.com/teadove/goteleout/core/supplier/kandinsky_supplier"
+	"github.com/teadove/fun_telegram/core/presentation/telegram"
+	"github.com/teadove/fun_telegram/core/repository/ch_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/redis_repository"
+	"github.com/teadove/fun_telegram/core/service/analitics"
+	"github.com/teadove/fun_telegram/core/service/job"
+	"github.com/teadove/fun_telegram/core/service/resource"
+	"github.com/teadove/fun_telegram/core/shared"
+	"github.com/teadove/fun_telegram/core/supplier/ip_locator"
+	"github.com/teadove/fun_telegram/core/supplier/kandinsky_supplier"
 )
 
 type Container struct {

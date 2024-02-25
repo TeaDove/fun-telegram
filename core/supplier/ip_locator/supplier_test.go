@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/teadove/goteleout/core/utils"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func TestIntegration_IpLocator_GetLocation_Ok(t *testing.T) {
@@ -14,7 +14,7 @@ func TestIntegration_IpLocator_GetLocation_Ok(t *testing.T) {
 	resp, err := r.GetLocation(context.Background(), "116.203.245.151")
 
 	assert.NoError(t, err)
-	utils.SendInterface(resp)
+	shared.SendInterface(resp)
 }
 
 func TestIntegration_IpLocator_GetLocation_ValidationError(t *testing.T) {

@@ -1,4 +1,4 @@
-module github.com/teadove/goteleout
+module github.com/teadove/fun_telegram
 
 go 1.22
 
@@ -21,7 +21,6 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.17.0
-	github.com/wcharczuk/go-chart/v2 v2.1.1
 	go.mongodb.org/mongo-driver v1.13.1
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
 	golang.org/x/time v0.5.0
@@ -32,7 +31,6 @@ require (
 	github.com/ClickHouse/ch-go v0.61.2 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.18.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/blend/go-sdk v1.20220411.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -44,7 +42,6 @@ require (
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-faster/jx v1.1.0 // indirect
 	github.com/go-faster/xor v1.0.0 // indirect
-	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
@@ -74,7 +71,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/image v0.11.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect

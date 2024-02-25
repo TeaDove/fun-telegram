@@ -2,12 +2,12 @@ package analitics
 
 import (
 	"context"
-	"github.com/teadove/goteleout/core/service/resource"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
+	"github.com/teadove/fun_telegram/core/service/resource"
+	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 func (r *Service) getChatterBoxes(
@@ -38,7 +38,6 @@ func (r *Service) getChatterBoxes(
 		userToCount[getter.Get(message.TgUserId)] = float64(message.WordsCount)
 	}
 
-	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartChatterBoxes, input.Locale),
@@ -89,6 +88,7 @@ func (r *Service) getMessageFindRepliedBy(
 	}
 
 	if len(interlocutors) == 0 {
+		output.err = errors.New("no interlocutors found")
 		statsReportChan <- output
 
 		return
@@ -99,7 +99,6 @@ func (r *Service) getMessageFindRepliedBy(
 		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
-	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliedBy, input.Locale),
@@ -136,7 +135,7 @@ func (r *Service) getMessageFindRepliesTo(
 	interlocutors, err := r.chRepository.MessageFindRepliesTo(
 		ctx,
 		input.TgChatId,
-		input.TgChatId,
+		input.TgUserId,
 		3,
 		interlocutorsLimit,
 	)
@@ -148,6 +147,7 @@ func (r *Service) getMessageFindRepliesTo(
 	}
 
 	if len(interlocutors) == 0 {
+		output.err = errors.New("no interlocutors found")
 		statsReportChan <- output
 
 		return
@@ -158,7 +158,6 @@ func (r *Service) getMessageFindRepliesTo(
 		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
-	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliesTo, input.Locale),
@@ -225,7 +224,6 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 		return
 	}
 
-	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
@@ -289,7 +287,6 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 		return
 	}
 
-	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),

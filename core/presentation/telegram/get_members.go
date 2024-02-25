@@ -9,7 +9,7 @@ import (
 	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -82,7 +82,6 @@ func (r *Presentation) updateMembers(
 	var chatTitle string
 	switch t := effectiveChat.(type) {
 	case *types.Chat:
-		usersInChat = make(mongo_repository.UsersInChat, 20)
 		chat := r.telegramManager.Chat(t.Raw())
 		chatMembers := members.Chat(chat)
 
@@ -93,7 +92,6 @@ func (r *Presentation) updateMembers(
 
 		chatTitle = chat.Raw().Title
 	case *types.Channel:
-		usersInChat = make(mongo_repository.UsersInChat, 20)
 		chat := r.telegramManager.Channel(t.Raw())
 		chatMembers := members.Channel(chat)
 
@@ -139,7 +137,7 @@ func (r *Presentation) getOrUpdateMembers(
 		needUpload = true
 	}
 
-	if needUpload || time.Since(chat.UpdatedAt) > 3*time.Hour {
+	if needUpload || time.Since(chat.UpdatedAt) > 12*time.Hour {
 		usersInChat, err := r.updateMembers(ctx, effectiveChat)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to upload members")

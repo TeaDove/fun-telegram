@@ -8,8 +8,8 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
-	"github.com/teadove/goteleout/core/repository/redis_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 )
 
 func (r *Presentation) isEnabled(ctx context.Context, chatId int64) (bool, error) {

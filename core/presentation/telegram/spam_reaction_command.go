@@ -8,8 +8,8 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/repository/redis_repository"
-	"github.com/teadove/goteleout/core/service/resource"
+	"github.com/teadove/fun_telegram/core/repository/redis_repository"
+	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 func compileSpamVictimKey(chatId int64, userId int64) string {

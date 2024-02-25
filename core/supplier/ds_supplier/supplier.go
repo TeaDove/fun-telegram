@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Supplier struct {

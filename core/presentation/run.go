@@ -7,8 +7,8 @@ import (
 	"runtime/pprof"
 
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/container"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/container"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func captureInterrupt(ctx context.Context) {

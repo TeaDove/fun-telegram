@@ -9,8 +9,8 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/service/resource"
-	"github.com/teadove/goteleout/core/supplier/kandinsky_supplier"
+	"github.com/teadove/fun_telegram/core/service/resource"
+	"github.com/teadove/fun_telegram/core/supplier/kandinsky_supplier"
 )
 
 const (

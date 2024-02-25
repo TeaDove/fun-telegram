@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Locale string
@@ -28,6 +28,7 @@ const (
 	ErrAccessDenies
 	ErrNiceTry
 	ErrUnprocessableEntity
+	ErrNoMessagesFound
 
 	AdminRequires
 	OwnerRequires
@@ -96,6 +97,7 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "Ошибка: Требуется ввести username пользователя",
 		En: "Err: Username required",
 	},
+	ErrNoMessagesFound: {Ru: "Ошибка: Нет найденных сообщений", En: "Err: No messages found"},
 	ErrInsufficientPrivilegesAdmin: {
 		Ru: "Ошибка: Недостаточно прав: Требуются права администратора",
 		En: "Err: Insufficient privilege: Admin rights required",
@@ -240,7 +242,7 @@ var localizer = map[Code]map[Locale]string{
 	AnaliseChartUserRepliesTo:        {Ru: "Пользователи, которые получали ответы от данного пользователя", En: "User replies to"},
 	AnaliseChartDate:                 {Ru: "Дата", En: "Date"},
 	AnaliseChartTime:                 {Ru: "Время суток", En: "Time of day"},
-	AnaliseChartWordsByTimeOfDay:     {Ru: "Слов написано по времени суток", En: "Word written by time of day"},
+	AnaliseChartWordsByTimeOfDay:     {Ru: "Слов написано по времени суток", En: "Words written by time of day"},
 	AnaliseChartWordsByDate:          {Ru: "Слов написано по суткам", En: "Word written by date"},
 	AnaliseChartToxicityPercentShort: {Ru: "Процент токсичности", En: "Toxic words percent"},
 	AnaliseChartToxicityPercentLong:  {Ru: "Процент токсичных слов по отношению ко всем словам", En: "Percent of toxic words compared to all words"},

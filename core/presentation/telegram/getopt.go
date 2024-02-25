@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/teadove/goteleout/core/service/resource"
+	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 type OptFlag struct {

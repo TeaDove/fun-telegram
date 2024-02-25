@@ -2,9 +2,9 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
-	"github.com/teadove/goteleout/core/service/analitics"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/service/analitics"
+	"github.com/teadove/fun_telegram/core/shared"
 	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 	"strings"
@@ -15,7 +15,7 @@ import (
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/service/resource"
+	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 var (
@@ -120,6 +120,14 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 
 	report, err := r.analiticsService.AnaliseChat(ctx, &analiseInput)
 	if err != nil {
+		if errors.Is(err, analitics.ErrNoMessagesFound) {
+			err := r.replyIfNotSilentLocalized(ctx, update, input, resource.ErrNoMessagesFound)
+			if err != nil {
+				return errors.Wrap(err, "failed to reply")
+			}
+
+			return nil
+		}
 		return errors.Wrap(err, "failed to analise chat")
 	}
 

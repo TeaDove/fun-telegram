@@ -10,7 +10,7 @@ import (
 	"github.com/kamva/mgm/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/shared"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

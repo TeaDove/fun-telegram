@@ -2,11 +2,11 @@ package analitics
 
 import (
 	"context"
-	"github.com/teadove/goteleout/core/service/resource"
+	"github.com/teadove/fun_telegram/core/service/resource"
 	"strings"
 	"sync"
 
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
+	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 )
@@ -22,13 +22,13 @@ func (r *Service) getMostToxicUsers(
 	const maxUsers = 15
 	output := statsReport{
 		repostImage: RepostImage{
-			Name: "ChatterBoxes",
+			Name: "MostToxicUsers",
 		},
 	}
 
 	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(ctx, input.TgChatId, maxUsers)
 	if err != nil {
-		output.err = errors.Wrap(err, "failed to get chatter boxes")
+		output.err = errors.Wrap(err, "failed to get GroupedCountGetByChatIdByUserId")
 		statsReportChan <- output
 
 		return
@@ -39,7 +39,6 @@ func (r *Service) getMostToxicUsers(
 		userToCount[getter.Get(message.TgUserId)] = float64(message.ToxicWordsCount) / float64(message.WordsCount) * 100
 	}
 
-	// TODO localise
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartToxicityPercentShort, input.Locale),

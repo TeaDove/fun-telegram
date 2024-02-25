@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"strings"
 
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 type nameGetter struct {

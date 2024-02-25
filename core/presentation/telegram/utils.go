@@ -10,8 +10,8 @@ import (
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/service/resource"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/service/resource"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func filterNonNewMessages(update *ext.Update) bool {

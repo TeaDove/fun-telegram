@@ -7,10 +7,10 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/repository/ch_repository"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
-	"github.com/teadove/goteleout/core/schemas"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/repository/ch_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/schemas"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Service struct {

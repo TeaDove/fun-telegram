@@ -2,6 +2,7 @@ package shared
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"path/filepath"
 	"time"
 
@@ -56,10 +57,10 @@ func mustNewSettings() Settings {
 	_ = godotenv.Load(defaultEnvFile)
 
 	err := env.Parse(&settings, env.Options{Prefix: defaultEnvPrefix})
-	Check(ctx, err)
+	Check(ctx, errors.Wrap(err, "failed to env parse"))
 
 	realPath, err := homedir.Expand(settings.FileStoragePath)
-	Check(ctx, err)
+	Check(ctx, errors.Wrap(err, "failed to homedir expand"))
 
 	settings.Telegram.SessionFullPath = filepath.Join(realPath, settings.Telegram.SessionPath)
 

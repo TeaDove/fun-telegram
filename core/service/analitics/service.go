@@ -3,20 +3,20 @@ package analitics
 import (
 	"context"
 	"fmt"
-	"github.com/teadove/goteleout/core/service/resource"
+	"github.com/teadove/fun_telegram/core/service/resource"
 	"slices"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
+	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/aaaton/golem/v4"
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
-	"github.com/teadove/goteleout/core/repository/ch_repository"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/ch_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 type Service struct {
@@ -56,6 +56,8 @@ func New(
 
 	return &r, nil
 }
+
+var ErrNoMessagesFound = errors.New("No messages found")
 
 type RepostImage struct {
 	Name    string
@@ -118,6 +120,10 @@ func (r *Service) analiseUserChat(ctx context.Context, input *AnaliseChatInput) 
 	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, input.TgChatId, input.TgUserId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
+	}
+
+	if count == 0 {
+		return AnaliseReport{}, errors.WithStack(ErrNoMessagesFound)
 	}
 
 	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(ctx, input.TgChatId, input.TgUserId)

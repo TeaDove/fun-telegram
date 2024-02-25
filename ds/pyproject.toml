@@ -17,3 +17,4 @@ seaborn = "^0.13.2"
 pyarrow = "^15.0.0"
 networkx = {extras = ["all"], version = "^3.2.1"}
 bokeh = "^3.3.4"
+loguru = "^0.7.2"

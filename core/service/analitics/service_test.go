@@ -3,19 +3,19 @@ package analitics
 import (
 	"bytes"
 	"fmt"
-	"github.com/teadove/goteleout/core/service/resource"
+	"github.com/teadove/fun_telegram/core/service/resource"
 	"image"
 	"image/jpeg"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/teadove/goteleout/core/supplier/ds_supplier"
+	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/goteleout/core/repository/ch_repository"
-	"github.com/teadove/goteleout/core/repository/mongo_repository"
-	"github.com/teadove/goteleout/core/shared"
+	"github.com/teadove/fun_telegram/core/repository/ch_repository"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func draw(t *testing.T, reportImages []RepostImage) {

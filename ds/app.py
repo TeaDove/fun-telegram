@@ -14,7 +14,7 @@ from service import Service
 from schemas import Points, Bar, TimeSeries, Graph
 from fastapi import Request
 import time
-
+from loguru import logger
 
 app = FastAPI()
 service = Service()
@@ -25,7 +25,7 @@ async def add_process_time_header(request: Request, call_next):
     t0 = time.monotonic()
     response = await call_next(request)
     process_time = time.monotonic() - t0
-    print(f"Request for {request.url} done in {process_time:.2f}s")
+    logger.info(f"Request for {request.url} done in {process_time:.2f}s")
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
