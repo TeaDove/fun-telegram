@@ -14,16 +14,12 @@ func compileToxicFinderPath(chatId int64) string {
 }
 
 func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
-	ok, err := r.redisRepository.GetToggle(ctx, compileToxicFinderPath(update.EffectiveChat().GetID()))
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
+	ok := filterNonNewMessages(update)
 	if !ok {
 		return nil
 	}
 
-	ok, err = r.isEnabled(ctx, update.EffectiveChat().GetID())
+	ok, err := r.isEnabled(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.Wrap(err, "failed to check if enabled")
 	}
@@ -31,7 +27,11 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 		return nil
 	}
 
-	ok = filterNonNewMessages(update)
+	ok, err = r.redisRepository.GetToggle(ctx, compileToxicFinderPath(update.EffectiveChat().GetID()))
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	if !ok {
 		return nil
 	}
@@ -64,7 +64,7 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 	return nil
 }
 
-func (r *Presentation) toxicFinderCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) toxicFinderCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	ok, err := r.redisRepository.Toggle(ctx, compileToxicFinderPath(update.EffectiveChat().GetID()))
 	if err != nil {
 		return errors.Wrap(err, "failed to toggle")

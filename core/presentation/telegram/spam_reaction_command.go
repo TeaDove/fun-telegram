@@ -17,6 +17,11 @@ func compileSpamVictimKey(chatId int64, userId int64) string {
 }
 
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
+	ok := filterNonNewMessages(update)
+	if !ok {
+		return nil
+	}
+
 	chatId := update.EffectiveChat().GetID()
 	if chatId == 0 {
 		return nil
@@ -68,7 +73,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 }
 
 // nolint: cyclop
-func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *input) error {
 	chatId, _ := GetChatFromEffectiveChat(update.EffectiveChat())
 	if chatId == 0 {
 		if !input.Silent {
@@ -121,7 +126,7 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *I
 
 // TODO: fix nolint
 // nolint: cyclop
-func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *input) error {
 	const maxReactionCount = 3
 
 	chatId, currentPeer := GetChatFromEffectiveChat(update.EffectiveChat())
@@ -200,14 +205,14 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *Inpu
 }
 
 var (
-	FlagSpamReactionStop = OptFlag{
+	FlagSpamReactionStop = optFlag{
 		Long:        "stop",
 		Short:       "s",
 		Description: resource.CommandSpamReactionFlagStopDescription,
 	}
 )
 
-func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	if _, ok := input.Ops[FlagSpamReactionStop.Long]; ok {
 		return r.deleteSpam(ctx, update, input)
 	}

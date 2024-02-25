@@ -7,21 +7,23 @@ import (
 	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
-type OptFlag struct {
+type optFlag struct {
 	Short       string
 	Long        string
 	Description resource.Code
 }
 
-type Input struct {
+type input struct {
 	Text      string
 	Silent    bool
 	Ops       map[string]string
 	Locale    resource.Locale
 	StartedAt time.Time
+	Tz        int8
+	TimeLoc   *time.Location
 }
 
-var FlagSilent = OptFlag{Long: "silent", Short: "q"}
+var FlagSilent = optFlag{Long: "silent", Short: "q"}
 
 func stripWords(text string) []string {
 	output := make([]string, 0, 10)
@@ -78,7 +80,7 @@ func stripWords(text string) []string {
 
 // GetOpt
 // nolint: cyclop
-func GetOpt(text string, flags ...OptFlag) (input Input) {
+func GetOpt(text string, flags ...optFlag) (input input) {
 	const longHypenByte = 226
 
 	flags = append(flags, FlagSilent)

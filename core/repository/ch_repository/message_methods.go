@@ -455,7 +455,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatId(
 	ctx context.Context,
 	chatId int64,
 	precision int,
-	tz int,
+	tz int8,
 ) ([]MessagesGroupedByTimeByWeekday, error) {
 	rows, err := r.conn.Query(ctx, `
 	select case when toDayOfWeek(m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
@@ -489,7 +489,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
 	chatId int64,
 	userId int64,
 	precision int,
-	tz int,
+	tz int8,
 ) ([]MessagesGroupedByTimeByWeekday, error) {
 	rows, err := r.conn.Query(ctx, `
 	select case when toDayOfWeek(m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,

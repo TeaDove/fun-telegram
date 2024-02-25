@@ -29,7 +29,7 @@ func (r *Presentation) getLocale(ctx context.Context, chatId int64) (resource.Lo
 	return resource.Locale(localeBytes), nil
 }
 
-func (r *Presentation) localeCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) localeCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	locale := resource.Locale(strings.ToLower(strings.TrimSpace(input.Text)))
 	if !r.resourceService.Locales.Contains(locale) {
 		err := r.replyIfNotSilent(

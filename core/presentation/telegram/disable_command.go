@@ -2,7 +2,7 @@ package telegram
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 	"strings"
 
 	"github.com/celestix/gotgproto/ext"
@@ -12,18 +12,17 @@ import (
 	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 )
 
+func getEnabledPath(chatId int64) string {
+	return fmt.Sprintf("enabled::%d", chatId)
+}
+
 func (r *Presentation) isEnabled(ctx context.Context, chatId int64) (bool, error) {
-	// TODO rework to Toggle
-	_, err := r.redisRepository.Load(ctx, strconv.Itoa(int(chatId)))
+	enabled, err := r.redisRepository.GetToggle(ctx, getEnabledPath(chatId))
 	if err != nil {
-		if errors.Is(err, redis_repository.ErrKeyNotFound) {
-			return true, nil
-		} else {
-			return false, errors.Wrap(err, "failed to load from redis repository")
-		}
+		return false, errors.Wrap(err, "failed to load from redis repository")
 	}
 
-	return false, nil
+	return enabled, nil
 }
 
 func (r *Presentation) isBanned(ctx context.Context, username string) (bool, error) {
@@ -70,43 +69,22 @@ func (r *Presentation) checkFromOwner(ctx *ext.Context, update *ext.Update) (ok 
 	return update.EffectiveUser().GetID() == ctx.Self.ID
 }
 
-func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
-	chatId := strconv.Itoa(int(update.EffectiveChat().GetID()))
-
-	// TODO rework to Toggle
-	_, err := r.redisRepository.Load(ctx, chatId)
-	if err != nil {
-		if errors.Is(err, redis_repository.ErrKeyNotFound) {
-			err = r.redisRepository.Save(ctx, chatId, []byte("1"))
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			// TODO rework to r.replyIfSilent
-			// TODO localise
-			if !input.Silent {
-				_, err = ctx.Reply(update, "Bot disabled in this chat", nil)
-				if err != nil {
-					return errors.WithStack(err)
-				}
-			}
-		}
-
-		return errors.WithStack(err)
-	}
-
-	err = r.redisRepository.Delete(ctx, chatId)
+func (r *Presentation) disableCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
+	wasEnabled, err := r.redisRepository.Toggle(ctx, getEnabledPath(update.EffectiveChat().GetID()))
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	// TODO rework to r.replyIfSilent
-	// TODO localise
-	if !input.Silent {
-		_, err = ctx.Reply(update, "Bot enabled in this chat", nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
+	var text string
+	if wasEnabled {
+		text = "Bot disabled in this chat"
+	} else {
+		text = "Bot enabled in this chat"
+	}
+
+	err = r.replyIfNotSilent(ctx, update, input, text)
+	if err != nil {
+		return errors.WithStack(err)
 	}
 
 	return nil

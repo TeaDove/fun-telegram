@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (r *Presentation) locationCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) locationCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	location, err := r.ipLocator.GetLocation(ctx, input.Text)
 	if err != nil {
 		_, err = ctx.Reply(update, fmt.Sprintf("Err: %s", location.Message), nil)

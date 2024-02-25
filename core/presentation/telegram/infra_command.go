@@ -11,7 +11,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
+func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
 	statsByDatabase, err := r.jobService.Stats(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get stats of databases")

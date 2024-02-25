@@ -12,7 +12,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []styling.StyledTextOption {
+func (r *Presentation) compileHelpMessage(ctx context.Context, input *input) []styling.StyledTextOption {
 	helpMessage := make([]styling.StyledTextOption, 0, 20)
 	helpMessage = append(
 		helpMessage,
@@ -81,7 +81,7 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *Input) []s
 	return helpMessage
 }
 
-func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	_, err := ctx.Reply(update, r.compileHelpMessage(ctx, input), nil)
 	if err != nil {
 		return errors.WithStack(err)

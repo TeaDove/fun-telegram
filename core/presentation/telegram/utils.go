@@ -25,7 +25,7 @@ func filterNonNewMessages(update *ext.Update) bool {
 	}
 }
 
-func (r *Presentation) replyIfNotSilent(ctx *ext.Context, update *ext.Update, input *Input, text any) error {
+func (r *Presentation) replyIfNotSilent(ctx *ext.Context, update *ext.Update, input *input, text any) error {
 	if input.Silent {
 		return nil
 	}
@@ -41,7 +41,7 @@ func (r *Presentation) replyIfNotSilent(ctx *ext.Context, update *ext.Update, in
 func (r *Presentation) replyIfNotSilentLocalized(
 	ctx *ext.Context,
 	update *ext.Update,
-	input *Input,
+	input *input,
 	code resource.Code,
 ) error {
 	text := r.resourceService.Localize(ctx, code, input.Locale)
@@ -57,7 +57,7 @@ func (r *Presentation) replyIfNotSilentLocalized(
 func (r *Presentation) replyIfNotSilentLocalizedf(
 	ctx *ext.Context,
 	update *ext.Update,
-	input *Input,
+	input *input,
 	code resource.Code,
 	args ...any,
 ) error {

@@ -15,7 +15,7 @@ func compileBanPath(username string) string {
 	return fmt.Sprintf("ban::%s", username)
 }
 
-func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	usernameToBanLower := strings.ToLower(input.Text)
 	if usernameToBanLower == "" {
 		err := r.replyIfNotSilentLocalized(ctx, update, input, resource.ErrUsernameRequired)

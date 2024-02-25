@@ -12,21 +12,18 @@ import (
 )
 
 type messageProcessor struct {
-	executor     func(ctx *ext.Context, update *ext.Update, input *Input) error
+	executor     func(ctx *ext.Context, update *ext.Update, input *input) error
 	description  resource.Code
 	requireAdmin bool
 	requireOwner bool
-	flags        []OptFlag
+	flags        []optFlag
 	example      string
 }
 
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
-	_, ok := update.UpdateClass.(*tg.UpdateNewChannelMessage)
+	ok := filterNonNewMessages(update)
 	if !ok {
-		_, ok = update.UpdateClass.(*tg.UpdateNewMessage)
-		if !ok {
-			return nil
-		}
+		return nil
 	}
 
 	text := update.EffectiveMessage.Message.Message
@@ -73,6 +70,14 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	opts.Locale = locale
 
+	tz, err := r.getTz(ctx, update.EffectiveChat().GetID())
+	if err != nil {
+		return errors.Wrap(err, "failed to get tz")
+	}
+
+	opts.Tz = tz
+	opts.TimeLoc = int8ToLoc(tz)
+
 	if ok {
 		_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrAccessDenies, locale), nil)
 		if err != nil {
@@ -85,7 +90,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	if route.requireAdmin {
 		ok, err = r.checkFromAdmin(ctx, update)
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrap(err, "failed to check if admin")
 		}
 		if !ok {
 			_, err = ctx.Reply(

@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *Presentation) healthCommandHandler(ctx *ext.Context, update *ext.Update, _ *Input) error {
+func (r *Presentation) healthCommandHandler(ctx *ext.Context, update *ext.Update, _ *input) error {
 	results := r.jobService.Check(ctx, false)
 	message := make([]styling.StyledTextOption, 0, len(results)+2)
 

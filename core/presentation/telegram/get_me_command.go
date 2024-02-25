@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) getMeCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	user := update.EffectiveUser()
 	chat := update.EffectiveChat()
 	stylingOptions := []styling.StyledTextOption{

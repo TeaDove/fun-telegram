@@ -233,7 +233,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput)
 
 type AnaliseChatInput struct {
 	TgChatId int64
-	Tz       int
+	Tz       int8
 
 	TgUserId int64
 	Locale   resource.Locale

@@ -20,12 +20,12 @@ const (
 )
 
 var (
-	FlagKandinskyNegativePrompt = OptFlag{
+	FlagKandinskyNegativePrompt = optFlag{
 		Long:        "negative",
 		Short:       "n",
 		Description: resource.CommandKandinskyFlagNegativePromptDescription,
 	}
-	FlagKandinskyStyle = OptFlag{
+	FlagKandinskyStyle = optFlag{
 		Long:        "style",
 		Short:       "s",
 		Description: resource.CommandKandinskyFlagStyleDescription,
@@ -34,7 +34,7 @@ var (
 
 // kandkinskyCommandHandler
 // nolint: cyclop
-func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	if r.kandinskySupplier == nil {
 		_, err := ctx.Reply(update, "Err: kandinsky supplier is currently disabled", nil)
 		if err != nil {

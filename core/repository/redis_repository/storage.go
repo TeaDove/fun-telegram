@@ -3,6 +3,7 @@ package redis_repository
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
 
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
@@ -28,11 +29,14 @@ func (r *Repository) Load(ctx context.Context, k string) ([]byte, error) {
 	cmd := r.rbs.Get(ctx, k)
 	if cmd.Err() != nil {
 		if errors.Is(cmd.Err(), redis.Nil) {
+			zerolog.Ctx(ctx).Trace().Str("status", "redis.key.not.found").Str("key", k).Send()
 			return []byte{}, errors.WithStack(ErrKeyNotFound)
 		}
 
 		return []byte{}, errors.WithStack(cmd.Err())
 	}
+
+	zerolog.Ctx(ctx).Trace().Str("status", "redis.loaded").Str("key", k).Send()
 
 	return []byte(cmd.Val()), nil
 }
@@ -43,6 +47,8 @@ func (r *Repository) Save(ctx context.Context, k string, t []byte) error {
 		return errors.WithStack(err)
 	}
 
+	zerolog.Ctx(ctx).Trace().Str("status", "redis.saved").Str("key", k).Send()
+
 	return nil
 }
 
@@ -52,9 +58,13 @@ func (r *Repository) Delete(ctx context.Context, k string) error {
 		return errors.WithStack(err)
 	}
 
+	zerolog.Ctx(ctx).Trace().Str("status", "redis.deleted").Str("key", k).Send()
+
 	return nil
 }
 
+// Toggle
+// Return true, if toggle WAS true
 func (r *Repository) Toggle(ctx context.Context, k string) (bool, error) {
 	ok, err := r.GetToggle(ctx, k)
 	if err != nil {

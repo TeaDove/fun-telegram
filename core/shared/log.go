@@ -21,7 +21,7 @@ func SendInterface(values ...any) {
 }
 
 func GetCtx() context.Context {
-	return getLogger().With().Str("instance.id", InstanceId).Logger().WithContext(context.Background())
+	return getLogger().WithContext(context.Background()) // .Str("instance.id", InstanceId)
 }
 
 func AddModuleCtx(ctx context.Context, moduleName string) context.Context {

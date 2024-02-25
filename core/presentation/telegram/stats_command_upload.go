@@ -80,7 +80,7 @@ func (r *Presentation) uploadMessageToRepository(
 	}
 }
 
-func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.Update, input *input) error {
 	if update.EffectiveChat().GetID() == ctx.Self.ID {
 		output, err := r.jobService.DeleteOldMessages(ctx)
 		if err != nil {
@@ -145,20 +145,29 @@ func (r *Presentation) updateUploadStatsMessage(
 	offset int,
 	startedAt time.Time,
 	lastDate time.Time,
+	maxCount int,
 ) {
 	zerolog.Ctx(ctx).Info().Str("status", "messages.batch.uploaded").Int("count", count).Send()
+
+	elapsed := time.Since(startedAt).Seconds()
+	remainingCount := maxCount - count
+	speedSeconds := float64(count) / elapsed
 
 	_, err := ctx.EditMessage(chatId, &tg.MessagesEditMessageRequest{
 		Peer: chatPeer,
 		ID:   msgId,
 		Message: fmt.Sprintf(
-			"⚙️ Uploading messages\n\n"+
-				"Amount uploaded: %d\n"+
-				"Seconds elapsed: %.2f\n"+
-				"Offset: %d\n"+
-				"LastDate: %s",
+			`⚙️ Uploading messages
+
+Amount uploaded: %d, Remaining: %d
+Seconds elapsed: %.2f, Speed: %.2fmsg/s, ETA: %.1f minutes
+Offset: %d
+LastDate: %s`,
 			count,
-			time.Since(startedAt).Seconds(),
+			remainingCount,
+			elapsed,
+			speedSeconds,
+			float64(remainingCount)/speedSeconds/60,
 			offset,
 			lastDate.String(),
 		),
@@ -168,7 +177,7 @@ func (r *Presentation) updateUploadStatsMessage(
 	}
 }
 
-func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
+func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *input) (err error) {
 	const (
 		maxElapsed = time.Hour
 		batchSize  = 100
@@ -285,14 +294,14 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 				continue
 			}
 
-			lastDate = time.Unix(int64(msg.Date), 0)
+			lastDate = time.Unix(int64(msg.Date), 0).In(input.TimeLoc)
 
 			count++
 			elemChan <- elem
 
 			if count%batchSize == 0 {
 				time.Sleep(time.Millisecond * 800)
-				go r.updateUploadStatsMessage(ctx, count, barChatId, barMessageId, barPeer, offset, startedAt, lastDate)
+				go r.updateUploadStatsMessage(ctx, count, barChatId, barMessageId, barPeer, offset, startedAt, lastDate, maxCount)
 			}
 
 			if !lastDate.After(queryTill) {
@@ -338,11 +347,11 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 		Message: fmt.Sprintf(
 			"Messages uploaded!\n\n"+
 				"Amount: %d\n"+
-				"Seconds elapsed: %.2f\n"+
+				"Elapsed: %.2fs\n"+
 				"LastDate: %s",
 			count,
 			time.Since(startedAt).Seconds(),
-			lastDate.String(),
+			lastDate.In(input.TimeLoc).String(),
 		),
 	})
 	if err != nil {
@@ -352,7 +361,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	return nil
 }
 
-func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	if _, ok := input.Ops[FlagRemove.Long]; ok {
 		return r.uploadStatsDeleteMessages(ctx, update, input)
 	}

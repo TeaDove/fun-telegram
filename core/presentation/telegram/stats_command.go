@@ -19,39 +19,34 @@ import (
 )
 
 var (
-	FlagStatsTZ = OptFlag{
-		Long:        "tz",
-		Short:       "t",
-		Description: resource.CommandStatsFlagTZDescription,
-	}
-	FlagStatsUsername = OptFlag{
+	FlagStatsUsername = optFlag{
 		Long:        "username",
 		Short:       "u",
 		Description: resource.CommandStatsFlagUsernameDescription,
 	}
-	FlagCount = OptFlag{
+	FlagCount = optFlag{
 		Long:        "count",
 		Short:       "c",
 		Description: resource.CommandStatsFlagCountDescription,
 	}
-	FlagOffset = OptFlag{
+	FlagOffset = optFlag{
 		Long:        "offset",
 		Short:       "o",
 		Description: resource.CommandStatsFlagOffsetDescription,
 	}
-	FlagDay = OptFlag{
+	FlagDay = optFlag{
 		Long:        "day",
 		Short:       "d",
 		Description: resource.CommandStatsFlagDayDescription,
 	}
-	FlagRemove = OptFlag{
+	FlagRemove = optFlag{
 		Long:        "rm",
 		Short:       "r",
 		Description: resource.CommandStatsFlagRemoveDescription,
 	}
 )
 
-func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, input *Input) (mongo_repository.User, bool, error) {
+func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, input *input) (mongo_repository.User, bool, error) {
 	username, usernameFlagOk := input.Ops[FlagStatsUsername.Long]
 	shared.SendInterface(username, usernameFlagOk)
 	if !usernameFlagOk || len(username) == 0 {
@@ -91,21 +86,10 @@ func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, inp
 	return mongo_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 }
 
-func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) (err error) {
-	var tz = 0
-	if tzFlag, ok := input.Ops[FlagStatsTZ.Long]; ok {
-		tz, err = strconv.Atoi(tzFlag)
-		if err != nil {
-			err = r.replyIfNotSilentLocalizedf(ctx, update, input, resource.ErrUnprocessableEntity, err)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-	}
-
+func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
 	analiseInput := analitics.AnaliseChatInput{
 		TgChatId: update.EffectiveChat().GetID(),
-		Tz:       tz,
+		Tz:       input.Tz,
 		Locale:   input.Locale,
 	}
 

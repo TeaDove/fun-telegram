@@ -12,7 +12,7 @@ import (
 	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
-func (r *Presentation) restartCommandHandler(ctx *ext.Context, update *ext.Update, input *Input) error {
+func (r *Presentation) restartCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	reloadMessage, err := ctx.SendMessage(ctx.Self.ID,
 		&tg.MessagesSendMessageRequest{
 			Message: r.resourceService.Localize(ctx, resource.CommandRestartRestarting, input.Locale),

@@ -58,6 +58,8 @@ const (
 	CommandInfraStatsDescription
 	CommandLocaleDescription
 	CommandLocaleSuccess
+	CommandTzDescription
+	CommandTzSuccess
 	CommandRestartDescription
 	CommandRestartRestarting
 	CommandRestartSuccess
@@ -177,7 +179,12 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "выставляет локаль в этом чате",
 		En: "sets locale for this chat",
 	},
-	CommandLocaleSuccess:      {Ru: "Локаль выставлена: ru", En: "Locale set: en"},
+	CommandLocaleSuccess: {Ru: "Локаль выставлена: ru", En: "Locale set: en"},
+	CommandTzDescription: {
+		Ru: "выставляет таймзону в этом чате",
+		En: "sets timezone for this chat",
+	},
+	CommandTzSuccess:          {Ru: "Таймзона выставлена: %s", En: "Timezone set: %s"},
 	CommandRestartRestarting:  {Ru: "Перезагрузка...\n", En: "Restarting..."},
 	CommandRestartSuccess:     {Ru: "Перезагрузка успешна!", En: "Restart success!"},
 	CommandRestartDescription: {Ru: "перезагружает бота", En: "restarts bot"},
