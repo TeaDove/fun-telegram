@@ -11,13 +11,14 @@ import (
 )
 
 type Repository struct {
-	messageCollection *mgm.Collection
-	userCollection    *mgm.Collection
-	memberCollection  *mgm.Collection
-	chatCollection    *mgm.Collection
-
-	client                   *mongo.Client
+	messageCollection        *mgm.Collection
+	userCollection           *mgm.Collection
+	memberCollection         *mgm.Collection
+	chatCollection           *mgm.Collection
 	restartMessageCollection *mgm.Collection
+	pingMessageCollection    *mgm.Collection
+
+	client *mongo.Client
 }
 
 const databaseName = "db_main"
@@ -37,6 +38,7 @@ func New() (*Repository, error) {
 	r.messageCollection = mgm.Coll(&Message{})
 	r.userCollection = mgm.Coll(&User{})
 	r.restartMessageCollection = mgm.Coll(&RestartMessage{})
+	r.pingMessageCollection = mgm.Coll(&PingMessage{})
 	r.memberCollection = mgm.Coll(&Member{})
 	r.chatCollection = mgm.Coll(&Chat{})
 

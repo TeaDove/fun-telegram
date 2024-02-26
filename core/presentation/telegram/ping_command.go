@@ -1,70 +1,94 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/celestix/gotgproto/ext"
-	"github.com/gotd/td/telegram/message/styling"
+	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"time"
 )
 
 // TODO: fix nolint
 // nolint: cyclop
 func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
-	const maxCount = 40
+	var deletePinAfter = 5 * time.Minute
 
-	count := 0
-	requestedUser := update.EffectiveUser()
+	msg, err := ctx.Reply(update, fmt.Sprintf("Ping requested by %s\n\n", GetNameFromTgUser(update.EffectiveUser())), nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to send ping messages")
+	}
 
-	stylingOptions := make([]styling.StyledTextOption, 0, 121)
-
-	stylingOptions = append(
-		stylingOptions,
-		styling.Plain(fmt.Sprintf("Ping requested by @%s\n\n", requestedUser.Username)),
+	err = r.mongoRepository.PingMessageCreate(
+		ctx,
+		&mongo_repository.Message{
+			TgChatID: update.EffectiveChat().GetID(),
+			TgUserId: ctx.Self.ID,
+			Text:     msg.Text,
+			TgId:     msg.ID,
+		},
+		time.Now().UTC().Add(deletePinAfter),
 	)
-
-	chatMembers, err := r.getOrUpdateMembers(ctx, update.EffectiveChat())
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	for _, chatMember := range chatMembers {
-		if chatMember.IsBot {
-			continue
-		}
-
-		count += 1
-
-		if chatMember.TgUsername != "" {
-			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
-				styling.Plain(chatMember.TgName),
-				styling.Plain(": @"),
-				styling.Mention(chatMember.TgUsername),
-				styling.Plain("\n"),
-			}...)
-		} else {
-			stylingOptions = append(stylingOptions, []styling.StyledTextOption{
-				styling.Plain(chatMember.TgName), styling.Plain("\n"),
-			}...)
-		}
+	_, err = r.telegramApi.MessagesUpdatePinnedMessage(ctx, &tg.MessagesUpdatePinnedMessageRequest{
+		Silent:    false,
+		Unpin:     false,
+		PmOneside: true,
+		Peer:      update.EffectiveChat().GetInputPeer(),
+		ID:        msg.ID,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to pin message")
 	}
 
-	if count == 0 {
-		log.Warn().Str("status", "no.users.were.mentioned").Send()
+	return nil
+}
 
+func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
+	messages, err := r.mongoRepository.PingMessageGetAndDeleteForDeletion(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get ping messages")
+	}
+
+	if len(messages) == 0 {
 		return nil
 	}
 
-	if count > maxCount {
-		log.Warn().Str("status", "max.count.exceeded").Send()
+	zerolog.Ctx(ctx).Debug().Str("status", "ping.messages.deleting").Int("count", len(messages)).Send()
 
-		stylingOptions = append(stylingOptions, styling.Plain("\n\nMax user count exceeded, only pinging 40 people"))
-	}
+	for _, message := range messages {
+		log := zerolog.Ctx(ctx).With().Int("msg_id", message.TgId).Int64("chat_id", message.TgChatID).Logger()
 
-	_, err = ctx.Reply(update, stylingOptions, nil)
-	if err != nil {
-		return errors.WithStack(err)
+		inputPeer := r.protoClient.PeerStorage.GetInputPeerById(message.TgChatID)
+		if inputPeer == nil {
+			log.Warn().Str("status", "failed.to.get.peer").Send()
+			continue
+		}
+
+		_, err = r.telegramApi.MessagesUpdatePinnedMessage(ctx, &tg.MessagesUpdatePinnedMessageRequest{
+			Silent:    false,
+			Unpin:     true,
+			PmOneside: true,
+			Peer:      inputPeer,
+			ID:        message.TgId,
+		})
+		if err != nil {
+			log.Error().Stack().Err(err).Str("status", "failed.to.unpin.message").Send()
+			continue
+		}
+
+		err = r.protoClient.CreateContext().DeleteMessages(message.TgChatID, []int{message.TgId})
+		if err != nil {
+			log.Error().Stack().Err(err).Str("status", "failed.to.delete.message").Send()
+			continue
+		}
+
+		log.Info().Str("status", "ping.message.deleted").Send()
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
 )
 
 type Message struct {
@@ -17,7 +18,14 @@ type Message struct {
 type RestartMessage struct {
 	mgm.DefaultModel `bson:",inline"`
 
-	MessageId primitive.ObjectID `bson:"message_id,omitempty"`
+	MessageId primitive.ObjectID `bson:"message_id"`
+}
+
+type PingMessage struct {
+	mgm.DefaultModel `bson:",inline"`
+
+	MessageId primitive.ObjectID `bson:"message_id"`
+	DeleteAt  time.Time          `bson:"delete_at"`
 }
 
 type User struct {

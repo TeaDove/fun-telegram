@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -112,6 +113,8 @@ func GetNameFromPeerUser(user *peers.User) string {
 		tgUser.SetUsername(username)
 	}
 
+	tgUser.ID = user.ID()
+
 	return GetNameFromTgUser(&tgUser)
 }
 
@@ -144,7 +147,7 @@ func GetNameFromTgUser(user *tg.User) string {
 		if ok {
 			result = username
 		} else {
-			result = shared.Undefined
+			result = strconv.Itoa(int(user.ID))
 		}
 	}
 

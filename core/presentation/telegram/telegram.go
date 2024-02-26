@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"github.com/go-co-op/gocron"
 	"time"
 
 	"github.com/celestix/gotgproto"
@@ -261,6 +262,15 @@ func MustNewTelegramPresentation(
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.update.restart.messages").Send()
 	}
+
+	scheduler := gocron.NewScheduler(time.UTC)
+
+	_, err = scheduler.
+		Every(1*time.Minute).
+		Do(shared.CheckOfLog(presentation.deleteOldPingMessages), ctx)
+	shared.Check(ctx, err)
+
+	scheduler.StartAsync()
 
 	return &presentation
 }

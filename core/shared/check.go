@@ -18,6 +18,16 @@ func FancyPanic(ctx context.Context, err error) {
 	zerolog.Ctx(ctx).Panic().Stack().Err(err).Msg("check failed!")
 }
 
+func CheckOfLog(run func(ctx context.Context) error) func(ctx context.Context) {
+	return func(ctx context.Context) {
+		err := run(ctx)
+		if err != nil {
+			err = errors.WithStack(err)
+			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.run.func").Send()
+		}
+	}
+}
+
 func CloseOrLog(ctx context.Context, closer io.Closer) {
 	err := closer.Close()
 	if err != nil {

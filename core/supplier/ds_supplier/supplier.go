@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog"
 	"io"
 	"net/http"
 	"time"
@@ -44,7 +45,7 @@ func (r *Supplier) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *Supplier) draw(ctx context.Context, path string, input any) ([]byte, error) {
+func (r *Supplier) sendRequest(ctx context.Context, path string, input any) ([]byte, error) {
 	reqBody, err := json.Marshal(&input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal request body")
@@ -55,10 +56,14 @@ func (r *Supplier) draw(ctx context.Context, path string, input any) ([]byte, er
 		return nil, errors.Wrap(err, "failed to make request")
 	}
 
+	t0 := time.Now()
+
 	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to do request")
 	}
+
+	zerolog.Ctx(ctx).Debug().Str("status", "ds.request.done").Dur("elapsed", time.Since(t0)).Str("path", path).Send()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -86,7 +91,7 @@ type DrawBarInput struct {
 }
 
 func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, error) {
-	body, err := r.draw(ctx, "histogram", input)
+	body, err := r.sendRequest(ctx, "histogram", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
 	}
@@ -102,7 +107,7 @@ type DrawTimeseriesInput struct {
 }
 
 func (r *Supplier) DrawTimeseries(ctx context.Context, input *DrawTimeseriesInput) ([]byte, error) {
-	body, err := r.draw(ctx, "timeseries", input)
+	body, err := r.sendRequest(ctx, "timeseries", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
 	}
@@ -123,7 +128,7 @@ type DrawGraphInput struct {
 }
 
 func (r *Supplier) DrawGraph(ctx context.Context, input *DrawGraphInput) ([]byte, error) {
-	body, err := r.draw(ctx, "graph", input)
+	body, err := r.sendRequest(ctx, "graph", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
 	}
@@ -132,7 +137,7 @@ func (r *Supplier) DrawGraph(ctx context.Context, input *DrawGraphInput) ([]byte
 }
 
 func (r *Supplier) DrawGraphAsHeatpmap(ctx context.Context, input *DrawGraphInput) ([]byte, error) {
-	body, err := r.draw(ctx, "graph-as-heatmap", input)
+	body, err := r.sendRequest(ctx, "graph-as-heatmap", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
 	}

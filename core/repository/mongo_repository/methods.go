@@ -234,7 +234,7 @@ func (r *Repository) RestartMessageCreate(ctx context.Context, message *Message)
 }
 
 func (r *Repository) RestartMessageGetAndDelete(ctx context.Context) ([]Message, error) {
-	messages := make([]Message, 0, 100)
+	messages := make([]Message, 0, 5)
 
 	err := r.messageCollection.SimpleAggregateWithCtx(
 		ctx,
@@ -257,6 +257,62 @@ func (r *Repository) RestartMessageGetAndDelete(ctx context.Context) ([]Message,
 	}
 
 	_, err = r.restartMessageCollection.DeleteMany(ctx, bson.M{})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return messages, nil
+}
+
+func (r *Repository) PingMessageCreate(ctx context.Context, message *Message, deleteAt time.Time) error {
+	err := r.messageCollection.CreateWithCtx(ctx, message)
+	if err != nil {
+		var mgerr mongo.WriteException
+		if !(errors.As(err, &mgerr) && mgerr.HasErrorCode(duplicationError)) {
+			return errors.WithStack(err)
+		}
+
+		err = r.messageCollection.First(bson.M{"tg_chat_id": message.TgChatID, "tg_id": message.TgId}, message)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	err = r.pingMessageCollection.CreateWithCtx(ctx, &PingMessage{
+		MessageId: message.ID,
+		DeleteAt:  deleteAt,
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) PingMessageGetAndDeleteForDeletion(ctx context.Context) ([]Message, error) {
+	messages := make([]Message, 0, 5)
+
+	now := time.Now().UTC()
+	err := r.messageCollection.SimpleAggregateWithCtx(
+		ctx,
+		&messages,
+		builder.Lookup(r.pingMessageCollection.Name(), "_id", "message_id", "ping_messages"),
+		bson.M{operator.Match: bson.M{"ping_messages.delete_at": bson.M{operator.Lt: now}}},
+		bson.M{
+			operator.Project: bson.M{
+				"text":       1,
+				"tg_chat_id": 1,
+				"tg_id":      1,
+				"created_at": 1,
+				"updated_at": 1,
+			},
+		},
+	)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	_, err = r.pingMessageCollection.DeleteMany(ctx, bson.M{"delete_at": bson.M{operator.Lt: now}})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

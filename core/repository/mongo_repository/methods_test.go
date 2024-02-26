@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/kamva/mgm/v3"
 	"github.com/stretchr/testify/assert"
@@ -369,4 +370,32 @@ func TestIntegration_DbRepository_ReloadMessageCreateGetAndDelete_Ok(t *testing.
 	messages, err := r.RestartMessageGetAndDelete(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, messages, 0)
+}
+
+func TestIntegration_DbRepository_PingMessageGetAndDeleteForDeletion_NoMessagesOk(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+	err := r.PingMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1}, time.Now().UTC().Add(1*time.Hour))
+	require.NoError(t, err)
+
+	messages, err := r.PingMessageGetAndDeleteForDeletion(ctx)
+	assert.NoError(t, err)
+	assert.Len(t, messages, 0)
+}
+
+func TestIntegration_DbRepository_PingMessageGetAndDeleteForDeletion_OneMessageOk(t *testing.T) {
+	t.Parallel()
+	r := getRepository(t)
+
+	ctx := context.Background()
+	id := rand.Int63n(1_000_000)
+	err := r.PingMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1}, time.Now().UTC().Add(-1*time.Hour))
+	require.NoError(t, err)
+
+	messages, err := r.PingMessageGetAndDeleteForDeletion(ctx)
+	assert.NoError(t, err)
+	assert.Len(t, messages, 1)
 }
