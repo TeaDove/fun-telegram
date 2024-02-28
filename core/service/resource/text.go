@@ -26,9 +26,11 @@ const (
 	ErrInsufficientPrivilegesAdmin
 	ErrInsufficientPrivilegesOwner
 	ErrAccessDenies
+	ErrFeatureDisabled
 	ErrNiceTry
 	ErrUnprocessableEntity
 	ErrNoMessagesFound
+	ErrCommandNotFound
 
 	AdminRequires
 	OwnerRequires
@@ -37,6 +39,8 @@ const (
 	CommandEchoDescription
 	CommandHelpDescription
 	CommandHelpBegin
+	CommandHelpDisabled
+
 	CommandGetMeHelpDescription
 	CommandPingDescription
 	CommandSpamReactionDescription
@@ -50,16 +54,22 @@ const (
 	CommandBanDescription
 	CommandBanUserBanned
 	CommandBanUserUnbanned
+
 	CommandToxicDescription
 	CommandToxicEnabled
 	CommandToxicDisabled
 	CommandToxicMessageFound
+
 	CommandHealthDescription
 	CommandInfraStatsDescription
-	CommandLocaleDescription
-	CommandLocaleSuccess
-	CommandTzDescription
-	CommandTzSuccess
+
+	CommandChatDescription
+	CommandChatFlagTzDescription
+	CommandChatTzSuccess
+	CommandChatFlagEnableDescription
+	CommandChatFlagLocaleDescription
+	CommandChatLocaleSuccess
+
 	CommandRestartDescription
 	CommandRestartRestarting
 	CommandRestartSuccess
@@ -118,8 +128,10 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "Ошибка: Что-то пошло не так... : %s",
 		En: "Err: Something went wrong... : %s",
 	},
-	AdminRequires: {Ru: "необходимы права администратора", En: "requires admin rights"},
-	OwnerRequires: {Ru: "необходимы права владельца", En: "requires owner rights"},
+	ErrFeatureDisabled: {Ru: "Ошибка: данная функциональность отключена", En: "Err: feature disabled"},
+	ErrCommandNotFound: {Ru: "Ошибка: команда не найдена", En: "Err: command not found"},
+	AdminRequires:      {Ru: "необходимы права администратора", En: "requires admin rights"},
+	OwnerRequires:      {Ru: "необходимы права владельца", En: "requires owner rights"},
 	CommandToxicMessageFound: {
 		Ru: "!УВАГА! ТОКСИЧНОЕ СООБЩЕНИЕ НАЙДЕНО",
 		En: "!ALERT! TOXIC MESSAGE FOUND",
@@ -133,11 +145,14 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "Создатель бота: @TeaDove\nИсходный код: https://github.com/TeaDove/fun-telegram\nДоступные комманды:\n\n",
 		En: "Bot created by @TeaDove\nSource code: https://github.com/TeaDove/fun-telegram\nAvailable commands:\n\n",
 	},
-	CommandPingDescription: {Ru: "уведомить всех пользователей", En: "ping all users"},
+	CommandHelpDisabled: {Ru: "Выключено", En: "Disabled"},
+
 	CommandGetMeHelpDescription: {
 		Ru: "получить id, username заращиваемой группы и пользователя",
 		En: "get id, username of requested user and group",
 	},
+
+	CommandPingDescription: {Ru: "уведомить всех пользователей", En: "ping all users"},
 	CommandSpamReactionDescription: {
 		Ru: "начинает спамить реакцией, которая есть на выбранном сообщение",
 		En: "if replied to message with reaction, will spam this reaction to replied user",
@@ -146,9 +161,9 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "сгенерировать картинку через Кандинского",
 		En: "generate image via Kandinsky",
 	},
-	CommandDisableDescription: {
-		Ru: "выключить или включить бота в этом чате",
-		En: "disables or enabled bot in this chat",
+	CommandChatFlagEnableDescription: {
+		Ru: "выключить или включить бота в этом чате, если подано название команды - то включает/выключает ее",
+		En: "disables or enabled bot in this chat, if command's name passed - will enabled/disable it",
 	},
 	CommandLocationDescription: {
 		Ru: "получить описание по IP адресу или доменному имени",
@@ -175,16 +190,16 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "показывает проверку загрузки инфраструктуры",
 		En: "show infrastraction load information",
 	},
-	CommandLocaleDescription: {
+	CommandChatFlagLocaleDescription: {
 		Ru: "выставляет локаль в этом чате",
 		En: "sets locale for this chat",
 	},
-	CommandLocaleSuccess: {Ru: "Локаль выставлена: ru", En: "Locale set: en"},
-	CommandTzDescription: {
+	CommandChatLocaleSuccess: {Ru: "Локаль выставлена: ru", En: "Locale set: en"},
+	CommandChatFlagTzDescription: {
 		Ru: "выставляет таймзону в этом чате",
 		En: "sets timezone for this chat",
 	},
-	CommandTzSuccess:          {Ru: "Таймзона выставлена: %s", En: "Timezone set: %s"},
+	CommandChatTzSuccess:      {Ru: "Таймзона выставлена: %s", En: "Timezone set: %s"},
 	CommandRestartRestarting:  {Ru: "Перезагрузка...\n", En: "Restarting..."},
 	CommandRestartSuccess:     {Ru: "Перезагрузка успешна!", En: "Restart success!"},
 	CommandRestartDescription: {Ru: "перезагружает бота", En: "restarts bot"},
@@ -256,4 +271,5 @@ var localizer = map[Code]map[Locale]string{
 	AnaliseChartIsWeekend:            {Ru: "выходной", En: "is weekend"},
 	AnaliseChartIsWeekday:            {Ru: "рабочий день", En: "is weekday"},
 	CommandStatsResponseSuccess:      {Ru: "Первое сообщение в статистике отправлено %s\nСообщений обработано: %d\nСтатистика собрана за: %.2fs", En: "First message in stats send at %s\nMessages processed: %d\nCompiled in: %.2fs"},
+	CommandChatDescription:           {Ru: "настройки чата", En: "chat settings"},
 }

@@ -2,10 +2,11 @@ package job
 
 import (
 	"context"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
-	"github.com/teadove/fun_telegram/core/shared"
 	"testing"
 	"time"
+
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/shared"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"

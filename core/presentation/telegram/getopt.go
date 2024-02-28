@@ -14,13 +14,11 @@ type optFlag struct {
 }
 
 type input struct {
-	Text      string
-	Silent    bool
-	Ops       map[string]string
-	Locale    resource.Locale
-	StartedAt time.Time
-	Tz        int8
-	TimeLoc   *time.Location
+	Text         string
+	Silent       bool
+	Ops          map[string]string
+	StartedAt    time.Time
+	ChatSettings ChatSettings
 }
 
 var FlagSilent = optFlag{Long: "silent", Short: "q"}
@@ -79,7 +77,7 @@ func stripWords(text string) []string {
 }
 
 // GetOpt
-// nolint: cyclop
+// nolint: gocyclo
 func GetOpt(text string, flags ...optFlag) (input input) {
 	const longHypenByte = 226
 

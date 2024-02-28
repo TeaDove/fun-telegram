@@ -10,14 +10,14 @@ from datetime import datetime
 from io import BytesIO
 import seaborn as sns
 import matplotlib.dates as mdates
-from schemas import Points, Bar, TimeSeries, Graph, Plot, GraphEdge
+from schemas.plot import Points, Bar, TimeSeries, Graph, Plot, GraphEdge
 from matplotlib.lines import Line2D
 
 X, Y = "x", "y"
 
 
 @dataclass
-class Service:
+class PlotService:
     def __post_init__(self) -> None:
         matplotlib.use("agg")
         sns.set_theme(style="whitegrid")

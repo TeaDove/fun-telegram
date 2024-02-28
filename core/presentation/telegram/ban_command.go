@@ -15,6 +15,8 @@ func compileBanPath(username string) string {
 	return fmt.Sprintf("ban::%s", username)
 }
 
+// banCommandHandler
+// nolint: gocyclo
 func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	usernameToBanLower := strings.ToLower(input.Text)
 	if usernameToBanLower == "" {
@@ -35,7 +37,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return nil
 		}
 
-		_, err := ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrNiceTry, input.Locale), nil)
+		_, err := ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrNiceTry, input.ChatSettings.Locale), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -49,7 +51,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 		_, err = ctx.Reply(
 			update,
-			r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower),
+			r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.ChatSettings.Locale, usernameToBanLower),
 			nil,
 		)
 		if err != nil {
@@ -64,7 +66,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 	if update.EffectiveUser().GetID() != ctx.Self.ID {
 		_, err := ctx.Reply(
 			update,
-			r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, input.Locale),
+			r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, input.ChatSettings.Locale),
 			nil,
 		)
 		if err != nil {
@@ -86,7 +88,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 			_, err = ctx.Reply(
 				update,
-				r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.Locale, usernameToBanLower),
+				r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.ChatSettings.Locale, usernameToBanLower),
 				nil,
 			)
 			if err != nil {
@@ -103,7 +105,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return errors.WithStack(err)
 		}
 
-		_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserUnbanned, input.Locale, usernameToBanLower), nil)
+		_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserUnbanned, input.ChatSettings.Locale, usernameToBanLower), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}

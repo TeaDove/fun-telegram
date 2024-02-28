@@ -2,13 +2,14 @@ package telegram
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"github.com/teadove/fun_telegram/core/shared"
 	"go.mongodb.org/mongo-driver/mongo"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message"
@@ -89,8 +90,8 @@ func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, inp
 func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
 	analiseInput := analitics.AnaliseChatInput{
 		TgChatId: update.EffectiveChat().GetID(),
-		Tz:       input.Tz,
-		Locale:   input.Locale,
+		Tz:       input.ChatSettings.Tz,
+		Locale:   input.ChatSettings.Locale,
 	}
 
 	targetUser, usernameFlagOk, err := r.getUserFromFlag(ctx, update, input)
@@ -151,7 +152,7 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 
 	text = append(text,
 		styling.Plain(
-			r.resourceService.Localizef(ctx, resource.CommandStatsResponseSuccess, input.Locale,
+			r.resourceService.Localizef(ctx, resource.CommandStatsResponseSuccess, input.ChatSettings.Locale,
 				report.FirstMessageAt.Format(time.DateOnly),
 				report.MessagesCount,
 				time.Since(input.StartedAt).Seconds(),

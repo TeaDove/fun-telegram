@@ -12,14 +12,17 @@ import (
 )
 
 type messageProcessor struct {
-	executor     func(ctx *ext.Context, update *ext.Update, input *input) error
-	description  resource.Code
-	requireAdmin bool
-	requireOwner bool
-	flags        []optFlag
-	example      string
+	executor          func(ctx *ext.Context, update *ext.Update, input *input) error
+	description       resource.Code
+	requireAdmin      bool
+	requireOwner      bool
+	flags             []optFlag
+	example           string
+	disabledByDefault bool
 }
 
+// route
+// nolint: gocyclo
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	ok := filterNonNewMessages(update)
 	if !ok {
@@ -41,14 +44,16 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	ctx.Context = zerolog.Ctx(ctx).With().Str("command", command).Ctx(ctx.Context).Logger().WithContext(ctx.Context)
 
-	opts := GetOpt(text, route.flags...)
+	commandInput := GetOpt(text, route.flags...)
 
-	ok, err := r.isEnabled(ctx, update.EffectiveChat().GetID())
+	chatSettings, err := r.getChatSettings(ctx, update.EffectiveChat().GetID())
 	if err != nil {
-		return errors.Wrap(err, "failed to check if enabled")
+		return errors.Wrap(err, "failed to get chat settings")
 	}
 
-	if !ok && command != "disable" {
+	commandInput.ChatSettings = chatSettings
+
+	if !chatSettings.Enabled && command != "chat" {
 		zerolog.Ctx(ctx.Context).
 			Debug().
 			Str("status", "bot.disable.in.chat").
@@ -63,23 +68,17 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return errors.WithStack(err)
 	}
 
-	locale, err := r.getLocale(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	opts.Locale = locale
-
-	tz, err := r.getTz(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.Wrap(err, "failed to get tz")
-	}
-
-	opts.Tz = tz
-	opts.TimeLoc = int8ToLoc(tz)
-
 	if ok {
-		_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrAccessDenies, locale), nil)
+		_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrAccessDenies, chatSettings.Locale), nil)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		return nil
+	}
+
+	if !r.checkFeatureEnabled(&chatSettings, command) {
+		_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrFeatureDisabled, chatSettings.Locale), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -95,7 +94,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		if !ok {
 			_, err = ctx.Reply(
 				update,
-				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesAdmin, locale),
+				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesAdmin, chatSettings.Locale),
 				nil,
 			)
 			if err != nil {
@@ -110,7 +109,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		if !ok {
 			_, err = ctx.Reply(
 				update,
-				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, locale),
+				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, chatSettings.Locale),
 				nil,
 			)
 			if err != nil {
@@ -121,16 +120,16 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		}
 	}
 
-	opts.StartedAt = time.Now().UTC()
+	commandInput.StartedAt = time.Now().UTC()
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command.begin").
-		Interface("input", opts).
+		Interface("input", commandInput).
 		Str("command", firstWord).
 		Send()
 
-	err = route.executor(ctx, update, &opts)
-	elapsed := time.Now().UTC().Sub(opts.StartedAt)
+	err = route.executor(ctx, update, &commandInput)
+	elapsed := time.Now().UTC().Sub(commandInput.StartedAt)
 
 	if err != nil {
 		zerolog.Ctx(ctx.Context).
@@ -141,10 +140,10 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			Dur("elapsed", elapsed).
 			Send()
 
-		errMessage := r.resourceService.Localizef(ctx, resource.ErrISE, opts.Locale, err.Error())
+		errMessage := r.resourceService.Localizef(ctx, resource.ErrISE, chatSettings.Locale, err.Error())
 		var innerErr error
 
-		if opts.Silent {
+		if commandInput.Silent {
 			_, innerErr = ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{Message: errMessage})
 		} else {
 			_, innerErr = ctx.Reply(update, errMessage, nil)

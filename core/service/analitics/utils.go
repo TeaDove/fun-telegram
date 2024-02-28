@@ -3,8 +3,9 @@ package analitics
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )

@@ -2,7 +2,6 @@ from pydantic import Field, BaseModel
 import uuid
 
 from datetime import datetime
-from examples import adj_matrix
 from numpy import random
 
 colors = ("RED", "BLUE", "GREEN")

@@ -3,6 +3,7 @@ module github.com/teadove/fun_telegram
 go 1.22
 
 require (
+	github.com/ClickHouse/clickhouse-go/v2 v2.18.0
 	github.com/aaaton/golem/v4 v4.0.1
 	github.com/aaaton/golem/v4/dicts/ru v0.0.0-20221121100719-34023a0c192d
 	github.com/caarlos0/env/v7 v7.1.0
@@ -13,6 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gotd/contrib v0.19.0
 	github.com/gotd/td v0.95.0
+	github.com/guregu/null/v5 v5.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kamva/mgm/v3 v3.5.0
 	github.com/mitchellh/go-homedir v1.1.0
@@ -29,7 +31,6 @@ require (
 require (
 	github.com/AnimeKaizoku/cacher v1.0.1 // indirect
 	github.com/ClickHouse/ch-go v0.61.2 // indirect
-	github.com/ClickHouse/clickhouse-go/v2 v2.18.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -45,7 +46,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
-	github.com/guregu/null/v5 v5.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect

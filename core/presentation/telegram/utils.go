@@ -45,7 +45,7 @@ func (r *Presentation) replyIfNotSilentLocalized(
 	input *input,
 	code resource.Code,
 ) error {
-	text := r.resourceService.Localize(ctx, code, input.Locale)
+	text := r.resourceService.Localize(ctx, code, input.ChatSettings.Locale)
 
 	err := r.replyIfNotSilent(ctx, update, input, text)
 	if err != nil {
@@ -62,7 +62,7 @@ func (r *Presentation) replyIfNotSilentLocalizedf(
 	code resource.Code,
 	args ...any,
 ) error {
-	text := r.resourceService.Localizef(ctx, code, input.Locale, args)
+	text := r.resourceService.Localizef(ctx, code, input.ChatSettings.Locale, args)
 
 	err := r.replyIfNotSilent(ctx, update, input, text)
 	if err != nil {

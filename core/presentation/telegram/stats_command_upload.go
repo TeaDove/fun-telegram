@@ -3,6 +3,10 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/query"
 	"github.com/gotd/td/telegram/query/messages"
@@ -11,9 +15,6 @@ import (
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
-	"strconv"
-	"sync"
-	"time"
 
 	"github.com/celestix/gotgproto/types"
 	"github.com/pkg/errors"
@@ -177,6 +178,8 @@ LastDate: %s`,
 	}
 }
 
+// uploadStatsUpload
+// nolint: gocyclo
 func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *input) (err error) {
 	const (
 		maxElapsed = time.Hour
@@ -294,7 +297,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 				continue
 			}
 
-			lastDate = time.Unix(int64(msg.Date), 0).In(input.TimeLoc)
+			lastDate = time.Unix(int64(msg.Date), 0).In(input.ChatSettings.TimeLoc)
 
 			count++
 			elemChan <- elem
@@ -351,7 +354,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 				"LastDate: %s",
 			count,
 			time.Since(startedAt).Seconds(),
-			lastDate.In(input.TimeLoc).String(),
+			lastDate.In(input.ChatSettings.TimeLoc).String(),
 		),
 	})
 	if err != nil {

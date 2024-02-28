@@ -2,9 +2,10 @@ package shared
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"path/filepath"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/caarlos0/env/v7"
 	"github.com/joho/godotenv"

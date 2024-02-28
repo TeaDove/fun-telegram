@@ -2,9 +2,10 @@ package analitics
 
 import (
 	"context"
+	"sync"
+
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"

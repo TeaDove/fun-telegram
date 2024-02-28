@@ -3,12 +3,13 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
-	"time"
 )
 
 // TODO: fix nolint

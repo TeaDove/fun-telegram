@@ -5,10 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/pkg/errors"
 	"github.com/teadove/fun_telegram/core/shared"

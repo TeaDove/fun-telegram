@@ -2,27 +2,37 @@ package redis_repository
 
 import (
 	"context"
-	"fmt"
-	"github.com/rs/zerolog"
 
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
-	"github.com/teadove/fun_telegram/core/shared"
+	"github.com/rs/zerolog"
 )
 
-var emptyBytes = []byte{}
-var ErrKeyNotFound = errors.New("key not found")
+func (r *Repository) HSet(ctx context.Context, hkey string, values ...any) error {
+	err := r.rbs.HSet(ctx, hkey, values...).Err()
+	if err != nil {
+		return errors.Wrap(err, "failed to hset")
+	}
 
-type Repository struct {
-	rbs redis.Client
+	zerolog.Ctx(ctx).Trace().Str("status", "redis.hset").Str("key", hkey).Send()
+
+	return nil
 }
 
-func MustNew() *Repository {
-	return &Repository{rbs: *redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:6379", shared.AppSettings.Storage.RedisHost),
-		Password: "", // no password set
-		DB:       0,  // use default DB,
-	})}
+func (r *Repository) HGetAll(ctx context.Context, key string, v any) error {
+	cmd := r.rbs.HGetAll(ctx, key)
+	if cmd.Err() != nil {
+		return errors.Wrap(cmd.Err(), "failed to hgetall")
+	}
+
+	err := cmd.Scan(v)
+	if err != nil {
+		return errors.Wrap(cmd.Err(), "failed to scan")
+	}
+
+	zerolog.Ctx(ctx).Trace().Str("status", "redis.hgetall").Str("key", key).Send()
+
+	return nil
 }
 
 func (r *Repository) Load(ctx context.Context, k string) ([]byte, error) {
@@ -41,8 +51,8 @@ func (r *Repository) Load(ctx context.Context, k string) ([]byte, error) {
 	return []byte(cmd.Val()), nil
 }
 
-func (r *Repository) Save(ctx context.Context, k string, t []byte) error {
-	err := r.rbs.Set(ctx, k, t, 0).Err()
+func (r *Repository) Save(ctx context.Context, k string, v []byte) error {
+	err := r.rbs.Set(ctx, k, v, 0).Err()
 	if err != nil {
 		return errors.WithStack(err)
 	}

@@ -1,8 +1,9 @@
 package ch_repository
 
 import (
-	"github.com/guregu/null/v5"
 	"time"
+
+	"github.com/guregu/null/v5"
 
 	"github.com/google/uuid"
 )

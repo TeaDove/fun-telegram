@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"

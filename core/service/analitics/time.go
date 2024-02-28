@@ -3,9 +3,10 @@ package analitics
 import (
 	"context"
 	"fmt"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"sync"
 	"time"
+
+	"github.com/teadove/fun_telegram/core/service/resource"
 
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 

@@ -49,7 +49,7 @@ func (r *Repository) GetUsersInChat(ctx context.Context, chatId int64) (UsersInC
 				"tg_username": "$user.tg_username",
 				"tg_name":     "$user.tg_name",
 				"is_bot":      "$user.is_bot",
-				//"tg_chat_id":  1,
+				// "tg_chat_id":  1,
 			},
 		},
 	)

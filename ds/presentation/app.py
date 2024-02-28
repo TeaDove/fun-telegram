@@ -1,23 +1,14 @@
-import pandas as pd
-import matplotlib.pyplot as plt
 from fastapi import FastAPI
-from pydantic import Field, BaseModel
-from typing import List
-import uuid
-from fastapi.encoders import jsonable_encoder
 
 
-from io import BytesIO
-from numpy import random
 from starlette.responses import StreamingResponse
-from service import Service
-from schemas import Points, Bar, TimeSeries, Graph
+from service.plot_service import PlotService
+from schemas.plot import Points, Bar, TimeSeries, Graph
 from fastapi import Request
 import time
-from loguru import logger
 
 app = FastAPI()
-service = Service()
+service = PlotService()
 
 
 @app.middleware("http")

@@ -1,9 +1,10 @@
 package mongo_repository
 
 import (
+	"time"
+
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 type Message struct {

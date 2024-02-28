@@ -15,7 +15,7 @@ import (
 func (r *Presentation) restartCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	reloadMessage, err := ctx.SendMessage(ctx.Self.ID,
 		&tg.MessagesSendMessageRequest{
-			Message: r.resourceService.Localize(ctx, resource.CommandRestartRestarting, input.Locale),
+			Message: r.resourceService.Localize(ctx, resource.CommandRestartRestarting, input.ChatSettings.Locale),
 		},
 	)
 
@@ -46,7 +46,7 @@ func (r *Presentation) updateRestartMessages(ctx context.Context) error {
 		return nil
 	}
 
-	locale, err := r.getLocale(ctx, r.protoClient.Self.ID)
+	chatSetting, err := r.getChatSettings(ctx, r.protoClient.Self.ID)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -56,7 +56,7 @@ func (r *Presentation) updateRestartMessages(ctx context.Context) error {
 		_, err = tgCtx.EditMessage(message.TgChatID, &tg.MessagesEditMessageRequest{
 			Peer:    r.protoClient.Self.AsInputPeer(),
 			ID:      message.TgId,
-			Message: r.resourceService.Localize(ctx, resource.CommandRestartSuccess, locale),
+			Message: r.resourceService.Localize(ctx, resource.CommandRestartSuccess, chatSetting.Locale),
 		})
 		if err != nil {
 			return errors.WithStack(err)

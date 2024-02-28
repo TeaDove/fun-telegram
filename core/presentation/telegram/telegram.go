@@ -2,8 +2,9 @@ package telegram
 
 import (
 	"context"
-	"github.com/go-co-op/gocron"
 	"time"
+
+	"github.com/go-co-op/gocron"
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
@@ -35,7 +36,8 @@ type Presentation struct {
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
 
-	router map[string]messageProcessor
+	router   map[string]messageProcessor
+	features map[string]bool
 
 	kandinskySupplier *kandinsky_supplier.Supplier
 	ipLocator         *ip_locator.Supplier
@@ -158,27 +160,23 @@ func MustNewTelegramPresentation(
 			flags:       []optFlag{},
 		},
 		"ping": {
-			executor:     presentation.pingCommandHandler,
-			description:  resource.CommandPingDescription,
-			flags:        []optFlag{},
-			requireAdmin: true,
+			executor:          presentation.pingCommandHandler,
+			description:       resource.CommandPingDescription,
+			flags:             []optFlag{},
+			requireAdmin:      true,
+			disabledByDefault: true,
 		},
 		"spam_reaction": {
-			executor:    presentation.spamReactionCommandHandler,
-			description: resource.CommandSpamReactionDescription,
-			flags:       []optFlag{FlagSpamReactionStop},
+			executor:          presentation.spamReactionCommandHandler,
+			description:       resource.CommandSpamReactionDescription,
+			flags:             []optFlag{FlagSpamReactionStop},
+			disabledByDefault: true,
 		},
 		"kandinsky": {
 			executor:    presentation.kandkinskyCommandHandler,
 			description: resource.CommandKandinskyDescription,
 			flags:       []optFlag{FlagKandinskyNegativePrompt, FlagKandinskyStyle},
 			example:     "--style=ANIME girl in space, sticker, realism, cute_mood, bold colors, disney",
-		},
-		"disable": {
-			executor:     presentation.disableCommandHandler,
-			description:  resource.CommandDisableDescription,
-			flags:        []optFlag{},
-			requireAdmin: true,
 		},
 		"location": {
 			executor:    presentation.locationCommandHandler,
@@ -202,11 +200,6 @@ func MustNewTelegramPresentation(
 			executor:    presentation.banCommandHandler,
 			description: resource.CommandBanDescription,
 		},
-		"toxic": {
-			executor:     presentation.toxicFinderCommandHandler,
-			description:  resource.CommandToxicDescription,
-			requireAdmin: true,
-		},
 		"health": {
 			executor:    presentation.healthCommandHandler,
 			description: resource.CommandHealthDescription,
@@ -216,15 +209,12 @@ func MustNewTelegramPresentation(
 			description:  resource.CommandInfraStatsDescription,
 			requireOwner: true,
 		},
-		"locale": {
-			executor:     presentation.localeCommandHandler,
-			description:  resource.CommandLocaleDescription,
+		"chat": {
+			executor:     presentation.chatCommandHandler,
+			description:  resource.CommandChatDescription,
 			requireAdmin: true,
-		},
-		"tz": {
-			executor:     presentation.tzCommandHandler,
-			description:  resource.CommandTzDescription,
-			requireAdmin: true,
+			flags:        []optFlag{FlagChatTz, FlagChatLocale, FlagChatEnabled},
+			example:      "-e -l=ru -t=3",
 		},
 		"restart": {
 			executor:     presentation.restartCommandHandler,
@@ -272,7 +262,18 @@ func MustNewTelegramPresentation(
 
 	scheduler.StartAsync()
 
+	presentation.setFeatures()
+
 	return &presentation
+}
+
+func (r *Presentation) setFeatures() {
+	r.features = make(map[string]bool, len(r.router))
+	for commandName, command := range r.router {
+		r.features[commandName] = !command.disabledByDefault
+	}
+
+	r.features[toxicFeatureName] = false
 }
 
 func (r *Presentation) errorHandler(

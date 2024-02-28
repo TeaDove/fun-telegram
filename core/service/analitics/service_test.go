@@ -3,12 +3,13 @@ package analitics
 import (
 	"bytes"
 	"fmt"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"image"
 	"image/jpeg"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/teadove/fun_telegram/core/service/resource"
 
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
@@ -70,7 +71,7 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 		TgChatId: 1701683862,
 		Tz:       3,
 		Locale:   resource.Ru,
-	}) //1779431332 1350141926 1178533048
+	}) // 1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
 	draw(t, report.Images)
@@ -87,7 +88,7 @@ func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 		Tz:       3,
 		TgUserId: 418878871,
 		Locale:   resource.En,
-	}) //1779431332 1350141926 1178533048
+	}) // 1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
 	draw(t, report.Images)
