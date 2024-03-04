@@ -1,6 +1,7 @@
 bootstrap*
 ### Builds ###
 fun-telegram-v*
+fun-telegram
 
 data/
 !data/.gitkeep
