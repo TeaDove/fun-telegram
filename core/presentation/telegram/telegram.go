@@ -48,7 +48,7 @@ type Presentation struct {
 	jobService        *job.Service
 }
 
-func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
+func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 	middlewares := make([]telegram.Middleware, 0, 2)
 
 	if shared.AppSettings.Telegram.RateLimiterEnabled {
@@ -95,9 +95,11 @@ func MustNewProtoClient(ctx context.Context) *gotgproto.Client {
 			Middlewares:      middlewares,
 			RunMiddleware:    runMiddleware,
 		})
-	shared.Check(ctx, err)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create gotgproto client")
+	}
 
-	return protoClient
+	return protoClient, nil
 }
 
 func MustNewTelegramPresentation(
@@ -192,7 +194,7 @@ func MustNewTelegramPresentation(
 		"upload_stats": {
 			executor:     presentation.uploadStatsCommandHandler,
 			description:  resource.CommandUploadStatsDescription,
-			flags:        []optFlag{FlagRemove, FlagCount, FlagDay, FlagOffset},
+			flags:        []optFlag{FlagUploadStatsRemove, FlagUploadStatsCount, FlagUploadStatsDay, FlagUploadStatsOffset, FlagUploadStatsChannel},
 			requireAdmin: true,
 			example:      "-c=400000 -d=365 -o=0 --silent",
 		},

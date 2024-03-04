@@ -58,7 +58,8 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	analiticsService, err := analitics.New(dbRepository, chRepository, dsSupplier, resourceService)
 	shared.Check(ctx, err)
 
-	protoClient := telegram.MustNewProtoClient(ctx)
+	protoClient, err := telegram.NewProtoClient(ctx)
+	shared.Check(ctx, err)
 
 	jobService, err := job.New(ctx, dbRepository, chRepository, map[string]job.ServiceChecker{
 		"MongoDB":    {Checker: dbRepository.Ping, ForFrequent: true},

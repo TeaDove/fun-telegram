@@ -4,14 +4,12 @@ import (
 	"context"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 )
 
-func (r *Service) InsertNewMessage(ctx context.Context, message *Message) error {
+func (r *Service) MessageInsert(ctx context.Context, message *Message) error {
 	chMessage := &ch_repository.Message{
-		Id:            uuid.New(),
 		CreatedAt:     message.CreatedAt,
 		TgChatID:      message.TgChatID,
 		TgUserId:      message.TgUserId,
@@ -39,7 +37,7 @@ func (r *Service) InsertNewMessage(ctx context.Context, message *Message) error 
 		}
 	}
 
-	err := r.chRepository.MessageCreate(ctx, chMessage)
+	err := r.chRepository.MessageInsert(ctx, chMessage)
 	if err != nil {
 		return errors.Wrap(err, "failed to insert message in ch repository")
 	}

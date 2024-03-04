@@ -137,7 +137,7 @@ func (r *Presentation) getOrUpdateMembers(
 		needUpload = true
 	}
 
-	if needUpload || time.Since(chat.UpdatedAt) > 12*time.Hour {
+	if needUpload || time.Since(chat.UpdatedAt) > 3*24*time.Hour {
 		usersInChat, err := r.updateMembers(ctx, effectiveChat)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to upload members")
