@@ -12,6 +12,7 @@ import seaborn as sns
 import matplotlib.dates as mdates
 from schemas.plot import Points, Bar, TimeSeries, Graph, Plot, GraphEdge
 from matplotlib.lines import Line2D
+from schemas.plot import GraphLayout
 
 X, Y = "x", "y"
 
@@ -233,7 +234,12 @@ class PlotService:
             edgewidths[idx] = colors[2]
 
         # positions for all nodes - seed for reproducibility
-        pos = nx.circular_layout(g)
+        if input_.layout == GraphLayout.CIRCULAR_LAYOUT:
+            pos = nx.circular_layout(g)
+        elif input_.layout == GraphLayout.SPRINT_LAYOUT:
+            pos = nx.spring_layout(g)
+        else:
+            pos = nx.circular_layout(g)
 
         # nodes
         nx.draw_networkx_nodes(
@@ -251,7 +257,7 @@ class PlotService:
             width=3,
             alpha=1,
             ax=ax,
-            edge_color=edgewidths,
+            edge_color=edgewidths if input_.weigted_edges else "k",
         )
 
         # node labels
@@ -264,8 +270,9 @@ class PlotService:
             bbox={"ec": "k", "fc": "white", "alpha": 1},
         )
 
-        proxies = [Line2D([0, 1], [0, 1], color=color, lw=7) for color in colors]
-        labels = ["<30%", "30%-70%", ">70%"]
-        ax.legend(proxies, labels)
+        if input_.weigted_edges:
+            proxies = [Line2D([0, 1], [0, 1], color=color, lw=7) for color in colors]
+            labels = ["<30%", "30%-70%", ">70%"]
+            ax.legend(proxies, labels)
 
         return self._fig_to_bytes(fig)

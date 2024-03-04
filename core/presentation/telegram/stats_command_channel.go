@@ -86,9 +86,7 @@ func (r *Presentation) dumpChannelRecommendations(
 		return nil
 	}
 
-	if len(*channels)%10 == 0 {
-		go r.updateUploadChannelStatsMessage(ctx, update, barMessageId, input, len(*channels))
-	}
+	go r.updateUploadChannelStatsMessage(ctx, update, barMessageId, input, len(*channels))
 
 	recommendedChannels, err := r.getChannelRecommendations(ctx, chat)
 	if err != nil {
