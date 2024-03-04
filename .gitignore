@@ -169,3 +169,4 @@ dmypy.json
 .terraform
 
 /core/service/analitics/.test-*.jpeg
+/fun_telegram
