@@ -38,7 +38,14 @@ func New(
 		Every(24*time.Hour).StartAt(tomorrowNight).
 		Do(r.deleteOldMessagesChecked, ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create scheduler")
+		return nil, errors.Wrap(err, "failed to create task for delete old messages checked")
+	}
+
+	_, err = scheduler.
+		Every(2*time.Minute).
+		Do(r.logMemUsage, ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create task for log mem usage")
 	}
 
 	scheduler.StartAsync()
@@ -80,6 +87,11 @@ func (r *Service) deleteOldMessagesChecked(ctx context.Context) {
 }
 
 func (r *Service) DeleteOldMessages(ctx context.Context) (DeleteOldMessagesOutput, error) {
+	bytesFreed, err := r.mongoRepository.ReleaseMemory(ctx)
+	if err != nil {
+		return DeleteOldMessagesOutput{}, errors.WithStack(err)
+	}
+
 	stats, err := r.mongoRepository.StatsForMessages(ctx)
 	if err != nil {
 		return DeleteOldMessagesOutput{}, errors.WithStack(err)
@@ -98,11 +110,6 @@ func (r *Service) DeleteOldMessages(ctx context.Context) (DeleteOldMessagesOutpu
 	}
 
 	_, err = r.mongoRepository.DeleteMessagesOldWithCount(ctx, int64(countToDelete))
-	if err != nil {
-		return DeleteOldMessagesOutput{}, errors.WithStack(err)
-	}
-
-	bytesFreed, err := r.mongoRepository.ReleaseMemory(ctx)
 	if err != nil {
 		return DeleteOldMessagesOutput{}, errors.WithStack(err)
 	}
