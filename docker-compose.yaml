@@ -53,7 +53,7 @@ services:
       resources:
         limits:
           cpus: '0.50'
-          memory: 800M
+          memory: 1400M
 
   autoheal:
     restart: always
@@ -123,4 +123,4 @@ services:
       resources:
         limits:
           cpus: '0.50'
-          memory: 3900M
+          memory: 900M
