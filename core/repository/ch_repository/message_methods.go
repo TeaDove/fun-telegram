@@ -7,13 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *Repository) MessageCreate(ctx context.Context, message *Message) error {
+func (r *Repository) MessageInsert(ctx context.Context, message *Message) error {
 	err := r.conn.AsyncInsert(ctx, `
 INSERT INTO message VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?
 		)`,
 		false,
-		message.Id,
 		message.CreatedAt,
 		message.TgChatID,
 		message.TgId,
@@ -34,8 +33,7 @@ INSERT INTO message VALUES (
 func (r *Repository) MessageSetReplyToUserId(ctx context.Context, chatId int64) error {
 	err := r.conn.AsyncInsert(ctx, `
 insert into message
-select am.id,
-       am.created_at,
+select am.created_at,
        am.tg_chat_id,
        am.tg_id,
        am.tg_user_id,
@@ -61,7 +59,7 @@ func (r *Repository) MessageDeleteByChatId(ctx context.Context, chatId int64) er
 		return errors.Wrap(err, "failed to delete messages by chat")
 	}
 
-	return err
+	return nil
 }
 
 type MessageFindInterlocutorsOutput struct {
@@ -103,7 +101,7 @@ from message am final
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 func (r *Repository) MessageFindRepliesTo(
@@ -136,7 +134,7 @@ order by 2 desc limit ?
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 func (r *Repository) MessageFindRepliedBy(
@@ -170,7 +168,7 @@ select am.tg_user_id as tg_user_id, count(1) as count
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 type MessageFindAllRepliedByOutput struct {
@@ -207,7 +205,7 @@ select am.tg_user_id as tg_user_id, am.reply_to_user_id as replied_tg_user_id, c
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 func (r *Repository) MessageGetByChatIdAndUserId(
@@ -216,7 +214,7 @@ func (r *Repository) MessageGetByChatIdAndUserId(
 	userId int64,
 ) ([]Message, error) {
 	rows, err := r.conn.Query(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
+select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ?
 		and tg_user_id = ?
 `, chatId, userId)
@@ -235,7 +233,7 @@ select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, rep
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 type GroupedCountGetByChatIdByUserIdOutput struct {
@@ -272,7 +270,7 @@ select tg_user_id, sum(words_count) as "words_count", sum(toxic_words_count) as 
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 func (r *Repository) CountGetByChatId(
@@ -324,7 +322,7 @@ func (r *Repository) MessageGetByChatId(
 	chatId int64,
 ) ([]Message, error) {
 	rows, err := r.conn.Query(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
+select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ?
 `, chatId)
 	if err != nil {
@@ -342,12 +340,12 @@ select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, rep
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 func (r *Repository) GetLastMessageByChatId(ctx context.Context, chatId int64) (Message, error) {
 	row := r.conn.QueryRow(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
+select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ? 
 		order by created_at limit 1
 `, chatId)
@@ -358,15 +356,15 @@ select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, rep
 	var message Message
 	err := row.ScanStruct(&message)
 	if err != nil {
-		return Message{}, errors.Wrap(row.Err(), "failed to scan row")
+		return Message{}, errors.Wrap(err, "failed to scan row")
 	}
 
-	return message, err
+	return message, nil
 }
 
 func (r *Repository) GetLastMessageByChatIdByUserId(ctx context.Context, chatId int64, userId int64) (Message, error) {
 	row := r.conn.QueryRow(ctx, `
-select id, created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
+select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ? and tg_user_id = ?
 		order by created_at limit 1
 `, chatId, userId)
@@ -420,7 +418,7 @@ func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatI
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(ctx context.Context, chatId int64, userId int64, precision int) ([]MessagesGroupedByTime, error) {
@@ -446,7 +444,7 @@ func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(ctx context.Contex
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 // GetMessagesGroupedByTimeByChatId
@@ -481,7 +479,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatId(
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }
 
 func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
@@ -515,5 +513,5 @@ func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
 		output = append(output, row)
 	}
 
-	return output, err
+	return output, nil
 }

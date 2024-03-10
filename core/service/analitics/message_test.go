@@ -24,7 +24,7 @@ func TestIntegration_AnaliticsService_InsertNewMessage_Ok(t *testing.T) {
 	r := getService(t)
 	message := generateMessage()
 
-	err := r.InsertNewMessage(shared.GetCtx(), &message)
+	err := r.MessageInsert(shared.GetCtx(), &message)
 	assert.NoError(t, err)
 }
 
@@ -38,7 +38,7 @@ func TestIntegration_AnaliticsService_InsertManyMessage_Ok(t *testing.T) {
 			defer wg.Done()
 			message := generateMessage()
 
-			err := r.InsertNewMessage(shared.GetCtx(), &message)
+			err := r.MessageInsert(shared.GetCtx(), &message)
 			assert.NoError(t, err)
 		}()
 	}

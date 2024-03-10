@@ -49,6 +49,7 @@ type Settings struct {
 	KandinskySecret string `env:"kandinsky_secret"`
 
 	DsSupplierUrl string `env:"ds_supplier_url" envDefault:"http://0.0.0.0:8000"`
+	LogMemUsage   bool   `env:"log_mem_usage" endDefault:"true"`
 }
 
 func mustNewSettings() Settings {

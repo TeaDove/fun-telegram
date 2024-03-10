@@ -3,17 +3,35 @@ package ch_repository
 var initSQL = []string{`
 CREATE TABLE IF NOT EXISTS message
 (
-    id         UUID NOT NULL default generateUUIDv4(),
-    created_at timestamp NOT NULL,
+    created_at timestamp,
 
-    tg_chat_id Int64 NOT NULL,
-    tg_id      Int64 NOT NULL,
+    tg_chat_id Int64,
+    tg_id      Int64,
 
-    tg_user_id Int64 NOT NULL,
-    text       String NOT NULL
+    tg_user_id Int64,
+    text       String 
 ) ENGINE = ReplacingMergeTree() ORDER BY (tg_chat_id, tg_id)`,
 	`ALTER TABLE message ADD COLUMN IF NOT EXISTS reply_to_msg_id Nullable(Int64)`,
 	`ALTER TABLE message ADD COLUMN IF NOT EXISTS reply_to_user_id Nullable(Int64)`,
 	`ALTER TABLE message ADD COLUMN IF NOT EXISTS words_count UInt64`,
 	`ALTER TABLE message ADD COLUMN IF NOT EXISTS toxic_words_count UInt64`,
+	`ALTER TABLE message DROP COLUMN IF EXISTS id`,
+	`
+CREATE TABLE IF NOT EXISTS channel
+(
+    tg_id 			 Int64,
+    tg_title      String,
+    tg_username      String,
+	uploaded_at timestamp,
+
+    participant_count 		 Int64,
+    recommendations_ids      Array(Int64)
+) ENGINE = ReplacingMergeTree() ORDER BY (tg_id);`, `
+create table if not exists channel_edge
+(
+    tg_id_in  Int64,
+    tg_id_out Int64,
+    order     Int64
+
+) ENGINE = ReplacingMergeTree() ORDER BY (tg_id_in, tg_id_out);`,
 }

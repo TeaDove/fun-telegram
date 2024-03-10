@@ -77,7 +77,10 @@ const (
 	CommandStatsResponseSuccess
 	CommandStatsFlagTZDescription
 	CommandStatsFlagUsernameDescription
+	CommandStatsFlagDepthDescription
+	CommandStatsFlagMaxRecommendationsDescription
 	CommandStatsFlagCountDescription
+	CommandStatsFlagChannelDescription
 	CommandStatsFlagOffsetDescription
 	CommandStatsFlagDayDescription
 	CommandStatsFlagRemoveDescription
@@ -211,6 +214,14 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "username или id юзера, если подан - скомпилирует статистику относительно данного пользователя",
 		En: "username or id of user, if presented, will compile stats by set username",
 	},
+	CommandStatsFlagDepthDescription: {
+		Ru: "глубина рекурсивного анализа рекомендаций канала",
+		En: "depth of recursion analysis of channel's recommendations",
+	},
+	CommandStatsFlagMaxRecommendationsDescription: {
+		Ru: "максимальное количество каналов, которые надо проанализировать у канала",
+		En: "maximum channels, that must be processed",
+	},
 	CommandStatsFlagCountDescription: {
 		Ru: fmt.Sprintf(
 			"максимальное количество сообщение для загрузки, максимум - %d, по умолчанию - %d",
@@ -223,6 +234,7 @@ var localizer = map[Code]map[Locale]string{
 			shared.DefaultUploadCount,
 		),
 	},
+	CommandStatsFlagChannelDescription: {Ru: "юзернейм канала", En: "channel's username"},
 	CommandStatsFlagDayDescription: {
 		Ru: fmt.Sprintf(
 			"максимальный возраст сообщения для загрузки в днях, максимум - %d, по умолчанию - %d",

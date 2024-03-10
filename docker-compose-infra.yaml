@@ -15,6 +15,11 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 100M
 
   mongodb:
     image: mongo:7.0.4-jammy
@@ -31,6 +36,11 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 500M
 
   clickhouse:
     image: clickhouse/clickhouse-server:23.12
@@ -45,3 +55,8 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 900M

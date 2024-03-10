@@ -8,7 +8,6 @@ import (
 
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/shared"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/celestix/gotgproto/ext"
@@ -25,31 +24,10 @@ var (
 		Short:       "u",
 		Description: resource.CommandStatsFlagUsernameDescription,
 	}
-	FlagCount = optFlag{
-		Long:        "count",
-		Short:       "c",
-		Description: resource.CommandStatsFlagCountDescription,
-	}
-	FlagOffset = optFlag{
-		Long:        "offset",
-		Short:       "o",
-		Description: resource.CommandStatsFlagOffsetDescription,
-	}
-	FlagDay = optFlag{
-		Long:        "day",
-		Short:       "d",
-		Description: resource.CommandStatsFlagDayDescription,
-	}
-	FlagRemove = optFlag{
-		Long:        "rm",
-		Short:       "r",
-		Description: resource.CommandStatsFlagRemoveDescription,
-	}
 )
 
 func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, input *input) (mongo_repository.User, bool, error) {
 	username, usernameFlagOk := input.Ops[FlagStatsUsername.Long]
-	shared.SendInterface(username, usernameFlagOk)
 	if !usernameFlagOk || len(username) == 0 {
 		return mongo_repository.User{}, false, nil
 	}

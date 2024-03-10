@@ -21,6 +21,44 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var (
+	FlagUploadStatsOffset = optFlag{
+		Long:        "offset",
+		Short:       "o",
+		Description: resource.CommandStatsFlagOffsetDescription,
+	}
+	FlagUploadStatsDay = optFlag{
+		Long:        "day",
+		Short:       "d",
+		Description: resource.CommandStatsFlagDayDescription,
+	}
+	FlagUploadStatsRemove = optFlag{
+		Long:        "rm",
+		Short:       "r",
+		Description: resource.CommandStatsFlagRemoveDescription,
+	}
+	FlagUploadStatsCount = optFlag{
+		Long:        "count",
+		Short:       "c",
+		Description: resource.CommandStatsFlagCountDescription,
+	}
+	FlagUploadStatsChannel = optFlag{
+		Long:        "channel",
+		Short:       "h",
+		Description: resource.CommandStatsFlagChannelDescription,
+	}
+	FlagUploadStatsDepth = optFlag{
+		Long:        "depth",
+		Short:       "p",
+		Description: resource.CommandStatsFlagDepthDescription,
+	}
+	FlagUploadStatsMaxRecommendations = optFlag{
+		Long:        "max-recommendations",
+		Short:       "m",
+		Description: resource.CommandStatsFlagMaxRecommendationsDescription,
+	}
+)
+
 func (r *Presentation) uploadMembers(ctx context.Context, wg *sync.WaitGroup, chat types.EffectiveChat) {
 	defer wg.Done()
 
@@ -65,7 +103,7 @@ func (r *Presentation) uploadMessageToRepository(
 			}
 		}
 
-		err := r.analiticsService.InsertNewMessage(ctx, &analiticsMessage)
+		err := r.analiticsService.MessageInsert(ctx, &analiticsMessage)
 
 		if err != nil {
 			zerolog.Ctx(ctx).
@@ -187,7 +225,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	)
 
 	var maxCount = shared.DefaultUploadCount
-	if userMaxCountS, ok := input.Ops[FlagCount.Long]; ok {
+	if userMaxCountS, ok := input.Ops[FlagUploadStatsCount.Long]; ok {
 		userMaxCount, err := strconv.Atoi(userMaxCountS)
 		if err != nil {
 			_, err := ctx.Reply(update, fmt.Sprintf("Err: failed to parse count flag: %s", err.Error()), nil)
@@ -204,7 +242,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	}
 
 	var maxQueryAge = shared.DefaultUploadQueryAge
-	if userQueryAgeS, ok := input.Ops[FlagDay.Long]; ok {
+	if userQueryAgeS, ok := input.Ops[FlagUploadStatsDay.Long]; ok {
 		userQueryAge, err := strconv.Atoi(userQueryAgeS)
 		if err != nil {
 			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse age flag: %s", err.Error()), nil)
@@ -248,7 +286,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	}
 
 	offset := 0
-	if flaggedOffset, ok := input.Ops[FlagOffset.Long]; ok {
+	if flaggedOffset, ok := input.Ops[FlagUploadStatsOffset.Long]; ok {
 		offset, err = strconv.Atoi(flaggedOffset)
 		if err != nil {
 			err = r.replyIfNotSilentLocalizedf(ctx, update, input, resource.ErrUnprocessableEntity, err.Error())
@@ -350,10 +388,10 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 		Message: fmt.Sprintf(
 			"Messages uploaded!\n\n"+
 				"Amount: %d\n"+
-				"Elapsed: %.2fs\n"+
+				"Elapsed: %.2fm\n"+
 				"LastDate: %s",
 			count,
-			time.Since(startedAt).Seconds(),
+			time.Since(startedAt).Minutes(),
 			lastDate.In(input.ChatSettings.TimeLoc).String(),
 		),
 	})
@@ -365,7 +403,11 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 }
 
 func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
-	if _, ok := input.Ops[FlagRemove.Long]; ok {
+	if channel, ok := input.Ops[FlagUploadStatsChannel.Long]; ok {
+		return r.uploadChannelStatsMessages(ctx, update, input, channel)
+	}
+
+	if _, ok := input.Ops[FlagUploadStatsRemove.Long]; ok {
 		return r.uploadStatsDeleteMessages(ctx, update, input)
 	}
 

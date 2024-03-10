@@ -4,12 +4,9 @@ import (
 	"time"
 
 	"github.com/guregu/null/v5"
-
-	"github.com/google/uuid"
 )
 
 type Message struct {
-	Id        uuid.UUID `json:"id" ch:"id"`
 	CreatedAt time.Time `json:"created_at" ch:"created_at"`
 
 	TgChatID        int64  `json:"tg_chat_id" ch:"tg_chat_id"`

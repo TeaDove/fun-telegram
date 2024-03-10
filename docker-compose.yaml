@@ -9,7 +9,7 @@ services:
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
       fun_storage__clickhouse_url: "clickhouse:9000"
       fun_ds_supplier_url: "http://ds:8000"
-    image: ghcr.io/teadove/fun-telegram-core:v1.11.29
+    image: ghcr.io/teadove/fun-telegram-core:v1.11.31
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
@@ -30,11 +30,16 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 200M
 
   ds:
     restart: always
     environment: {}
-    image: ghcr.io/teadove/fun-telegram-ds:v1.0.13
+    image: ghcr.io/teadove/fun-telegram-ds:v1.0.15
     volumes: []
     labels:
       - "autoheal=true"
@@ -44,12 +49,22 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 800M
 
   autoheal:
     restart: always
     image: willfarrell/autoheal
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 100M
 
   redis:
     image: redis:7.2-alpine
@@ -65,6 +80,11 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 100M
 
   mongodb:
     image: mongo:7.0.4-jammy
@@ -81,6 +101,11 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 500M
 
   clickhouse:
     image: clickhouse/clickhouse-server:23.12
@@ -94,3 +119,8 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 3900M

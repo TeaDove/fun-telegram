@@ -3,6 +3,8 @@ import uuid
 
 from datetime import datetime
 from numpy import random
+import enum
+
 
 colors = ("RED", "BLUE", "GREEN")
 _random_names = [
@@ -107,6 +109,16 @@ class GraphEdge(BaseModel):
     weight: float
 
 
+class GraphNode(BaseModel):
+    image: bytes
+    weigh: float
+
+
+class GraphLayout(str, enum.Enum):
+    SPRINT_LAYOUT = "spring"
+    CIRCULAR_LAYOUT = "circular"
+
+
 class Graph(Plot):
     edges: list[GraphEdge] = Field(
         example=[
@@ -118,3 +130,6 @@ class Graph(Plot):
             for _ in range(30)
         ]
     )
+    weigted_edges: bool = True
+    layout: GraphLayout = GraphLayout.CIRCULAR_LAYOUT
+    nodes: dict[str, GraphNode] | None = None
