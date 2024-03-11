@@ -3,7 +3,12 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"github.com/gotd/td/telegram/query"
+	"github.com/gotd/td/telegram/query/messages"
+	"github.com/guregu/null/v5"
+	"github.com/teadove/fun_telegram/core/service/analitics"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
@@ -11,6 +16,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/repository/ch_repository"
+)
+
+const (
+	channelsDumpBatch = 100
 )
 
 func (r *Presentation) getChannelRecommendations(ctx context.Context, channel *tg.Channel) ([]tg.Channel, error) {
@@ -53,42 +62,191 @@ func (r *Presentation) getChannelRecommendations(ctx context.Context, channel *t
 	return channels, nil
 }
 
+func (r *Presentation) loadChannelMessage(ctx context.Context, wg *sync.WaitGroup, chat *tg.Channel, elem messages.Elem) {
+	defer wg.Done()
+
+	msg, ok := elem.Msg.(*tg.Message)
+	if !ok {
+		return
+	}
+
+	if msg.Message == "" {
+		return
+	}
+
+	analiticsMessage := analitics.Message{
+		CreatedAt: time.Unix(int64(msg.Date), 0),
+		TgChatID:  chat.ID,
+		TgUserId:  chat.ID,
+		Text:      msg.Message,
+		TgId:      int64(msg.ID),
+	}
+
+	if msg.ReplyTo != nil {
+		messageReplyHeader, ok := msg.ReplyTo.(*tg.MessageReplyHeader)
+		if ok {
+			analiticsMessage.ReplyToMsgID = null.IntFrom(int64(messageReplyHeader.ReplyToMsgID))
+		}
+	}
+
+	err := r.analiticsService.MessageInsert(ctx, &analiticsMessage)
+	if err != nil {
+		zerolog.Ctx(ctx).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.upload.message.to.repository").
+			Send()
+	}
+}
+
+func (r *Presentation) loadChannelMessages(ctx context.Context, chat *tg.Channel) error {
+	historyQuery := query.Messages(r.telegramApi).GetHistory(chat.AsInputPeer())
+	historyQuery.BatchSize(iterHistoryBatchSize)
+	historyQuery.OffsetID(0)
+	historyIter := historyQuery.Iter()
+
+	msgCount := 0
+	const maxMsgCount = 80
+
+	elemCount := 0
+	const maxElemCount = 300
+
+	var wg sync.WaitGroup
+
+	for {
+		ok := historyIter.Next(ctx)
+		if ok {
+			elem := historyIter.Value()
+			elemCount++
+
+			msg, ok := elem.Msg.(*tg.Message)
+			if !ok {
+				continue
+			}
+
+			if msg.Message == "" {
+				continue
+			}
+
+			msgCount++
+			wg.Add(1)
+			go r.loadChannelMessage(ctx, &wg, chat, elem)
+
+			if msgCount >= maxMsgCount {
+				break
+			}
+
+			if elemCount >= maxElemCount {
+				break
+			}
+
+			continue
+		}
+
+		err := historyIter.Err()
+		if err != nil {
+			return errors.Wrap(err, "failed to iterate")
+		}
+
+		break
+	}
+
+	wg.Wait()
+	zerolog.Ctx(ctx).
+		Debug().
+		Str("status", "channel.messages.uploaded").
+		Int("msg.count", msgCount).
+		Int("elem.count", elemCount).
+		Str("title", chat.Title).
+		Send()
+	return nil
+}
+
+func (r *Presentation) uploadChannelsToRepository(ctx context.Context, wg *sync.WaitGroup, channels <-chan Channel) error {
+	defer wg.Done()
+	channelsSlice := make([]ch_repository.Channel, 0, channelsDumpBatch)
+
+	for channel := range channels {
+		channelsSlice = append(channelsSlice, ch_repository.Channel{
+			TgId:               channel.TgId,
+			TgTitle:            channel.TgTitle,
+			TgUsername:         channel.TgUsername,
+			ParticipantCount:   channel.ParticipantCount,
+			RecommendationsIds: channel.RecommendationsIds,
+		})
+
+		if len(channelsSlice) >= channelsDumpBatch {
+			err := r.analiticsService.ChannelBatchInsert(ctx, channelsSlice)
+			if err != nil {
+				return errors.Wrap(err, "failed to to batch insert")
+			}
+
+			channelsSlice = make([]ch_repository.Channel, 0, channelsDumpBatch)
+		}
+	}
+
+	if len(channelsSlice) != 0 {
+		err := r.analiticsService.ChannelBatchInsert(ctx, channelsSlice)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.batch.insert").Send()
+
+			return errors.Wrap(err, "failed to to batch insert")
+		}
+	}
+
+	return nil
+}
+
+type dumpChannelRecommendationsInput struct {
+	tgInput      *input
+	channels     *map[int64]Channel
+	channelsChan chan<- Channel
+	update       *ext.Update
+	chat         *tg.Channel
+
+	depth         int
+	stopRecursion bool
+	path          []int
+
+	maxDepth          int
+	maxRecommendation int
+	barMessageId      int
+}
+
 func (r *Presentation) dumpChannelRecommendations(
 	ctx *ext.Context,
-	channels *map[int64]ch_repository.Channel,
-	input *input,
-	barMessageId int,
-	update *ext.Update,
-	chat *tg.Channel,
-	depth int,
-	stopRecursion bool,
-	maxDepth int,
-	maxRecommendation int,
+	input dumpChannelRecommendationsInput,
 ) error {
-	depth++
+	input.depth++
 
-	foundChannel, ok := (*channels)[chat.ID]
+	foundChannel, ok := (*input.channels)[input.chat.ID]
 	if ok && len(foundChannel.RecommendationsIds) != 0 {
-		zerolog.Ctx(ctx).Trace().Str("status", "channel.already.processed").Str("title", chat.Title).Send()
+		if input.depth < foundChannel.Depth {
+			// TODO optimise
+			zerolog.Ctx(ctx).Trace().Str("status", "channel.already.processed.but.with.less.depth").Str("title", input.chat.Title).Send()
+		} else {
+			zerolog.Ctx(ctx).Trace().Str("status", "channel.already.processed").Str("title", input.chat.Title).Send()
+			return nil
+		}
+	}
+
+	repositoryChannel := Channel{
+		TgId:             input.chat.ID,
+		TgTitle:          input.chat.Title,
+		TgUsername:       input.chat.Username,
+		ParticipantCount: int64(input.chat.ParticipantsCount),
+		Depth:            input.depth,
+	}
+
+	if input.depth > input.maxDepth || input.stopRecursion {
+		(*input.channels)[input.chat.ID] = repositoryChannel
+		input.channelsChan <- repositoryChannel
+
 		return nil
 	}
 
-	repositoryChannel := ch_repository.Channel{
-		TgId:             chat.ID,
-		TgTitle:          chat.Title,
-		TgUsername:       chat.Username,
-		ParticipantCount: int64(chat.ParticipantsCount),
-	}
-
-	if depth > maxDepth || stopRecursion {
-		(*channels)[chat.ID] = repositoryChannel
-
-		return nil
-	}
-
-	go r.updateUploadChannelStatsMessage(ctx, update, barMessageId, input, len(*channels))
-
-	recommendedChannels, err := r.getChannelRecommendations(ctx, chat)
+	recommendedChannels, err := r.getChannelRecommendations(ctx, input.chat)
 	if err != nil {
 		return errors.Wrap(err, "failed to get channel recommendations")
 	}
@@ -98,15 +256,42 @@ func (r *Presentation) dumpChannelRecommendations(
 		repositoryChannel.RecommendationsIds = append(repositoryChannel.RecommendationsIds, recommendedChannel.ID)
 	}
 
-	(*channels)[chat.ID] = repositoryChannel
+	err = r.loadChannelMessages(ctx, input.chat)
+	if err != nil {
+		return errors.Wrap(err, "failed to load channel messages")
+	}
 
-	stopRecursion = false
+	go r.updateUploadChannelStatsMessage(ctx, input.update, input.barMessageId, input.tgInput, len(*input.channels), &repositoryChannel, input.path)
+
+	(*input.channels)[input.chat.ID] = repositoryChannel
+	input.channelsChan <- repositoryChannel
+
+	input.stopRecursion = false
 	for idx, recommendedChannel := range recommendedChannels {
-		if !stopRecursion && idx > maxRecommendation {
-			stopRecursion = true
+		if !input.stopRecursion && idx > input.maxRecommendation {
+			input.stopRecursion = true
 		}
 
-		err = r.dumpChannelRecommendations(ctx, channels, input, barMessageId, update, &recommendedChannel, depth, stopRecursion, maxDepth, maxRecommendation)
+		newPath := make([]int, len(input.path))
+		_ = copy(newPath, input.path)
+		newPath = append(newPath, idx)
+
+		err = r.dumpChannelRecommendations(
+			ctx,
+			dumpChannelRecommendationsInput{
+				tgInput:           input.tgInput,
+				channels:          input.channels,
+				barMessageId:      input.barMessageId,
+				update:            input.update,
+				chat:              &recommendedChannel,
+				depth:             input.depth,
+				stopRecursion:     input.stopRecursion,
+				maxDepth:          input.maxDepth,
+				maxRecommendation: input.maxRecommendation,
+				path:              newPath,
+				channelsChan:      input.channelsChan,
+			},
+		)
 		if err != nil {
 			return errors.Wrap(err, "failed to dump nested channels")
 		}
@@ -142,21 +327,48 @@ func (r *Presentation) populateChannel(ctx context.Context, channel *tg.Channel)
 	return nil
 }
 
-func (r *Presentation) updateUploadChannelStatsMessage(ctx *ext.Context, update *ext.Update, msgId int, input *input, count int) {
+func (r *Presentation) updateUploadChannelStatsMessage(
+	ctx *ext.Context,
+	update *ext.Update,
+	msgId int,
+	input *input,
+	count int,
+	channel *Channel,
+	path []int,
+) {
+	elapsed := time.Since(input.StartedAt).Minutes()
 	_, err := ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
 		Peer: update.EffectiveChat().GetInputPeer(),
 		ID:   msgId,
 		Message: fmt.Sprintf(
 			"Channels uploading\n\n"+
+				"Now processing \"%s\"\n"+
+				"Path: %v\n"+
+				"Recommendations found: %d\n"+
 				"Amount: %d\n"+
-				"Elapsed: %.2fm\n",
+				"Elapsed: %.2fm, Speed: %.2f(channels/m)\n",
+			channel.TgTitle,
+			path,
+			len(channel.RecommendationsIds),
 			count,
-			time.Since(input.StartedAt).Minutes(),
+			elapsed,
+			float64(count)/elapsed,
 		),
 	})
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
 	}
+}
+
+type Channel struct {
+	TgId       int64
+	TgTitle    string
+	TgUsername string
+
+	ParticipantCount   int64
+	RecommendationsIds []int64
+
+	Depth int
 }
 
 func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.Update, input *input, channelName string) error {
@@ -188,9 +400,9 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 		}
 
 		if userV < allowedMaxRecommendation {
-			maxDepth = userV
+			maxRecommendation = userV
 		} else {
-			maxDepth = allowedMaxRecommendation
+			maxRecommendation = allowedMaxRecommendation
 		}
 	}
 
@@ -218,32 +430,40 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 		return errors.Wrap(err, "failed to reply")
 	}
 
-	channels := make(map[int64]ch_repository.Channel, 1000)
+	channels := make(map[int64]Channel, 1000)
+	channelsChan := make(chan Channel, channelsDumpBatch*2)
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	var uploadChannelsToRepositoryErr error
+	go func() { uploadChannelsToRepositoryErr = r.uploadChannelsToRepository(ctx, &wg, channelsChan) }()
 
 	err = r.dumpChannelRecommendations(
 		ctx,
-		&channels,
-		input,
-		barMessage.ID,
-		update,
-		realChannel,
-		0,
-		false,
-		maxDepth,
-		maxRecommendation,
+		dumpChannelRecommendationsInput{
+			tgInput:           input,
+			channels:          &channels,
+			barMessageId:      barMessage.ID,
+			update:            update,
+			chat:              realChannel,
+			depth:             0,
+			stopRecursion:     false,
+			maxDepth:          maxDepth,
+			maxRecommendation: maxRecommendation,
+			path:              make([]int, 0),
+			channelsChan:      channelsChan,
+		},
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to dump channel recommendations")
 	}
 
-	channelsSlice := make([]ch_repository.Channel, 0, len(channels))
-	for _, dumpedChannel := range channels {
-		channelsSlice = append(channelsSlice, dumpedChannel)
-	}
+	close(channelsChan)
+	wg.Wait()
 
-	err = r.analiticsService.ChannelBatchInsert(ctx, channelsSlice)
-	if err != nil {
-		return errors.Wrap(err, "failed to batch insert channels")
+	if uploadChannelsToRepositoryErr != nil {
+		return errors.Wrap(uploadChannelsToRepositoryErr, "failed to upload channels to repository")
 	}
 
 	_, err = ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
@@ -253,7 +473,7 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 			"Channels uploaded!\n\n"+
 				"Amount: %d\n"+
 				"Elapsed: %.2fm\n",
-			len(channelsSlice),
+			len(channels),
 			time.Since(input.StartedAt).Minutes(),
 		),
 	})

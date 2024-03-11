@@ -16,8 +16,11 @@ func (r *Service) logMemUsage(ctx context.Context) {
 		Info().
 		Str("status", "memusage").
 		Float64("stop.the.world.ms", shared.ToFixed(float64(m.PauseTotalNs)/1024/1024, 2)).
-		Float64("heap.alloc.mb", shared.BytesToMegaBytes(m.HeapAlloc)).
-		Float64("sys.mb", shared.BytesToMegaBytes(m.Sys)).
+		Float64("heap.alloc.mb", shared.ToMega(m.HeapAlloc)).
+		Float64("heap.alloc.count.k", shared.ToKilo(m.HeapObjects)).
+		Float64("stack.in.use.mb", shared.ToMega(m.StackInuse)).
+		Float64("total.sys.mb", shared.ToMega(m.Sys)).
+		Float64("gc.cpu.percent", shared.ToFixed(m.GCCPUFraction*100, 4)).
 		Uint32("gc.cycles", m.NumGC).
 		Send()
 }

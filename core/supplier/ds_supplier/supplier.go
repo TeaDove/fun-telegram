@@ -64,12 +64,12 @@ func (r *Supplier) sendRequest(ctx context.Context, path string, input any) ([]b
 		return nil, errors.Wrap(err, "failed to do request")
 	}
 
-	zerolog.Ctx(ctx).Debug().Str("status", "ds.request.done").Dur("elapsed", time.Since(t0)).Str("path", path).Send()
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to do request")
+		return nil, errors.Wrap(err, "failed to read body request")
 	}
+
+	zerolog.Ctx(ctx).Debug().Str("status", "ds.request.done").Dur("elapsed", time.Since(t0)).Str("path", path).Send()
 
 	if resp.StatusCode >= 400 {
 		return nil, errors.Errorf("bad status code: %d, content: %s", resp.StatusCode, string(body))

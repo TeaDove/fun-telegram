@@ -21,6 +21,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	iterHistoryBatchSize = 100
+)
+
 var (
 	FlagUploadStatsOffset = optFlag{
 		Long:        "offset",
@@ -150,8 +154,8 @@ func (r *Presentation) uploadStatsDeleteMessages(ctx *ext.Context, update *ext.U
 					"Old size: %.2fkb, new size: %.2fkb\n"+
 					"Mem freed: %.2fkb",
 				output.OldCount, output.NewCount,
-				shared.BytesToKiloBytes(output.OldSize), shared.BytesToKiloBytes(output.NewSize),
-				shared.BytesToKiloBytes(output.BytesFreed)),
+				shared.ToKilo(output.OldSize), shared.ToKilo(output.NewSize),
+				shared.ToKilo(output.BytesFreed)),
 		)
 		if err != nil {
 			return errors.WithStack(err)
@@ -221,7 +225,6 @@ LastDate: %s`,
 func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, input *input) (err error) {
 	const (
 		maxElapsed = time.Hour
-		batchSize  = 100
 	)
 
 	var maxCount = shared.DefaultUploadCount
@@ -307,7 +310,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	}
 
 	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
-	historyQuery.BatchSize(batchSize)
+	historyQuery.BatchSize(iterHistoryBatchSize)
 	historyQuery.OffsetID(offset)
 	historyIter := historyQuery.Iter()
 	startedAt := time.Now()
@@ -317,7 +320,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 	wg.Add(2)
 	go r.uploadMembers(ctx, &wg, update.EffectiveChat())
 
-	elemChan := make(chan messages.Elem, batchSize*3)
+	elemChan := make(chan messages.Elem, iterHistoryBatchSize*3)
 	go r.uploadMessageToRepository(ctx, &wg, update, elemChan)
 	var lastDate time.Time
 
@@ -340,7 +343,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 			count++
 			elemChan <- elem
 
-			if count%batchSize == 0 {
+			if count%iterHistoryBatchSize == 0 {
 				time.Sleep(time.Millisecond * 800)
 				go r.updateUploadStatsMessage(ctx, count, barChatId, barMessageId, barPeer, offset, startedAt, lastDate, maxCount)
 			}

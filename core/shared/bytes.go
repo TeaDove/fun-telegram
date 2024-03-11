@@ -14,10 +14,10 @@ func ToFixed(num float64, precision int) float64 {
 	return float64(round(num*output)) / output
 }
 
-func BytesToKiloBytes[T constraints.Integer](bytes T) float64 {
+func ToKilo[T constraints.Integer](bytes T) float64 {
 	return ToFixed(float64(bytes)/1024, 2)
 }
 
-func BytesToMegaBytes[T constraints.Integer](bytes T) float64 {
+func ToMega[T constraints.Integer](bytes T) float64 {
 	return ToFixed(float64(bytes)/1024/1024, 2)
 }
