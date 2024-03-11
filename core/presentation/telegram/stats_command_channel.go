@@ -224,7 +224,7 @@ func (r *Presentation) dumpChannelRecommendations(
 	if ok && len(foundChannel.RecommendationsIds) != 0 {
 		if input.depth < foundChannel.Depth {
 			// TODO optimise
-			zerolog.Ctx(ctx).Trace().Str("status", "channel.already.processed.but.with.less.depth").Str("title", input.chat.Title).Send()
+			zerolog.Ctx(ctx).Debug().Str("status", "channel.already.processed.but.with.less.depth").Str("title", input.chat.Title).Send()
 		} else {
 			zerolog.Ctx(ctx).Trace().Str("status", "channel.already.processed").Str("title", input.chat.Title).Send()
 			return nil
