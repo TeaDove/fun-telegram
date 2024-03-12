@@ -48,9 +48,10 @@ const (
 	CommandKandinskyDescription
 	CommandKandinskyFlagStyleDescription
 	CommandKandinskyFlagNegativePromptDescription
-	CommandDisableDescription
 	CommandLocationDescription
 	CommandUploadStatsDescription
+	CommandDumpStatsDescription
+
 	CommandBanDescription
 	CommandBanUserBanned
 	CommandBanUserUnbanned
@@ -179,6 +180,10 @@ var localizer = map[Code]map[Locale]string{
 	CommandUploadStatsDescription: {
 		Ru: "загрузить статистику из этого чата",
 		En: "uploads stats from this chat",
+	},
+	CommandDumpStatsDescription: {
+		Ru: "выгрузить статистику",
+		En: "dump stats",
 	},
 	CommandBanDescription: {
 		Ru: "забанить или разбанить пользователя из бота глобально",

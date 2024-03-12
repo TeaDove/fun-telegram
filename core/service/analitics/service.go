@@ -60,24 +60,25 @@ func New(
 
 var ErrNoMessagesFound = errors.New("No messages found")
 
-type RepostImage struct {
-	Name    string
-	Content []byte
+type File struct {
+	Name      string
+	Extension string
+	Content   []byte
 }
 
-func (r *RepostImage) Filename() string {
-	return fmt.Sprintf("%s.jpeg", r.Name)
+func (r *File) Filename() string {
+	return fmt.Sprintf("%s.%s", r.Name, r.Extension)
 }
 
 type AnaliseReport struct {
-	Images []RepostImage
+	Images []File
 
 	FirstMessageAt time.Time
 	MessagesCount  int
 }
 
 type statsReport struct {
-	repostImage RepostImage
+	repostImage File
 	err         error
 }
 
@@ -144,7 +145,7 @@ func (r *Service) analiseUserChat(ctx context.Context, input *AnaliseChatInput) 
 	getter := r.getNameGetter(usersInChat)
 
 	report := AnaliseReport{
-		Images:         make([]RepostImage, 0, 6),
+		Images:         make([]File, 0, 6),
 		FirstMessageAt: lastMessage.CreatedAt,
 		MessagesCount:  int(count),
 	}
@@ -195,7 +196,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput)
 	getter := r.getNameGetter(usersInChat)
 
 	report := AnaliseReport{
-		Images:         make([]RepostImage, 0, 6),
+		Images:         make([]File, 0, 6),
 		FirstMessageAt: lastMessage.CreatedAt,
 		MessagesCount:  int(count),
 	}
@@ -252,7 +253,7 @@ func (r *Service) AnaliseChat(ctx context.Context, input *AnaliseChatInput) (rep
 		return AnaliseReport{}, errors.Wrap(err, "failed to analise chat")
 	}
 
-	slices.SortFunc(report.Images, func(a, b RepostImage) int {
+	slices.SortFunc(report.Images, func(a, b File) int {
 		if a.Name > b.Name {
 			return 1
 		} else {

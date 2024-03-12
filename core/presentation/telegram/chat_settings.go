@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog"
 	"strconv"
 	"strings"
 	"time"
@@ -24,10 +25,12 @@ type ChatSettings struct {
 	Features map[string]bool `json:"features"`
 }
 
+const defaultLocale = resource.En
+
 func (r *Presentation) getDefaultSettings() ChatSettings {
 	settings := ChatSettings{
 		Enabled: false,
-		Locale:  resource.En,
+		Locale:  defaultLocale,
 		Tz:      0,
 		TimeLoc: time.UTC,
 	}
@@ -43,6 +46,11 @@ func (r *Presentation) getChatSettings(ctx context.Context, chatId int64) (ChatS
 		}
 
 		return ChatSettings{}, errors.Wrap(err, "failed to get chat settings")
+	}
+
+	if redisChatSettings.Locale == "" {
+		zerolog.Ctx(ctx).Warn().Str("status", "empty.locale").Interface("chat", redisChatSettings).Send()
+		redisChatSettings.Locale = string(defaultLocale)
 	}
 
 	chatSettings := ChatSettings{

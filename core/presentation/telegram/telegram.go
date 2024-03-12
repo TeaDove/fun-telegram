@@ -206,6 +206,11 @@ func MustNewTelegramPresentation(
 			requireAdmin: true,
 			example:      "-c=400000 -d=365 -o=0 --silent",
 		},
+		"dump_stats": {
+			executor:     presentation.statsDumpCommandHandler,
+			description:  resource.CommandUploadStatsDescription,
+			requireOwner: true,
+		},
 		"ban": {
 			executor:    presentation.banCommandHandler,
 			description: resource.CommandBanDescription,

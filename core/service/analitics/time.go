@@ -21,8 +21,9 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 ) {
 	defer wg.Done()
 	statsReportResult := statsReport{
-		repostImage: RepostImage{
-			Name: "MessagesGroupedByDateByChatId",
+		repostImage: File{
+			Name:      "MessagesGroupedByDateByChatId",
+			Extension: "jpeg",
 		},
 	}
 	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatId(ctx, input.TgChatId, 86400*7)
@@ -65,8 +66,9 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 ) {
 	defer wg.Done()
 	statsReportResult := statsReport{
-		repostImage: RepostImage{
-			Name: "MessagesGroupedByDateByChatIdByUserId",
+		repostImage: File{
+			Name:      "MessagesGroupedByDateByChatIdByUserId",
+			Extension: "jpeg",
 		},
 	}
 	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatIdByUserId(ctx, input.TgChatId, input.TgUserId, 86400*7)
@@ -109,8 +111,9 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 ) {
 	defer wg.Done()
 	statsReportResult := statsReport{
-		repostImage: RepostImage{
-			Name: "MessagesGroupedByTimeByChatId",
+		repostImage: File{
+			Name:      "MessagesGroupedByTimeByChatId",
+			Extension: "jpeg",
 		},
 	}
 
@@ -165,8 +168,9 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 ) {
 	defer wg.Done()
 	statsReportResult := statsReport{
-		repostImage: RepostImage{
-			Name: "ChatDateDistribution",
+		repostImage: File{
+			Name:      "ChatDateDistribution",
+			Extension: "jpeg",
 		},
 	}
 

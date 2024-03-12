@@ -1,15 +1,20 @@
 package ch_repository
 
-import "time"
+import (
+	"github.com/guregu/null/v5"
+	"time"
+)
 
 type Channel struct {
-	TgId       int64     `json:"tg_id" ch:"tg_id"`
-	TgTitle    string    `json:"tg_title" ch:"tg_title"`
-	TgUsername string    `json:"tg_username" ch:"tg_username"`
-	UploadedAt time.Time `json:"uploaded_at" ch:"uploaded_at"`
+	TgId       int64     `csv:"tg_id" ch:"tg_id"`
+	TgTitle    string    `csv:"tg_title" ch:"tg_title"`
+	TgUsername string    `csv:"tg_username" ch:"tg_username"`
+	UploadedAt time.Time `csv:"uploaded_at" ch:"uploaded_at"`
 
-	ParticipantCount   int64   `json:"participant_count" ch:"participant_count"`
-	RecommendationsIds []int64 `json:"recommendations_ids" ch:"recommendations_ids"`
+	ParticipantCount   int64       `csv:"participant_count" ch:"participant_count"`
+	RecommendationsIds []int64     `csv:"recommendations_ids" ch:"recommendations_ids"`
+	IsLeaf             bool        `csv:"is_leaf" ch:"is_leaf"`
+	TgAbout            null.String `csv:"tg_about" ch:"tg_about"`
 }
 
 type Channels []Channel
@@ -24,7 +29,7 @@ func (r Channels) ToMap() map[int64]Channel {
 }
 
 type ChannelEdge struct {
-	TgIdIn  int64 `json:"tg_id_in" ch:"tg_id_in"`
-	TgIdOut int64 `json:"tg_id_out" ch:"tg_id_out"`
-	Order   int64 `json:"order" ch:"order"`
+	TgIdIn  int64 `csv:"tg_id_in" ch:"tg_id_in"`
+	TgIdOut int64 `csv:"tg_id_out" ch:"tg_id_out"`
+	Order   int64 `csv:"order" ch:"order"`
 }

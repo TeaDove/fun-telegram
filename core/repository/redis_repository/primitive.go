@@ -2,7 +2,6 @@ package redis_repository
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
@@ -21,13 +20,19 @@ func (r *Repository) HSet(ctx context.Context, hkey string, values ...any) error
 
 func (r *Repository) HGetAll(ctx context.Context, key string, v any) error {
 	cmd := r.rbs.HGetAll(ctx, key)
-	if cmd.Err() != nil {
-		return errors.Wrap(cmd.Err(), "failed to hgetall")
+	map_, err := cmd.Result()
+
+	if err != nil {
+		return errors.Wrap(err, "failed to hgetall")
 	}
 
-	err := cmd.Scan(v)
+	if len(map_) == 0 {
+		return ErrKeyNotFound
+	}
+
+	err = cmd.Scan(v)
 	if err != nil {
-		return errors.Wrap(cmd.Err(), "failed to scan")
+		return errors.Wrap(err, "failed to scan")
 	}
 
 	zerolog.Ctx(ctx).Trace().Str("status", "redis.hgetall").Str("key", key).Send()

@@ -109,3 +109,16 @@ func TestIntegration_RedisStorage_Toggle_Ok(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, ok)
 }
+
+func TestIntegration_RedisStorage_HGetAll_NotFound(t *testing.T) {
+	t.Parallel()
+	ctx := shared.GetCtx()
+	storage := getStorage()
+
+	k := shared.RandomString()
+
+	var user struct{}
+
+	err := storage.HGetAll(ctx, k, &user)
+	assert.ErrorIs(t, err, ErrKeyNotFound)
+}

@@ -9,7 +9,7 @@ import (
 func (r *Repository) ChannelInsert(ctx context.Context, channel *Channel) error {
 	err := r.conn.AsyncInsert(ctx, `
 INSERT INTO channel VALUES (
-			?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?
 		)`,
 		true,
 		channel.TgId,
@@ -18,6 +18,8 @@ INSERT INTO channel VALUES (
 		channel.UploadedAt,
 		channel.ParticipantCount,
 		channel.RecommendationsIds,
+		channel.IsLeaf,
+		channel.TgAbout,
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to async insert")
@@ -65,6 +67,8 @@ func (r *Repository) ChannelBatchInsert(ctx context.Context, channels []Channel)
 			channel.UploadedAt,
 			channel.ParticipantCount,
 			channel.RecommendationsIds,
+			channel.IsLeaf,
+			channel.TgAbout,
 		)
 		if err != nil {
 			return errors.Wrap(err, "failed to append to batch")
@@ -79,9 +83,9 @@ func (r *Repository) ChannelBatchInsert(ctx context.Context, channels []Channel)
 	return nil
 }
 
-func (r *Repository) ChannelSelect(ctx context.Context, id int64) (Channel, error) {
+func (r *Repository) ChannelSelectById(ctx context.Context, id int64) (Channel, error) {
 	row := r.conn.QueryRow(ctx, `
-select tg_id, tg_title, tg_username, uploaded_at, participant_count, recommendations_ids from channel final
+select tg_id, tg_title, tg_username, uploaded_at, participant_count, recommendations_ids, is_leaf, tg_about from channel final
 	where tg_id = ? 
 `, id)
 	if row.Err() != nil {
@@ -97,9 +101,9 @@ select tg_id, tg_title, tg_username, uploaded_at, participant_count, recommendat
 	return channel, nil
 }
 
-func (r *Repository) ChannelSelectById(ctx context.Context, id []int64) (Channels, error) {
+func (r *Repository) ChannelSelectByIds(ctx context.Context, id []int64) (Channels, error) {
 	rows, err := r.conn.Query(ctx, `
-select tg_id, tg_title, tg_username, uploaded_at, participant_count, recommendations_ids from channel final
+select tg_id, tg_title, tg_username, uploaded_at, participant_count, recommendations_ids, is_leaf, tg_about from channel final
 	where tg_id in ? 
 `, id)
 	if err != nil {
@@ -109,6 +113,52 @@ select tg_id, tg_title, tg_username, uploaded_at, participant_count, recommendat
 	output := make(Channels, 0, len(id))
 	for rows.Next() {
 		row := Channel{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, nil
+}
+
+func (r *Repository) ChannelSelect(ctx context.Context) (Channels, error) {
+	rows, err := r.conn.Query(ctx, `
+select tg_id, tg_title, tg_username, uploaded_at, participant_count, recommendations_ids, is_leaf, tg_about 
+	from channel final
+	order by tg_id 
+`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select rows from clickhouse")
+	}
+
+	output := make(Channels, 0, 100)
+	for rows.Next() {
+		row := Channel{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, nil
+}
+
+func (r *Repository) ChannelEdgesSelect(ctx context.Context) ([]ChannelEdge, error) {
+	rows, err := r.conn.Query(ctx, `
+select tg_id_in, tg_id_out, order from channel_edge final order by tg_id_in, tg_id_out   
+`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select rows from clickhouse")
+	}
+
+	output := make([]ChannelEdge, 0, 100)
+	for rows.Next() {
+		row := ChannelEdge{}
 		err = rows.ScanStruct(&row)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to scan row")

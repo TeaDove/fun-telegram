@@ -1,7 +1,10 @@
 package analitics
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"github.com/gocarina/gocsv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -23,7 +26,7 @@ func (r *Service) ChannelInsert(ctx context.Context, channel *ch_repository.Chan
 }
 
 func (r *Service) ChannelSelect(ctx context.Context, id int64) (ch_repository.Channel, error) {
-	channel, err := r.chRepository.ChannelSelect(ctx, id)
+	channel, err := r.chRepository.ChannelSelectById(ctx, id)
 	if err != nil {
 		return ch_repository.Channel{}, errors.Wrap(err, "failed to select channel")
 	}
@@ -59,7 +62,7 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 		channelIds[idx] = channel.TgId
 	}
 
-	oldChannels, err := r.chRepository.ChannelSelectById(ctx, channelIds)
+	oldChannels, err := r.chRepository.ChannelSelectByIds(ctx, channelIds)
 	if err != nil {
 		return errors.Wrap(err, "failed to select channels")
 	}
@@ -71,10 +74,7 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 	newChannels := make([]ch_repository.Channel, 0, len(channels))
 	for _, channel := range channels {
 		oldChannel, ok := oldChannelsMap[channel.TgId]
-		if ok &&
-			time.Since(oldChannel.UploadedAt) < channelDataTtl &&
-			len(oldChannel.RecommendationsIds) != 0 &&
-			len(channel.RecommendationsIds) == 0 {
+		if ok && time.Since(oldChannel.UploadedAt) < channelDataTtl && !oldChannel.IsLeaf && channel.IsLeaf {
 			alreadyProcessed++
 			continue
 		}
@@ -105,4 +105,80 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 		Send()
 
 	return nil
+}
+
+func dumpSliceToCsvZip(name string, slice any) (File, error) {
+	file := File{
+		Name:      name,
+		Extension: "csv.zip",
+	}
+
+	sliceBytes, err := gocsv.MarshalBytes(slice)
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to dump to csv")
+	}
+
+	buf := new(bytes.Buffer)
+	zipWriter := zip.NewWriter(buf)
+
+	zipFile, err := zipWriter.Create(name + ".csv")
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to create zip")
+	}
+
+	_, err = zipFile.Write(sliceBytes)
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to write bytes to zip")
+	}
+
+	err = zipWriter.Close()
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to close zip writer")
+	}
+
+	file.Content = buf.Bytes()
+
+	return file, nil
+}
+
+func (r *Service) DumpChannels(ctx context.Context) ([]File, error) {
+	files := make([]File, 0, 3)
+
+	channels, err := r.chRepository.ChannelSelect(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select channel")
+	}
+
+	file, err := dumpSliceToCsvZip("channels", channels)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to dump to csv channels")
+	}
+
+	files = append(files, file)
+
+	channelEdges, err := r.chRepository.ChannelEdgesSelect(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select channel edges")
+	}
+
+	file, err = dumpSliceToCsvZip("channel_edges", channelEdges)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to dump to csv channels")
+	}
+
+	files = append(files, file)
+
+	messages, err := r.chRepository.MessagesGetChannel(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select channels messages")
+	}
+
+	file, err = dumpSliceToCsvZip("messages", messages)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to dump to csv channels")
+	}
+
+	files = append(files, file)
+
+	return files, nil
 }

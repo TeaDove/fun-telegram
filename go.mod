@@ -11,6 +11,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dlclark/regexp2 v1.10.0
 	github.com/go-co-op/gocron v1.37.0
+	github.com/gocarina/gocsv v0.0.0-20231116093920-b87c2d0e983a
 	github.com/google/uuid v1.6.0
 	github.com/gotd/contrib v0.19.0
 	github.com/gotd/td v0.95.0

@@ -21,8 +21,9 @@ func (r *Service) getChatterBoxes(
 	defer wg.Done()
 	const maxUsers = 15
 	output := statsReport{
-		repostImage: RepostImage{
-			Name: "ChatterBoxes",
+		repostImage: File{
+			Name:      "ChatterBoxes",
+			Extension: "jpeg",
 		},
 	}
 
@@ -69,8 +70,9 @@ func (r *Service) getMessageFindRepliedBy(
 ) {
 	defer wg.Done()
 	output := statsReport{
-		repostImage: RepostImage{
-			Name: "MessageFindRepliedBy",
+		repostImage: File{
+			Name:      "MessageFindRepliedBy",
+			Extension: "jpeg",
 		},
 	}
 
@@ -128,8 +130,9 @@ func (r *Service) getMessageFindRepliesTo(
 ) {
 	defer wg.Done()
 	output := statsReport{
-		repostImage: RepostImage{
-			Name: "MessageFindRepliesTo",
+		repostImage: File{
+			Name:      "MessageFindRepliesTo",
+			Extension: "jpeg",
 		},
 	}
 
@@ -188,8 +191,9 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 ) {
 	defer wg.Done()
 	output := statsReport{
-		repostImage: RepostImage{
-			Name: "MessageFindAllRepliedBy",
+		repostImage: File{
+			Name:      "MessageFindAllRepliedBy",
+			Extension: "jpeg",
 		},
 	}
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
@@ -251,8 +255,9 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 ) {
 	defer wg.Done()
 	output := statsReport{
-		repostImage: RepostImage{
-			Name: "MessageFindAllRepliedByAsHeatmap",
+		repostImage: File{
+			Name:      "MessageFindAllRepliedByAsHeatmap",
+			Extension: "jpeg",
 		},
 	}
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)

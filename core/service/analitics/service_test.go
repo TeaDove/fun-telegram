@@ -19,8 +19,8 @@ import (
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
-func draw(t *testing.T, reportImages []RepostImage) {
-	files, err := filepath.Glob(".test-*.jpeg")
+func draw(t *testing.T, reportImages []File) {
+	files, err := filepath.Glob(".test-*")
 	if err != nil {
 		require.NoError(t, err)
 	}

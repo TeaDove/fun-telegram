@@ -515,3 +515,36 @@ func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
 
 	return output, nil
 }
+
+func (r *Repository) MessagesGetChannel(ctx context.Context) ([]Message, error) {
+	rows, err := r.conn.Query(ctx, `
+select m.created_at,
+       m.tg_chat_id,
+       m.tg_id,
+       m.tg_user_id,
+       m.text,
+       m.reply_to_msg_id,
+       m.reply_to_user_id,
+       m.words_count,
+       m.toxic_words_count
+from message m final
+    join channel c on m.tg_chat_id = c.tg_id
+ order by created_at
+`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select messages")
+	}
+
+	output := make([]Message, 0, 100)
+	for rows.Next() {
+		row := Message{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, nil
+}

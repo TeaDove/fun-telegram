@@ -16,7 +16,7 @@ func TestIntegration_ChRepository_ChannelSelect_NotFound(t *testing.T) {
 	r := getRepository(t)
 	ctx := shared.GetCtx()
 
-	_, err := r.ChannelSelect(ctx, 999)
+	_, err := r.ChannelSelectById(ctx, 999)
 
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
@@ -30,7 +30,7 @@ func TestIntegration_ChRepository_ChannelSelect_Found(t *testing.T) {
 	err := r.ChannelInsert(ctx, &Channel{TgId: 12})
 	require.NoError(t, err)
 
-	channel, err := r.ChannelSelect(ctx, 12)
+	channel, err := r.ChannelSelectById(ctx, 12)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(12), channel.TgId)
 }

@@ -34,4 +34,6 @@ create table if not exists channel_edge
     order     Int64
 
 ) ENGINE = ReplacingMergeTree() ORDER BY (tg_id_in, tg_id_out);`,
+	`alter table channel add column if not exists is_leaf bool default false;`,
+	`alter table channel add column if not exists tg_about Nullable(String);`,
 }

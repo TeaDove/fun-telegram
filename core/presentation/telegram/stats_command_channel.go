@@ -163,8 +163,7 @@ func (r *Presentation) loadChannelMessages(ctx context.Context, chat *tg.Channel
 	return nil
 }
 
-func (r *Presentation) uploadChannelsToRepository(ctx context.Context, wg *sync.WaitGroup, channels <-chan Channel) error {
-	defer wg.Done()
+func (r *Presentation) uploadChannelsToRepository(ctx context.Context, channels <-chan Channel) error {
 	channelsSlice := make([]ch_repository.Channel, 0, channelsDumpBatch)
 
 	for channel := range channels {
@@ -174,6 +173,8 @@ func (r *Presentation) uploadChannelsToRepository(ctx context.Context, wg *sync.
 			TgUsername:         channel.TgUsername,
 			ParticipantCount:   channel.ParticipantCount,
 			RecommendationsIds: channel.RecommendationsIds,
+			IsLeaf:             channel.IsLeaf,
+			TgAbout:            channel.TgAbout,
 		})
 
 		if len(channelsSlice) >= channelsDumpBatch {
@@ -189,8 +190,6 @@ func (r *Presentation) uploadChannelsToRepository(ctx context.Context, wg *sync.
 	if len(channelsSlice) != 0 {
 		err := r.analiticsService.ChannelBatchInsert(ctx, channelsSlice)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.batch.insert").Send()
-
 			return errors.Wrap(err, "failed to to batch insert")
 		}
 	}
@@ -221,7 +220,7 @@ func (r *Presentation) dumpChannelRecommendations(
 	input.depth++
 
 	foundChannel, ok := (*input.channels)[input.chat.ID]
-	if ok && len(foundChannel.RecommendationsIds) != 0 {
+	if ok && !foundChannel.IsLeaf {
 		if input.depth < foundChannel.Depth {
 			// TODO optimise
 			zerolog.Ctx(ctx).Debug().Str("status", "channel.already.processed.but.with.less.depth").Str("title", input.chat.Title).Send()
@@ -237,6 +236,7 @@ func (r *Presentation) dumpChannelRecommendations(
 		TgUsername:       input.chat.Username,
 		ParticipantCount: int64(input.chat.ParticipantsCount),
 		Depth:            input.depth,
+		IsLeaf:           true,
 	}
 
 	if input.depth > input.maxDepth || input.stopRecursion {
@@ -245,6 +245,16 @@ func (r *Presentation) dumpChannelRecommendations(
 
 		return nil
 	}
+
+	repositoryChannel.IsLeaf = false
+
+	fullChannel, err := r.getFullChannel(ctx, input.chat)
+	if err != nil {
+		return errors.Wrap(err, "failed to populate channel")
+	}
+
+	repositoryChannel.ParticipantCount = int64(fullChannel.ParticipantsCount)
+	repositoryChannel.TgAbout = null.StringFrom(fullChannel.About)
 
 	recommendedChannels, err := r.getChannelRecommendations(ctx, input.chat)
 	if err != nil {
@@ -308,23 +318,18 @@ const (
 	allowedMaxDepth = 10
 )
 
-func (r *Presentation) populateChannel(ctx context.Context, channel *tg.Channel) error {
-	if channel.ParticipantsCount != 0 {
-		return nil
-	}
-
+func (r *Presentation) getFullChannel(ctx context.Context, channel *tg.Channel) (*tg.ChannelFull, error) {
 	fullChannelClass, err := r.telegramApi.ChannelsGetFullChannel(ctx, channel.AsInput())
 	if err != nil {
-		return errors.Wrap(err, "failed to get full channel")
+		return nil, errors.Wrap(err, "failed to get full channel")
 	}
 
 	fullChannel, ok := fullChannelClass.FullChat.(*tg.ChannelFull) // nolint: sloppyTypeAssert
 	if !ok {
-		return errors.New("not a channel")
+		return nil, errors.New("not a channel")
 	}
 
-	channel.ParticipantsCount = fullChannel.ParticipantsCount
-	return nil
+	return fullChannel, nil
 }
 
 func (r *Presentation) updateUploadChannelStatsMessage(
@@ -363,6 +368,8 @@ func (r *Presentation) updateUploadChannelStatsMessage(
 type Channel struct {
 	TgId       int64
 	TgTitle    string
+	TgAbout    null.String
+	IsLeaf     bool
 	TgUsername string
 
 	ParticipantCount   int64
@@ -420,11 +427,6 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 		return errors.New("not an channel")
 	}
 
-	err = r.populateChannel(ctx, realChannel)
-	if err != nil {
-		return errors.Wrap(err, "failed to populate channel")
-	}
-
 	barMessage, err := ctx.Reply(update, "⚙️ Uploading channels data", nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to reply")
@@ -437,7 +439,10 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 	wg.Add(1)
 
 	var uploadChannelsToRepositoryErr error
-	go func() { uploadChannelsToRepositoryErr = r.uploadChannelsToRepository(ctx, &wg, channelsChan) }()
+	go func() {
+		defer wg.Done()
+		uploadChannelsToRepositoryErr = r.uploadChannelsToRepository(ctx, channelsChan)
+	}()
 
 	err = r.dumpChannelRecommendations(
 		ctx,

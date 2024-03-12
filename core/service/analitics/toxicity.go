@@ -22,8 +22,9 @@ func (r *Service) getMostToxicUsers(
 	defer wg.Done()
 	const maxUsers = 15
 	output := statsReport{
-		repostImage: RepostImage{
-			Name: "MostToxicUsers",
+		repostImage: File{
+			Name:      "MostToxicUsers",
+			Extension: "jpeg",
 		},
 	}
 
