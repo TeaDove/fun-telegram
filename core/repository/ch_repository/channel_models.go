@@ -1,20 +1,19 @@
 package ch_repository
 
 import (
-	"github.com/guregu/null/v5"
 	"time"
 )
 
 type Channel struct {
-	TgId       int64     `csv:"tg_id" ch:"tg_id"`
-	TgTitle    string    `csv:"tg_title" ch:"tg_title"`
-	TgUsername string    `csv:"tg_username" ch:"tg_username"`
-	UploadedAt time.Time `csv:"uploaded_at" ch:"uploaded_at"`
+	TgId       int64     `csv:"tg_id" ch:"tg_id" parquet:"name=tg_id, type=INT64"`
+	TgTitle    string    `csv:"tg_title" ch:"tg_title" parquet:"name=tg_title, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	TgUsername string    `csv:"tg_username" ch:"tg_username" parquet:"name=tg_username, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	UploadedAt time.Time `ch:"uploaded_at"`
 
-	ParticipantCount   int64       `csv:"participant_count" ch:"participant_count"`
-	RecommendationsIds []int64     `csv:"recommendations_ids" ch:"recommendations_ids"`
-	IsLeaf             bool        `csv:"is_leaf" ch:"is_leaf"`
-	TgAbout            null.String `csv:"tg_about" ch:"tg_about"`
+	ParticipantCount   int64   `csv:"participant_count" ch:"participant_count" parquet:"name=participant_count, type=INT64"`
+	RecommendationsIds []int64 `ch:"recommendations_ids"`
+	IsLeaf             bool    `csv:"is_leaf" ch:"is_leaf" parquet:"name=is_leaf, type=BOOLEAN"`
+	TgAbout            *string `csv:"tg_about" ch:"tg_about" parquet:"name=tg_about, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
 type Channels []Channel
@@ -29,7 +28,7 @@ func (r Channels) ToMap() map[int64]Channel {
 }
 
 type ChannelEdge struct {
-	TgIdIn  int64 `csv:"tg_id_in" ch:"tg_id_in"`
-	TgIdOut int64 `csv:"tg_id_out" ch:"tg_id_out"`
-	Order   int64 `csv:"order" ch:"order"`
+	TgIdIn  int64 `csv:"tg_id_in" ch:"tg_id_in" parquet:"name=tg_about, type=INT64"`
+	TgIdOut int64 `csv:"tg_id_out" ch:"tg_id_out" parquet:"name=tg_id_out, type=INT64"`
+	Order   int64 `csv:"order" ch:"order" parquet:"name=order, type=INT64"`
 }

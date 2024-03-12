@@ -144,38 +144,23 @@ func dumpSliceToCsvZip(name string, slice any) (File, error) {
 func (r *Service) DumpChannels(ctx context.Context) ([]File, error) {
 	files := make([]File, 0, 3)
 
-	channels, err := r.chRepository.ChannelSelect(ctx)
+	file, err := r.dumpChannelsParquet(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to select channel")
-	}
-
-	file, err := dumpSliceToCsvZip("channels", channels)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to dump to csv channels")
+		return nil, errors.Wrap(err, "failed to dump channels")
 	}
 
 	files = append(files, file)
 
-	channelEdges, err := r.chRepository.ChannelEdgesSelect(ctx)
+	file, err = r.dumpChannelsEdgeParquet(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to select channel edges")
-	}
-
-	file, err = dumpSliceToCsvZip("channel_edges", channelEdges)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to dump to csv channels")
+		return nil, errors.Wrap(err, "failed to dump channels edges")
 	}
 
 	files = append(files, file)
 
-	messages, err := r.chRepository.MessagesGetChannel(ctx)
+	file, err = r.dumpMessagesParquet(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to select channels messages")
-	}
-
-	file, err = dumpSliceToCsvZip("messages", messages)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to dump to csv channels")
+		return nil, errors.Wrap(err, "failed to dump messages")
 	}
 
 	files = append(files, file)

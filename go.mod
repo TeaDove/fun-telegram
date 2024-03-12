@@ -24,6 +24,8 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.17.0
+	github.com/xitongsys/parquet-go v1.6.2
+	github.com/xitongsys/parquet-go-source v0.0.0-20240122235623-d6294584ab18
 	go.mongodb.org/mongo-driver v1.13.1
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
 	golang.org/x/time v0.5.0
@@ -33,6 +35,8 @@ require (
 	github.com/AnimeKaizoku/cacher v1.0.1 // indirect
 	github.com/ClickHouse/ch-go v0.61.2 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/apache/arrow/go/arrow v0.0.0-20200730104253-651201b0f516 // indirect
+	github.com/apache/thrift v0.14.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -60,6 +64,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/spf13/afero v1.2.2 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
@@ -76,6 +81,7 @@ require (
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.25.5 // indirect
 	modernc.org/libc v1.40.6 // indirect

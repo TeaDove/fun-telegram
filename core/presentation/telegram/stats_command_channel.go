@@ -167,6 +167,10 @@ func (r *Presentation) uploadChannelsToRepository(ctx context.Context, channels 
 	channelsSlice := make([]ch_repository.Channel, 0, channelsDumpBatch)
 
 	for channel := range channels {
+		var tgAbout *string
+		if channel.TgAbout.Valid {
+			tgAbout = &channel.TgAbout.String
+		}
 		channelsSlice = append(channelsSlice, ch_repository.Channel{
 			TgId:               channel.TgId,
 			TgTitle:            channel.TgTitle,
@@ -174,7 +178,7 @@ func (r *Presentation) uploadChannelsToRepository(ctx context.Context, channels 
 			ParticipantCount:   channel.ParticipantCount,
 			RecommendationsIds: channel.RecommendationsIds,
 			IsLeaf:             channel.IsLeaf,
-			TgAbout:            channel.TgAbout,
+			TgAbout:            tgAbout,
 		})
 
 		if len(channelsSlice) >= channelsDumpBatch {
@@ -206,7 +210,7 @@ type dumpChannelRecommendationsInput struct {
 
 	depth         int
 	stopRecursion bool
-	path          []int
+	path          []string
 
 	maxDepth          int
 	maxRecommendation int
@@ -282,9 +286,9 @@ func (r *Presentation) dumpChannelRecommendations(
 			input.stopRecursion = true
 		}
 
-		newPath := make([]int, len(input.path))
+		newPath := make([]string, len(input.path))
 		_ = copy(newPath, input.path)
-		newPath = append(newPath, idx)
+		newPath = append(newPath, fmt.Sprintf("(%d) %s (@%s)", idx, recommendedChannel.Title, recommendedChannel.Username))
 
 		err = r.dumpChannelRecommendations(
 			ctx,
@@ -339,25 +343,28 @@ func (r *Presentation) updateUploadChannelStatsMessage(
 	input *input,
 	count int,
 	channel *Channel,
-	path []int,
+	path []string,
 ) {
+	var pathText string
+	for _, pathItem := range path {
+		pathText += "\n ➔ " + pathItem
+	}
+
 	elapsed := time.Since(input.StartedAt).Minutes()
 	_, err := ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
 		Peer: update.EffectiveChat().GetInputPeer(),
 		ID:   msgId,
 		Message: fmt.Sprintf(
 			"Channels uploading\n\n"+
-				"Now processing \"%s\"\n"+
-				"Path: %v\n"+
-				"Recommendations found: %d\n"+
-				"Amount: %d\n"+
-				"Elapsed: %.2fm, Speed: %.2f(channels/m)\n",
-			channel.TgTitle,
-			path,
+				"Recommendations found for current channel: %d\n"+
+				"Total channels found: %d\n"+
+				"Elapsed: %.2fm, Speed: %.2f(channels/m)\n"+
+				"Path: %s\n",
 			len(channel.RecommendationsIds),
 			count,
 			elapsed,
 			float64(count)/elapsed,
+			pathText,
 		),
 	})
 	if err != nil {
@@ -456,7 +463,7 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 			stopRecursion:     false,
 			maxDepth:          maxDepth,
 			maxRecommendation: maxRecommendation,
-			path:              make([]int, 0),
+			path:              []string{realChannel.Title},
 			channelsChan:      channelsChan,
 		},
 	)

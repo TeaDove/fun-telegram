@@ -39,7 +39,7 @@ func (r *Presentation) statsDumpCommandHandler(ctx *ext.Context, update *ext.Upd
 		}
 
 		document := message.UploadedDocument(uploadedFile)
-		document.MIME("application/zip").Filename(file.Filename()).TTLSeconds(60 * 10)
+		document.MIME("application/parquet").Filename(file.Filename()).TTLSeconds(60 * 10)
 
 		_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Media(ctx, document)
 		if err != nil {
