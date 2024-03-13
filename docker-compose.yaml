@@ -34,7 +34,7 @@ services:
       resources:
         limits:
           cpus: '0.50'
-          memory: 200M
+          memory: 1200M
 
   ds:
     restart: always
