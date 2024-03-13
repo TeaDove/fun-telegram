@@ -28,7 +28,7 @@ func (r Channels) ToMap() map[int64]Channel {
 }
 
 type ChannelEdge struct {
-	TgIdIn  int64 `csv:"tg_id_in" ch:"tg_id_in" parquet:"name=tg_about, type=INT64"`
+	TgIdIn  int64 `csv:"tg_id_in" ch:"tg_id_in" parquet:"name=tg_id_in, type=INT64"`
 	TgIdOut int64 `csv:"tg_id_out" ch:"tg_id_out" parquet:"name=tg_id_out, type=INT64"`
 	Order   int64 `csv:"order" ch:"order" parquet:"name=order, type=INT64"`
 }
