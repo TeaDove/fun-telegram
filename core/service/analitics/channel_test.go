@@ -13,7 +13,7 @@ func TestIntegration_AnaliticsService_DumpChannels_Ok(t *testing.T) {
 	r := getService(t)
 	ctx := shared.GetModuleCtx("tests")
 
-	files, err := r.DumpChannels(ctx, "", 10, 10)
+	files, err := r.DumpChannels(ctx, "CITeam", 10, 10)
 	assert.NoError(t, err)
 	assert.Len(t, files, 3)
 
