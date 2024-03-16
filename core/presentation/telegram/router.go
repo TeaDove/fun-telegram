@@ -124,7 +124,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command.begin").
-		Interface("input", commandInput).
+		//Interface("input", commandInput).
 		Str("command", firstWord).
 		Send()
 

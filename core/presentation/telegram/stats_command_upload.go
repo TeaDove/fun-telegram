@@ -29,7 +29,7 @@ var (
 	FlagUploadStatsOffset = optFlag{
 		Long:        "offset",
 		Short:       "o",
-		Description: resource.CommandStatsFlagOffsetDescription,
+		Description: resource.CommandStatsFlagChannelOffsetDescription,
 	}
 	FlagUploadStatsDay = optFlag{
 		Long:        "day",
@@ -46,20 +46,20 @@ var (
 		Short:       "c",
 		Description: resource.CommandStatsFlagCountDescription,
 	}
-	FlagUploadStatsChannel = optFlag{
+	FlagStatsChannelName = optFlag{
 		Long:        "channel",
 		Short:       "h",
-		Description: resource.CommandStatsFlagChannelDescription,
+		Description: resource.CommandStatsFlagChannelNameDescription,
 	}
-	FlagUploadStatsDepth = optFlag{
+	FlagStatsChannelDepth = optFlag{
 		Long:        "depth",
 		Short:       "p",
 		Description: resource.CommandStatsFlagDepthDescription,
 	}
-	FlagUploadStatsMaxRecommendations = optFlag{
-		Long:        "max-recommendations",
+	FlagStatsChannelMaxOrder = optFlag{
+		Long:        "max-order",
 		Short:       "m",
-		Description: resource.CommandStatsFlagMaxRecommendationsDescription,
+		Description: resource.CommandStatsFlagChannelMaxOrderDescription,
 	}
 )
 
@@ -406,7 +406,7 @@ func (r *Presentation) uploadStatsUpload(ctx *ext.Context, update *ext.Update, i
 }
 
 func (r *Presentation) uploadStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
-	if channel, ok := input.Ops[FlagUploadStatsChannel.Long]; ok {
+	if channel, ok := input.Ops[FlagStatsChannelName.Long]; ok {
 		return r.uploadChannelStatsMessages(ctx, update, input, channel)
 	}
 

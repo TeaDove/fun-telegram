@@ -1,6 +1,8 @@
 package analitics
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
 	"slices"
@@ -64,6 +66,31 @@ type File struct {
 	Name      string
 	Extension string
 	Content   []byte
+}
+
+func (r *File) Compress() error {
+	buf := new(bytes.Buffer)
+	zipWriter := zip.NewWriter(buf)
+
+	zipFile, err := zipWriter.Create(r.Filename())
+	if err != nil {
+		return errors.Wrap(err, "failed to create zip")
+	}
+
+	_, err = zipFile.Write(r.Content)
+	if err != nil {
+		return errors.Wrap(err, "failed to write bytes to zip")
+	}
+
+	err = zipWriter.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to close zip writer")
+	}
+
+	r.Content = buf.Bytes()
+	r.Extension += ".zip"
+
+	return nil
 }
 
 func (r *File) Filename() string {

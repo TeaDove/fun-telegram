@@ -27,6 +27,7 @@ func New(ctx context.Context) (*Repository, error) {
 		},
 		Settings: clickhouse.Settings{
 			"max_execution_time": 60 * 3,
+			"max_query_size":     3000000000000,
 		},
 		Protocol: clickhouse.Native,
 		//Debug:    true,

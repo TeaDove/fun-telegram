@@ -1,16 +1,54 @@
 package telegram
 
 import (
+	"fmt"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/shared"
+	"strconv"
 )
 
 func (r *Presentation) statsDumpCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
-	files, err := r.analiticsService.DumpChannels(ctx)
+	var maxDepth = defaultMaxDepth
+	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
+		userV, err := strconv.Atoi(userFlagS)
+		if err != nil {
+			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()), nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		if userV < allowedMaxDepth {
+			maxDepth = userV
+		} else {
+			maxDepth = allowedMaxDepth
+		}
+	}
+
+	var maxOrder = defaultOrder
+	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
+		userV, err := strconv.Atoi(userFlagS)
+		if err != nil {
+			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()), nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		if userV < allowedMaxOrder {
+			maxOrder = userV
+		} else {
+			maxOrder = allowedMaxOrder
+		}
+	}
+
+	channel, _ := input.Ops[FlagStatsChannelName.Long]
+
+	files, err := r.analiticsService.DumpChannels(ctx, channel, int64(maxDepth), int64(maxOrder))
 	if err != nil {
 		return errors.Wrap(err, "failed to dump channels")
 	}

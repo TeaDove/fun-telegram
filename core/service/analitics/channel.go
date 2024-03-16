@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/gocarina/gocsv"
+	"runtime"
 	"time"
 
 	"github.com/pkg/errors"
@@ -141,29 +142,74 @@ func dumpSliceToCsvZip(name string, slice any) (File, error) {
 	return file, nil
 }
 
-func (r *Service) DumpChannels(ctx context.Context) ([]File, error) {
+func (r *Service) DumpChannels(ctx context.Context, username string, depth int64, maxOrder int64) ([]File, error) {
 	files := make([]File, 0, 3)
 
-	file, err := r.dumpChannelsParquet(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to dump channels")
+	var err error
+	var channelEdges ch_repository.ChannelsEdges
+
+	if username != "" {
+		channelEdges, err = r.chRepository.ChannelEdgesSelectDFS(ctx, username, depth, maxOrder)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to dsf channel edges")
+		}
+	} else {
+		channelEdges, err = r.chRepository.ChannelEdgesSelect(ctx, maxOrder)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to dsf channel edges")
+		}
 	}
 
-	files = append(files, file)
+	uniqueIds := channelEdges.ToIds()
 
-	file, err = r.dumpChannelsEdgeParquet(ctx)
+	if len(uniqueIds) == 0 {
+		return nil, errors.New("no channels found")
+	}
+
+	zerolog.Ctx(ctx).
+		Info().
+		Str("status", "dumping.channels").
+		Int("edges.count", len(channelEdges)).
+		Int("channels.count", len(uniqueIds)).
+		Send()
+
+	file, err := r.dumpChannelsEdgeParquet(channelEdges)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to dump channels edges")
 	}
 
+	err = file.Compress()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to compress file: %s", file.Filename())
+	}
+
 	files = append(files, file)
 
-	file, err = r.dumpMessagesParquet(ctx)
+	file, err = r.dumpChannelsParquet(ctx, uniqueIds)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to dump channels")
+	}
+
+	err = file.Compress()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to compress file: %s", file.Filename())
+	}
+
+	files = append(files, file)
+
+	file, err = r.dumpMessagesParquet(ctx, uniqueIds)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to dump messages")
 	}
 
+	err = file.Compress()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to compress file: %s", file.Filename())
+	}
+
 	files = append(files, file)
+
+	runtime.GC()
 
 	return files, nil
 }

@@ -94,6 +94,8 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			Session:          sessionMaker.SqliteSession(shared.AppSettings.Telegram.SessionFullPath),
 			Middlewares:      middlewares,
 			RunMiddleware:    runMiddleware,
+			RetryInterval:    10 * time.Second,
+			MaxRetries:       10,
 		})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create gotgproto client")
@@ -199,9 +201,9 @@ func MustNewTelegramPresentation(
 				FlagUploadStatsCount,
 				FlagUploadStatsDay,
 				FlagUploadStatsOffset,
-				FlagUploadStatsChannel,
-				FlagUploadStatsDepth,
-				FlagUploadStatsMaxRecommendations,
+				FlagStatsChannelName,
+				FlagStatsChannelDepth,
+				FlagStatsChannelMaxOrder,
 			},
 			requireAdmin: true,
 			example:      "-c=400000 -d=365 -o=0 --silent",
@@ -210,6 +212,11 @@ func MustNewTelegramPresentation(
 			executor:     presentation.statsDumpCommandHandler,
 			description:  resource.CommandUploadStatsDescription,
 			requireOwner: true,
+			flags: []optFlag{
+				FlagStatsChannelName,
+				FlagStatsChannelDepth,
+				FlagStatsChannelMaxOrder,
+			},
 		},
 		"ban": {
 			executor:    presentation.banCommandHandler,

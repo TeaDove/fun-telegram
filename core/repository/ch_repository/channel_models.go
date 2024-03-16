@@ -1,6 +1,7 @@
 package ch_repository
 
 import (
+	mapset "github.com/deckarep/golang-set/v2"
 	"time"
 )
 
@@ -31,4 +32,24 @@ type ChannelEdge struct {
 	TgIdIn  int64 `csv:"tg_id_in" ch:"tg_id_in" parquet:"name=tg_id_in, type=INT64"`
 	TgIdOut int64 `csv:"tg_id_out" ch:"tg_id_out" parquet:"name=tg_id_out, type=INT64"`
 	Order   int64 `csv:"order" ch:"order" parquet:"name=order, type=INT64"`
+}
+
+type ChannelsEdges []ChannelEdge
+
+func (r ChannelsEdges) ToOutIds() []int64 {
+	ids := make([]int64, 0, len(r))
+	for _, channelsEdge := range r {
+		ids = append(ids, channelsEdge.TgIdOut)
+	}
+
+	return ids
+}
+
+func (r ChannelsEdges) ToIds() []int64 {
+	ids := mapset.NewSet[int64]()
+	for _, channelsEdge := range r {
+		ids.Append(channelsEdge.TgIdOut, channelsEdge.TgIdIn)
+	}
+
+	return ids.ToSlice()
 }

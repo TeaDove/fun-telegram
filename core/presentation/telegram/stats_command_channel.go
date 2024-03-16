@@ -315,8 +315,8 @@ func (r *Presentation) dumpChannelRecommendations(
 }
 
 const (
-	defaultRecommendation    = 10
-	allowedMaxRecommendation = 50
+	defaultOrder    = 10
+	allowedMaxOrder = 50
 
 	defaultMaxDepth = 3
 	allowedMaxDepth = 10
@@ -387,7 +387,7 @@ type Channel struct {
 
 func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.Update, input *input, channelName string) error {
 	var maxDepth = defaultMaxDepth
-	if userFlagS, ok := input.Ops[FlagUploadStatsDepth.Long]; ok {
+	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
 		if err != nil {
 			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()), nil)
@@ -403,8 +403,8 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 		}
 	}
 
-	var maxRecommendation = defaultRecommendation
-	if userFlagS, ok := input.Ops[FlagUploadStatsMaxRecommendations.Long]; ok {
+	var maxRecommendation = defaultOrder
+	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
 		if err != nil {
 			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()), nil)
@@ -413,10 +413,10 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 			}
 		}
 
-		if userV < allowedMaxRecommendation {
+		if userV < allowedMaxOrder {
 			maxRecommendation = userV
 		} else {
-			maxRecommendation = allowedMaxRecommendation
+			maxRecommendation = allowedMaxOrder
 		}
 	}
 

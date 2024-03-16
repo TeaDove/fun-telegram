@@ -47,8 +47,8 @@ func pwWriteSlice(pw *writer.ParquetWriter, slice []any) error {
 	return nil
 }
 
-func (r *Service) dumpChannelsParquet(ctx context.Context) (File, error) {
-	channels, err := r.chRepository.ChannelSelect(ctx)
+func (r *Service) dumpChannelsParquet(ctx context.Context, tgChatIds []int64) (File, error) {
+	channels, err := r.chRepository.ChannelSelectByIds(ctx, tgChatIds)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to select channel")
 	}
@@ -80,12 +80,7 @@ func (r *Service) dumpChannelsParquet(ctx context.Context) (File, error) {
 	return file, nil
 }
 
-func (r *Service) dumpChannelsEdgeParquet(ctx context.Context) (File, error) {
-	channels, err := r.chRepository.ChannelEdgesSelect(ctx)
-	if err != nil {
-		return File{}, errors.Wrap(err, "failed to select channel")
-	}
-
+func (r *Service) dumpChannelsEdgeParquet(channels ch_repository.ChannelsEdges) (File, error) {
 	slice := make([]any, 0, len(channels))
 	for _, v := range channels {
 		slice = append(slice, v)
@@ -113,8 +108,8 @@ func (r *Service) dumpChannelsEdgeParquet(ctx context.Context) (File, error) {
 	return file, nil
 }
 
-func (r *Service) dumpMessagesParquet(ctx context.Context) (File, error) {
-	channels, err := r.chRepository.MessagesGetChannel(ctx)
+func (r *Service) dumpMessagesParquet(ctx context.Context, tgChatIds []int64) (File, error) {
+	channels, err := r.chRepository.MessagesGetByChatIds(ctx, tgChatIds)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to select items")
 	}

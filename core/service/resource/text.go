@@ -29,6 +29,7 @@ const (
 	ErrFeatureDisabled
 	ErrNiceTry
 	ErrUnprocessableEntity
+	ErrFlagRequired
 	ErrNoMessagesFound
 	ErrCommandNotFound
 
@@ -79,10 +80,10 @@ const (
 	CommandStatsFlagTZDescription
 	CommandStatsFlagUsernameDescription
 	CommandStatsFlagDepthDescription
-	CommandStatsFlagMaxRecommendationsDescription
+	CommandStatsFlagChannelMaxOrderDescription
 	CommandStatsFlagCountDescription
-	CommandStatsFlagChannelDescription
-	CommandStatsFlagOffsetDescription
+	CommandStatsFlagChannelNameDescription
+	CommandStatsFlagChannelOffsetDescription
 	CommandStatsFlagDayDescription
 	CommandStatsFlagRemoveDescription
 
@@ -127,6 +128,10 @@ var localizer = map[Code]map[Locale]string{
 	ErrUnprocessableEntity: {
 		Ru: "Ошибка: Необрабатываемая сущность: %s",
 		En: "Err: Unprocessable entity: %s",
+	},
+	ErrFlagRequired: {
+		Ru: "Ошибка: Обязательный флаг не передан: %s",
+		En: "Err: Flag required, but not presented: %s",
 	},
 	ErrISE: {
 		Ru: "Ошибка: Что-то пошло не так... : %s",
@@ -223,7 +228,7 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "глубина рекурсивного анализа рекомендаций канала",
 		En: "depth of recursion analysis of channel's recommendations",
 	},
-	CommandStatsFlagMaxRecommendationsDescription: {
+	CommandStatsFlagChannelMaxOrderDescription: {
 		Ru: "максимальное количество каналов, которые надо проанализировать у канала",
 		En: "maximum channels, that must be processed",
 	},
@@ -239,7 +244,7 @@ var localizer = map[Code]map[Locale]string{
 			shared.DefaultUploadCount,
 		),
 	},
-	CommandStatsFlagChannelDescription: {Ru: "юзернейм канала", En: "channel's username"},
+	CommandStatsFlagChannelNameDescription: {Ru: "юзернейм канала", En: "channel's username"},
 	CommandStatsFlagDayDescription: {
 		Ru: fmt.Sprintf(
 			"максимальный возраст сообщения для загрузки в днях, максимум - %d, по умолчанию - %d",
@@ -256,7 +261,7 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "удалить все сообщения из БД для этого чата",
 		En: "delete all stats from this chat",
 	},
-	CommandStatsFlagOffsetDescription:             {Ru: "форсировать оффсет сообщений", En: "force message offset"},
+	CommandStatsFlagChannelOffsetDescription:      {Ru: "форсировать оффсет сообщений", En: "force message offset"},
 	CommandSpamReactionFlagStopDescription:        {Ru: "оставить спам реакциями", En: "stop spamming reactions"},
 	CommandKandinskyFlagStyleDescription:          {Ru: "выставить стиль изображения", En: "set image style"},
 	CommandKandinskyFlagNegativePromptDescription: {Ru: "добавить негативный промпт", En: "add negative prompt"},

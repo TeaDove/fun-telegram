@@ -516,7 +516,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
 	return output, nil
 }
 
-func (r *Repository) MessagesGetChannel(ctx context.Context) ([]Message, error) {
+func (r *Repository) MessagesGetByChatIds(ctx context.Context, tgChatIds []int64) ([]Message, error) {
 	rows, err := r.conn.Query(ctx, `
 select m.created_at,
        m.tg_chat_id,
@@ -528,9 +528,8 @@ select m.created_at,
        m.words_count,
        m.toxic_words_count
 from message m final
-    join channel c on m.tg_chat_id = c.tg_id
- order by created_at
-`)
+    where m.tg_chat_id in ?
+`, tgChatIds)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to select messages")
 	}
