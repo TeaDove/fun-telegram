@@ -45,7 +45,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	}
 
 	zerolog.Ctx(ctx.Context).
-		Info().
+		Debug().
 		Str("status", "victim.found").
 		Str("victims_username", update.EffectiveUser().Username).
 		Send()
@@ -61,7 +61,7 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	}
 
 	reactionRequest.MsgID = update.EffectiveMessage.ID
-	zerolog.Ctx(ctx.Context).Info().Str("status", "spamming.reactions").Interface("reactions", reactionRequest).Send()
+	zerolog.Ctx(ctx.Context).Debug().Str("status", "spamming.reactions").Interface("reactions", reactionRequest).Send()
 
 	_, err = r.telegramApi.MessagesSendReaction(ctx, &reactionRequest)
 	if err != nil {

@@ -28,11 +28,11 @@ class PlotService:
     def _get_palette(self, n: int):
         return sns.color_palette("Set2", n)
 
-    def _fig_to_bytes(self, fig) -> BytesIO:
+    def _fig_to_bytes(self, input_: Plot, fig) -> BytesIO:
         buf = BytesIO()
         fig.savefig(
             buf,
-            format="jpeg",
+            format=input_.image_format,
             dpi=300,
         )
         buf.seek(0)
@@ -74,7 +74,7 @@ class PlotService:
                 fig=fig,
             )
 
-        return self._fig_to_bytes(fig)
+        return self._fig_to_bytes(points, fig)
 
     def draw_bar(self, input_: Bar) -> BytesIO:
         fig, ax = self._get_fig_and_ax(input_)
@@ -108,7 +108,7 @@ class PlotService:
                 textcoords="offset points",
             )
 
-        return self._fig_to_bytes(fig)
+        return self._fig_to_bytes(input_, fig)
 
     def draw_timeseries(self, input_: TimeSeries) -> BytesIO:
         fig, ax = self._get_fig_and_ax(input_)
@@ -139,7 +139,7 @@ class PlotService:
             ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
 
-        return self._fig_to_bytes(fig)
+        return self._fig_to_bytes(input_, fig)
 
     def concat_graph(self, input_: Graph) -> None:
         one_to_other: dict[str, dict[str, float]] = {}
@@ -194,7 +194,7 @@ class PlotService:
         if input_.xlabel is not None:
             plot.set_xlabel(input_.xlabel)
 
-        return self._fig_to_bytes(fig)
+        return self._fig_to_bytes(input_, fig)
 
     def _prepare_graph(self, input_: Graph) -> None:
         for edge in input_.edges:
@@ -216,7 +216,7 @@ class PlotService:
         min_ = min(list_)
         dif = max_ - min_
         if dif == 0:
-            return None
+            dif = 1
 
         start_end_dif = end - start
 
@@ -330,4 +330,4 @@ class PlotService:
             labels = ["<30%", "30%-70%", ">70%"]
             ax.legend(proxies, labels)
 
-        return self._fig_to_bytes(fig)
+        return self._fig_to_bytes(input_, fig)

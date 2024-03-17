@@ -38,9 +38,9 @@ func TestIntegration_AnaliticsService_AnaliseChannel_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("tests")
 
 	file, err := r.AnaliseChannel(ctx, &AnaliseChannelInput{
-		TgUsername: "svtvnews",
+		TgUsername: "truexanewsua",
 		Depth:      4,
-		MaxOrder:   4,
+		MaxOrder:   5,
 		Locale:     resource.En,
 	})
 	assert.NoError(t, err)

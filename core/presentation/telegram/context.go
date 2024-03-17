@@ -11,9 +11,8 @@ func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error
 	ctx.Context = zerolog.Ctx(ctx).
 		With().
 		Dict("tg", zerolog.Dict().
-			Int("message_id", update.EffectiveMessage.ID).
-			Str("chat_name", chatName).
-			Str("effective_username", update.EffectiveUser().Username)).
+			Str("chat", chatName).
+			Str("username", update.EffectiveUser().Username)).
 		Ctx(ctx.Context).
 		Logger().
 		WithContext(ctx.Context)

@@ -54,6 +54,7 @@ class Plot(BaseModel):
     ylabel: str | None = None
     xlabel: str | None = None
     figsize: tuple[int, int] = (20, 13)
+    image_format: str = "jpeg"
 
 
 class Point(BaseModel):

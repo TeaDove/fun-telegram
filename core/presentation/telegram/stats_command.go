@@ -118,7 +118,7 @@ func (r *Presentation) statsChannelCommandHandler(ctx *ext.Context, update *ext.
 	}
 
 	document := message.UploadedDocument(uploadedFile)
-	document.MIME("image/jpeg").Filename(file.Filename()).TTLSeconds(60 * 10)
+	document.MIME("image/png").Filename(file.Filename()).TTLSeconds(60 * 10)
 
 	_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Media(ctx, document)
 	if err != nil {

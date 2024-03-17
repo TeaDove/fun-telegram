@@ -9,7 +9,7 @@ services:
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
       fun_storage__clickhouse_url: "clickhouse:9000"
       fun_ds_supplier_url: "http://ds:8000"
-    image: ghcr.io/teadove/fun-telegram-core:v1.11.39
+    image: ghcr.io/teadove/fun-telegram-core:v1.11.40
     volumes:
       - "~/.config/fun-telegram:/config"
       - ".env:/.env"
@@ -39,7 +39,7 @@ services:
   ds:
     restart: always
     environment: {}
-    image: ghcr.io/teadove/fun-telegram-ds:v1.0.19
+    image: ghcr.io/teadove/fun-telegram-ds:v1.0.20
     volumes: []
     labels:
       - "autoheal=true"

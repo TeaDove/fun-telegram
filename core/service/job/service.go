@@ -42,7 +42,7 @@ func New(
 	}
 
 	_, err = scheduler.
-		Every(2*time.Minute).
+		Every(10*time.Minute).
 		Do(r.logMemUsage, ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create task for log mem usage")

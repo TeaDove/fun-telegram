@@ -248,6 +248,13 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 		return File{}, errors.Wrap(err, "failed to select channel")
 	}
 
+	zerolog.Ctx(ctx).Info().
+		Str("status", "analysing.channel.begin").
+		Int("edges", len(channelEdges)).
+		Int("channels", len(channels)).
+		Str("title", rootChannel.TgTitle).
+		Send()
+
 	channelsMap := channels.ToMap()
 
 	edges := make([]ds_supplier.GraphEdge, 0, len(channelEdges))
@@ -273,12 +280,13 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 
 	drawInput := ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:   r.resourceService.Localizef(ctx, resource.AnaliseChartChannelNeighbors, input.Locale, rootChannel.TgTitle),
-			FigSize: []int{50, 35},
+			Title:       r.resourceService.Localizef(ctx, resource.AnaliseChartChannelNeighbors, input.Locale, rootChannel.TgTitle),
+			FigSize:     []int{50, 35},
+			ImageFormat: "png",
 		},
 		Edges:         edges,
 		Layout:        "circular_tree",
-		WeightedEdges: false,
+		WeightedEdges: true,
 		Nodes:         nodes,
 		RootNode:      shared.ReplaceNonAsciiWithSpace(rootChannel.TgTitle),
 	}
@@ -290,7 +298,7 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 
 	return File{
 		Name:      "channel_similarity_graph",
-		Extension: "jpg",
+		Extension: "png",
 		Content:   res,
 	}, nil
 }

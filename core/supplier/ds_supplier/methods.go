@@ -7,10 +7,11 @@ import (
 )
 
 type DrawInput struct {
-	Title   string `json:"title,omitempty"`
-	XLabel  string `json:"xlabel,omitempty"`
-	YLabel  string `json:"ylabel,omitempty"`
-	FigSize []int  `json:"figsize,omitempty"`
+	Title       string `json:"title,omitempty"`
+	XLabel      string `json:"xlabel,omitempty"`
+	YLabel      string `json:"ylabel,omitempty"`
+	FigSize     []int  `json:"figsize,omitempty"`
+	ImageFormat string `json:"image_format,omitempty"`
 }
 
 type DrawBarInput struct {
