@@ -48,9 +48,12 @@ func (r *Presentation) getChatSettings(ctx context.Context, chatId int64) (ChatS
 		return ChatSettings{}, errors.Wrap(err, "failed to get chat settings")
 	}
 
+	var setChannelLocale bool
+
 	if redisChatSettings.Locale == "" {
 		zerolog.Ctx(ctx).Warn().Str("status", "empty.locale").Interface("chat", redisChatSettings).Send()
 		redisChatSettings.Locale = string(defaultLocale)
+		setChannelLocale = true
 	}
 
 	chatSettings := ChatSettings{
@@ -65,6 +68,13 @@ func (r *Presentation) getChatSettings(ctx context.Context, chatId int64) (ChatS
 		err = json.Unmarshal(redisChatSettings.Features, &chatSettings.Features)
 		if err != nil {
 			return ChatSettings{}, errors.Wrap(err, "failed to unmarshal features")
+		}
+	}
+
+	if setChannelLocale {
+		err = r.setChatSettings(ctx, chatId, &chatSettings)
+		if err != nil {
+			return ChatSettings{}, errors.Wrap(err, "failed to set channel settings because of failed parsing")
 		}
 	}
 

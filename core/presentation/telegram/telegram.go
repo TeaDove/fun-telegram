@@ -188,9 +188,14 @@ func MustNewTelegramPresentation(
 			flags:       []optFlag{},
 		},
 		"stats": {
-			executor:     presentation.statsCommandHandler,
-			description:  resource.CommandStatsDescription,
-			flags:        []optFlag{FlagStatsUsername},
+			executor:    presentation.statsCommandHandler,
+			description: resource.CommandStatsDescription,
+			flags: []optFlag{
+				FlagStatsUsername,
+				FlagStatsChannelName,
+				FlagStatsChannelDepth,
+				FlagStatsChannelMaxOrder,
+			},
 			requireAdmin: true,
 		},
 		"upload_stats": {

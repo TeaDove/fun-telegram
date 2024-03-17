@@ -65,7 +65,74 @@ func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, inp
 	return mongo_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 }
 
+func (r *Presentation) statsChannelCommandHandler(ctx *ext.Context, update *ext.Update, input *input, channel string) (err error) {
+	var maxDepth = defaultMaxDepth
+	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
+		userV, err := strconv.Atoi(userFlagS)
+		if err != nil {
+			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()), nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		if userV < allowedMaxDepth {
+			maxDepth = userV
+		} else {
+			maxDepth = allowedMaxDepth
+		}
+	}
+
+	var maxOrder = defaultOrder
+	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
+		userV, err := strconv.Atoi(userFlagS)
+		if err != nil {
+			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()), nil)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		if userV < allowedMaxOrder {
+			maxOrder = userV
+		} else {
+			maxOrder = allowedMaxOrder
+		}
+	}
+
+	file, err := r.analiticsService.AnaliseChannel(ctx, &analitics.AnaliseChannelInput{
+		TgUsername: channel,
+		Depth:      int64(maxDepth),
+		MaxOrder:   int64(maxOrder),
+		Locale:     input.ChatSettings.Locale,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to get channel analyse")
+	}
+
+	fileUploader := uploader.NewUploader(ctx.Raw)
+
+	uploadedFile, err := fileUploader.FromBytes(ctx, file.Filename(), file.Content)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	document := message.UploadedDocument(uploadedFile)
+	document.MIME("image/jpeg").Filename(file.Filename()).TTLSeconds(60 * 10)
+
+	_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Media(ctx, document)
+	if err != nil {
+		return errors.Wrap(err, "failed to send file")
+	}
+
+	return nil
+}
+
 func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
+	if channel, ok := input.Ops[FlagStatsChannelName.Long]; ok {
+		return r.statsChannelCommandHandler(ctx, update, input, channel)
+	}
+
 	analiseInput := analitics.AnaliseChatInput{
 		TgChatId: update.EffectiveChat().GetID(),
 		Tz:       input.ChatSettings.Tz,
