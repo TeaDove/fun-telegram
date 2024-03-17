@@ -112,7 +112,7 @@ class GraphEdge(BaseModel):
 
 class GraphNode(BaseModel):
     image: bytes | None = None
-    weigh: float | None = None
+    weight: float = 1
 
 
 class GraphLayout(str, enum.Enum):

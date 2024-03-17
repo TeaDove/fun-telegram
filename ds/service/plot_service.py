@@ -196,8 +196,36 @@ class PlotService:
 
         return self._fig_to_bytes(fig)
 
+    def _prepare_graph(self, input_: Graph) -> None:
+        for edge in input_.edges:
+            edge.first = edge.first.replace(":", "_")
+            edge.second = edge.second.replace(":", "_")
+
+        if input_.nodes is not None:
+            new_nodes = {}
+            for k, v in input_.nodes.items():
+                new_nodes[k.replace(":", "_")] = v
+
+            input_.nodes = new_nodes
+
+        if input_.root_node is not None:
+            input_.root_node = input_.root_node.replace(":", "_")
+
+    def _normalize(self, list_: list[float], start: float, end: float) -> None:
+        max_ = max(list_)
+        min_ = min(list_)
+        dif = max_ - min_
+        if dif == 0:
+            return None
+
+        start_end_dif = end - start
+
+        for i in range(len(list_)):
+            list_[i] = ((list_[i] - min_) / dif * start_end_dif) + start
+
     def draw_graph(self, input_: Graph) -> BytesIO:
         self.concat_graph(input_)
+        self._prepare_graph(input_)
 
         fig, ax = self._get_fig_and_ax(input_)
 
@@ -207,8 +235,8 @@ class PlotService:
         avg = 0.0
         edgewidths = []
         for edge in input_.edges:
-            edge.first = edge.first.replace(":", "_")
-            edge.second = edge.second.replace(":", "_")
+            edge.first = edge.first
+            edge.second = edge.second
             g.add_edge(edge.first, edge.second, weight=edge.weight)
             avg += edge.weight
             nodes.add(edge.first)
@@ -246,23 +274,36 @@ class PlotService:
         elif input_.layout == GraphLayout.SPECTRAL_LAYOUT:
             pos = nx.spectral_layout(g)
         elif input_.layout == GraphLayout.CIRCULAR_TREE_LAYOUT:
-            if input_.root_node is not None:
-                pos = graphviz_layout(
-                    g, prog="twopi", root=input_.root_node.replace(":", "_")
-                )
-            else:
-                pos = graphviz_layout(g, prog="twopi", root=input_.root_node)
+            pos = graphviz_layout(g, prog="twopi", root=input_.root_node)
         else:
             pos = nx.circular_layout(g)
 
-        # nodes
-        nx.draw_networkx_nodes(
-            g,
-            pos,
-            node_size=3000,
-            ax=ax,
-            node_color=sns.color_palette("Set2", len(nodes)),
-        )
+        if input_.nodes is None:
+            # nodes
+            nx.draw_networkx_nodes(
+                g,
+                pos,
+                node_size=3000,
+                ax=ax,
+                node_color=sns.color_palette("Set2", len(nodes)),
+            )
+        else:
+            nodelist: list[str] = []
+            nodeweign: list[float] = []
+            for nodename, node in input_.nodes.items():
+                nodelist.append(nodename)
+                nodeweign.append(node.weight)
+
+            self._normalize(nodeweign, start=1000, end=5000)
+
+            nx.draw_networkx_nodes(
+                g,
+                pos,
+                node_size=nodeweign,
+                ax=ax,
+                node_color=sns.color_palette("Set2", len(nodes)),
+                nodelist=nodelist,
+            )
 
         # edges
         nx.draw_networkx_edges(

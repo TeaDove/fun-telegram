@@ -271,7 +271,7 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 	drawInput := ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:   r.resourceService.Localizef(ctx, resource.AnaliseChartChannelNeighbors, input.Locale, rootChannel.TgTitle),
-			FigSize: []int{40, 26},
+			FigSize: []int{50, 35},
 		},
 		Edges:         edges,
 		Layout:        "circular_tree",
