@@ -12,7 +12,7 @@ import seaborn as sns
 import matplotlib.dates as mdates
 from schemas.plot import Points, Bar, TimeSeries, Graph, Plot, GraphEdge
 import math
-from networkx.drawing.nx_agraph import graphviz_layout
+from networkx.drawing.nx_pydot import graphviz_layout
 from matplotlib.lines import Line2D
 from schemas.plot import GraphLayout
 
@@ -197,7 +197,6 @@ class PlotService:
         return self._fig_to_bytes(fig)
 
     def draw_graph(self, input_: Graph) -> BytesIO:
-        print(input_.layout)
         self.concat_graph(input_)
 
         fig, ax = self._get_fig_and_ax(input_)
@@ -208,6 +207,8 @@ class PlotService:
         avg = 0.0
         edgewidths = []
         for edge in input_.edges:
+            edge.first = edge.first.replace(":", "_")
+            edge.second = edge.second.replace(":", "_")
             g.add_edge(edge.first, edge.second, weight=edge.weight)
             avg += edge.weight
             nodes.add(edge.first)
@@ -245,7 +246,12 @@ class PlotService:
         elif input_.layout == GraphLayout.SPECTRAL_LAYOUT:
             pos = nx.spectral_layout(g)
         elif input_.layout == GraphLayout.CIRCULAR_TREE_LAYOUT:
-            pos = graphviz_layout(g, prog="twopi", args="")
+            if input_.root_node is not None:
+                pos = graphviz_layout(
+                    g, prog="twopi", root=input_.root_node.replace(":", "_")
+                )
+            else:
+                pos = graphviz_layout(g, prog="twopi", root=input_.root_node)
         else:
             pos = nx.circular_layout(g)
 

@@ -39,7 +39,7 @@ func TestIntegration_AnaliticsService_AnaliseChannel_Ok(t *testing.T) {
 
 	file, err := r.AnaliseChannel(ctx, &AnaliseChannelInput{
 		TgUsername: "svtvnews",
-		Depth:      3,
+		Depth:      4,
 		MaxOrder:   4,
 		Locale:     resource.En,
 	})

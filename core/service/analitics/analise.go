@@ -235,7 +235,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 			Title: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
 		},
 		Edges:  edges,
-		Layout: "spring",
+		Layout: "circular_tree",
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")

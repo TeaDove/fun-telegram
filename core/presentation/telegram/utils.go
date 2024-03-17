@@ -140,7 +140,7 @@ func GetNameFromTgUser(user *tg.User) string {
 		}
 	}
 
-	result = trimUnprintable(result)
+	result = shared.ReplaceNonAsciiWithSpace(result)
 
 	if strings.TrimSpace(result) == "" {
 		username, ok := user.GetUsername()

@@ -63,6 +63,7 @@ type DrawGraphInput struct {
 	Layout        string               `json:"layout,omitempty"`
 	WeightedEdges bool                 `json:"weighted_edges,omitempty"`
 	Nodes         map[string]GraphNode `json:"nodes,omitempty"`
+	RootNode      string               `json:"root_node,omitempty"`
 }
 
 func (r *Supplier) DrawGraph(ctx context.Context, input *DrawGraphInput) ([]byte, error) {

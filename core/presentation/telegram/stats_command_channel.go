@@ -7,6 +7,7 @@ import (
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/guregu/null/v5"
 	"github.com/teadove/fun_telegram/core/service/analitics"
+	"github.com/teadove/fun_telegram/core/shared"
 	"strconv"
 	"sync"
 	"time"
@@ -236,7 +237,7 @@ func (r *Presentation) dumpChannelRecommendations(
 
 	repositoryChannel := Channel{
 		TgId:             input.chat.ID,
-		TgTitle:          input.chat.Title,
+		TgTitle:          shared.ReplaceNonAsciiWithSpace(input.chat.Title),
 		TgUsername:       input.chat.Username,
 		ParticipantCount: int64(input.chat.ParticipantsCount),
 		Depth:            input.depth,

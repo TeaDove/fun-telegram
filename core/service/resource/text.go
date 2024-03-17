@@ -102,6 +102,8 @@ const (
 	AnaliseChartToxicityPercentLong
 	AnaliseChartIsWeekend
 	AnaliseChartIsWeekday
+
+	AnaliseChartChannelNeighbors
 )
 
 var localizer = map[Code]map[Locale]string{
@@ -294,4 +296,5 @@ var localizer = map[Code]map[Locale]string{
 	AnaliseChartIsWeekday:            {Ru: "рабочий день", En: "is weekday"},
 	CommandStatsResponseSuccess:      {Ru: "Первое сообщение в статистике отправлено %s\nСообщений обработано: %d\nСтатистика собрана за: %.2fs", En: "First message in stats send at %s\nMessages processed: %d\nCompiled in: %.2fs"},
 	CommandChatDescription:           {Ru: "настройки чата", En: "chat settings"},
+	AnaliseChartChannelNeighbors:     {Ru: `Соседи канала "%s"`, En: `"%s"'s neignbors`},
 }

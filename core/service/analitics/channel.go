@@ -6,6 +6,7 @@ import (
 	"context"
 	"github.com/gocarina/gocsv"
 	"github.com/teadove/fun_telegram/core/service/resource"
+	"github.com/teadove/fun_telegram/core/shared"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 	"runtime"
 	"time"
@@ -225,6 +226,11 @@ type AnaliseChannelInput struct {
 }
 
 func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput) (File, error) {
+	rootChannel, err := r.chRepository.ChannelSelectByUsername(ctx, input.TgUsername)
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to select channel by username")
+	}
+
 	channelEdges, err := r.chRepository.ChannelEdgesSelectDFS(ctx, input.TgUsername, input.Depth, input.MaxOrder)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to dsf channel edges")
@@ -244,26 +250,34 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 	edges := make([]ds_supplier.GraphEdge, 0, len(channelEdges))
 	for _, edge := range channelEdges {
 		edges = append(edges, ds_supplier.GraphEdge{
-			First:  channelsMap[edge.TgIdIn].TgTitle,
-			Second: channelsMap[edge.TgIdOut].TgTitle,
+			First:  shared.ReplaceNonAsciiWithSpace(channelsMap[edge.TgIdIn].TgTitle),
+			Second: shared.ReplaceNonAsciiWithSpace(channelsMap[edge.TgIdOut].TgTitle),
 			Weight: float64(input.MaxOrder - edge.Order),
 		})
 	}
 
 	nodes := make(map[string]ds_supplier.GraphNode, len(channels))
 	for _, node := range channels {
-		nodes[node.TgTitle] = ds_supplier.GraphNode{Weight: float64(node.ParticipantCount)}
+		nodes[shared.ReplaceNonAsciiWithSpace(node.TgTitle)] = ds_supplier.GraphNode{Weight: float64(node.ParticipantCount)}
 	}
+
+	zerolog.Ctx(ctx).
+		Debug().
+		Str("status", "channel.graph.drawing").
+		Int("edges", len(edges)).
+		Str("title", shared.ReplaceNonAsciiWithSpace(rootChannel.TgTitle)).
+		Send()
 
 	drawInput := ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:   "А",
+			Title:   r.resourceService.Localizef(ctx, resource.AnaliseChartChannelNeighbors, input.Locale, rootChannel.TgTitle),
 			FigSize: []int{40, 26},
 		},
 		Edges:         edges,
 		Layout:        "circular_tree",
 		WeightedEdges: false,
 		Nodes:         nodes,
+		RootNode:      shared.ReplaceNonAsciiWithSpace(rootChannel.TgTitle),
 	}
 
 	res, err := r.dsSupplier.DrawGraph(ctx, &drawInput)

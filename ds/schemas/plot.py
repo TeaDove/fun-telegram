@@ -136,3 +136,4 @@ class Graph(Plot):
     weighted_edges: bool = True
     layout: GraphLayout = GraphLayout.CIRCULAR_LAYOUT
     nodes: dict[str, GraphNode] | None = None
+    root_node: str | None = None
