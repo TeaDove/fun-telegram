@@ -230,10 +230,12 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	}
 
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
+		WeightedEdges: false,
 		DrawInput: ds_supplier.DrawInput{
 			Title: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
 		},
-		Edges: edges,
+		Edges:  edges,
+		Layout: "spring",
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
@@ -294,6 +296,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	}
 
 	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
+		WeightedEdges: false,
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliedBy, input.Locale),

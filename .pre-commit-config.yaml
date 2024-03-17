@@ -7,7 +7,7 @@ repos:
 #      - id: go-imports
 #      - id: go-cyclo
 #        args: [-over=15]
-      - id: validate-toml
+      # - id: validate-toml
       # - id: golangci-lint
 #      - id: go-critic
       # - id: go-unit-tests

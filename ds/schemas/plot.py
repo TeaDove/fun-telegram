@@ -49,6 +49,13 @@ _random_names = [
 ]
 
 
+class Plot(BaseModel):
+    title: str | None = None
+    ylabel: str | None = None
+    xlabel: str | None = None
+    figsize: tuple[int, int] = (20, 13)
+
+
 class Point(BaseModel):
     id_: uuid.UUID = Field(default_factory=uuid.uuid4, alias="id")
     color: str
@@ -57,8 +64,8 @@ class Point(BaseModel):
     lon: float
 
 
-class Points(BaseModel):
-    __root__: list[Point] = Field(
+class Points(Plot):
+    points: list[Point] = Field(
         example=[
             Point(
                 color=random.choice(colors),
@@ -68,12 +75,6 @@ class Points(BaseModel):
             for _ in range(random.randint(10, 20))
         ]
     )
-
-
-class Plot(BaseModel):
-    title: str | None = None
-    ylabel: str | None = None
-    xlabel: str | None = None
 
 
 class Bar(Plot):
@@ -110,13 +111,15 @@ class GraphEdge(BaseModel):
 
 
 class GraphNode(BaseModel):
-    image: bytes
-    weigh: float
+    image: bytes | None = None
+    weigh: float | None = None
 
 
 class GraphLayout(str, enum.Enum):
-    SPRINT_LAYOUT = "spring"
+    SPRING_LAYOUT = "spring"
     CIRCULAR_LAYOUT = "circular"
+    SPECTRAL_LAYOUT = "spectral"
+    CIRCULAR_TREE_LAYOUT = "circular_tree"
 
 
 class Graph(Plot):
@@ -130,6 +133,6 @@ class Graph(Plot):
             for _ in range(30)
         ]
     )
-    weigted_edges: bool = True
+    weighted_edges: bool = True
     layout: GraphLayout = GraphLayout.CIRCULAR_LAYOUT
     nodes: dict[str, GraphNode] | None = None

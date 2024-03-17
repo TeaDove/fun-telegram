@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"context"
 	"github.com/gocarina/gocsv"
+	"github.com/teadove/fun_telegram/core/service/resource"
+	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 	"runtime"
 	"time"
 
@@ -212,4 +214,66 @@ func (r *Service) DumpChannels(ctx context.Context, username string, depth int64
 	runtime.GC()
 
 	return files, nil
+}
+
+type AnaliseChannelInput struct {
+	TgUsername string
+	Depth      int64
+	MaxOrder   int64
+
+	Locale resource.Locale
+}
+
+func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput) (File, error) {
+	channelEdges, err := r.chRepository.ChannelEdgesSelectDFS(ctx, input.TgUsername, input.Depth, input.MaxOrder)
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to dsf channel edges")
+	}
+
+	if len(channelEdges) == 0 {
+		return File{}, errors.New("no channel edges found")
+	}
+
+	channels, err := r.chRepository.ChannelSelectByIds(ctx, channelEdges.ToIds())
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to select channel")
+	}
+
+	channelsMap := channels.ToMap()
+
+	edges := make([]ds_supplier.GraphEdge, 0, len(channelEdges))
+	for _, edge := range channelEdges {
+		edges = append(edges, ds_supplier.GraphEdge{
+			First:  channelsMap[edge.TgIdIn].TgTitle,
+			Second: channelsMap[edge.TgIdOut].TgTitle,
+			Weight: float64(input.MaxOrder - edge.Order),
+		})
+	}
+
+	nodes := make(map[string]ds_supplier.GraphNode, len(channels))
+	for _, node := range channels {
+		nodes[node.TgTitle] = ds_supplier.GraphNode{Weight: float64(node.ParticipantCount)}
+	}
+
+	drawInput := ds_supplier.DrawGraphInput{
+		DrawInput: ds_supplier.DrawInput{
+			Title:   "А",
+			FigSize: []int{40, 26},
+		},
+		Edges:         edges,
+		Layout:        "circular_tree",
+		WeightedEdges: false,
+		Nodes:         nodes,
+	}
+
+	res, err := r.dsSupplier.DrawGraph(ctx, &drawInput)
+	if err != nil {
+		return File{}, errors.Wrap(err, "failed to draw graph")
+	}
+
+	return File{
+		Name:      "channel_similarity_graph",
+		Extension: "jpg",
+		Content:   res,
+	}, nil
 }

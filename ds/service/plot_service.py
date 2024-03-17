@@ -11,6 +11,8 @@ from io import BytesIO
 import seaborn as sns
 import matplotlib.dates as mdates
 from schemas.plot import Points, Bar, TimeSeries, Graph, Plot, GraphEdge
+import math
+from networkx.drawing.nx_agraph import graphviz_layout
 from matplotlib.lines import Line2D
 from schemas.plot import GraphLayout
 
@@ -22,7 +24,6 @@ class PlotService:
     def __post_init__(self) -> None:
         matplotlib.use("agg")
         sns.set_theme(style="whitegrid")
-        self.default_figsize = (20, 13)
 
     def _get_palette(self, n: int):
         return sns.color_palette("Set2", n)
@@ -40,7 +41,7 @@ class PlotService:
         return buf
 
     def _get_fig_and_ax(self, input_: Plot):
-        fig = plt.figure(figsize=self.default_figsize)
+        fig = plt.figure(figsize=input_.figsize)
         ax = fig.gca()
 
         if input_.title is not None:
@@ -53,12 +54,10 @@ class PlotService:
         return fig, ax
 
     def draw_points(self, points: Points) -> BytesIO:
-        points_list = [
-            jsonable_encoder(item, by_alias=True) for item in points.__root__
-        ]
+        points_list = [jsonable_encoder(item, by_alias=True) for item in points.points]
 
         df = pd.DataFrame(points_list)
-        fig = plt.figure(figsize=self.default_figsize)
+        fig = plt.figure(figsize=points.figsize)
         ax = fig.gca()
 
         for color in df["color"].unique():
@@ -198,6 +197,7 @@ class PlotService:
         return self._fig_to_bytes(fig)
 
     def draw_graph(self, input_: Graph) -> BytesIO:
+        print(input_.layout)
         self.concat_graph(input_)
 
         fig, ax = self._get_fig_and_ax(input_)
@@ -223,21 +223,29 @@ class PlotService:
         ]
         max_ = max(edgewidths)
 
-        for idx in range(len(edgewidths)):
-            edgewidths[idx] = edgewidths[idx] / max_
-            if edgewidths[idx] < 0.7:
-                if edgewidths[idx] < 0.3:
-                    edgewidths[idx] = colors[0]
-                    continue
+        if max_ == 0:
+            for idx in range(len(edgewidths)):
                 edgewidths[idx] = colors[1]
-                continue
-            edgewidths[idx] = colors[2]
+        else:
+            for idx in range(len(edgewidths)):
+                edgewidths[idx] = edgewidths[idx] / max_
+                if edgewidths[idx] < 0.7:
+                    if edgewidths[idx] < 0.3:
+                        edgewidths[idx] = colors[0]
+                        continue
+                    edgewidths[idx] = colors[1]
+                    continue
+                edgewidths[idx] = colors[2]
 
         # positions for all nodes - seed for reproducibility
         if input_.layout == GraphLayout.CIRCULAR_LAYOUT:
             pos = nx.circular_layout(g)
-        elif input_.layout == GraphLayout.SPRINT_LAYOUT:
-            pos = nx.spring_layout(g)
+        elif input_.layout == GraphLayout.SPRING_LAYOUT:
+            pos = nx.spring_layout(g, k=5 / math.sqrt(g.order()))
+        elif input_.layout == GraphLayout.SPECTRAL_LAYOUT:
+            pos = nx.spectral_layout(g)
+        elif input_.layout == GraphLayout.CIRCULAR_TREE_LAYOUT:
+            pos = graphviz_layout(g, prog="twopi", args="")
         else:
             pos = nx.circular_layout(g)
 
@@ -257,7 +265,7 @@ class PlotService:
             width=3,
             alpha=1,
             ax=ax,
-            edge_color=edgewidths if input_.weigted_edges else "k",
+            edge_color=edgewidths if input_.weighted_edges else "k",
         )
 
         # node labels
@@ -270,7 +278,7 @@ class PlotService:
             bbox={"ec": "k", "fc": "white", "alpha": 1},
         )
 
-        if input_.weigted_edges:
+        if input_.weighted_edges:
             proxies = [Line2D([0, 1], [0, 1], color=color, lw=7) for color in colors]
             labels = ["<30%", "30%-70%", ">70%"]
             ax.legend(proxies, labels)
