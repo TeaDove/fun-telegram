@@ -38,7 +38,7 @@ func (r *Service) getMostToxicUsers(
 
 	userToCount := make(map[string]float64, maxUsers)
 	for _, message := range userToCountArray {
-		userToCount[getter.Get(message.TgUserId)] = float64(message.ToxicWordsCount) / float64(message.WordsCount) * 100
+		userToCount[getter.GetName(message.TgUserId)] = float64(message.ToxicWordsCount) / float64(message.WordsCount) * 100
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{

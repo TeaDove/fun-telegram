@@ -86,6 +86,7 @@ class Bar(Plot):
     )
 
     limit: int | None = Field(None, example=None)
+    asc: bool = True
 
 
 class TimeSeries(Plot):

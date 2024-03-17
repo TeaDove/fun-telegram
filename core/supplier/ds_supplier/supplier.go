@@ -47,6 +47,13 @@ func (r *Supplier) Ping(ctx context.Context) error {
 }
 
 func (r *Supplier) sendRequest(ctx context.Context, path string, input any) ([]byte, error) {
+	zerolog.Ctx(ctx).
+		Debug().
+		Str("status", "ds.request.sending").
+		Interface("input", input).
+		Str("path", path).
+		Send()
+
 	t0 := time.Now()
 
 	reqBody, err := json.Marshal(&input)

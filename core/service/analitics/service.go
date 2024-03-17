@@ -223,7 +223,7 @@ func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput)
 	getter := r.getNameGetter(usersInChat)
 
 	report := AnaliseReport{
-		Images:         make([]File, 0, 6),
+		Images:         make([]File, 0, 7),
 		FirstMessageAt: lastMessage.CreatedAt,
 		MessagesCount:  int(count),
 	}
@@ -236,7 +236,10 @@ func (r *Service) analiseWholeChat(ctx context.Context, input *AnaliseChatInput)
 	go report.appendFromChan(ctx, &reportWg, statsReportChan)
 
 	wg.Add(1)
-	go r.getChatterBoxes(ctx, &wg, statsReportChan, input, getter)
+	go r.getChatterBoxes(ctx, &wg, statsReportChan, input, getter, true, usersInChat)
+
+	wg.Add(1)
+	go r.getChatterBoxes(ctx, &wg, statsReportChan, input, getter, false, usersInChat)
 
 	wg.Add(1)
 	go r.getMessagesGroupedByDateByChatId(ctx, &wg, statsReportChan, input)

@@ -80,7 +80,7 @@ class PlotService:
         fig, ax = self._get_fig_and_ax(input_)
 
         df = pd.DataFrame(input_.values.items(), columns=[X, Y])
-        df = df.sort_values(by=Y, ascending=False)
+        df = df.sort_values(by=Y, ascending=input_.asc)
         if input_.limit is not None:
             df = df.head(input_.limit)
 

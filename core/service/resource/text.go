@@ -88,6 +88,7 @@ const (
 	CommandStatsFlagRemoveDescription
 
 	AnaliseChartChatterBoxes
+	AnaliseChartLeastChatterBoxes
 	AnaliseChartUser
 	AnaliseChartWordsWritten
 	AnaliseChartInterlocusts
@@ -280,6 +281,7 @@ var localizer = map[Code]map[Locale]string{
 	Example:                {Ru: "Пример", En: "Example"},
 
 	AnaliseChartChatterBoxes:         {Ru: "Болтушки", En: "Chatter boxes"},
+	AnaliseChartLeastChatterBoxes:    {Ru: "Анти-болтушки (только участники)", En: "Least chatter boxes (only members)"},
 	AnaliseChartUser:                 {Ru: "Пользователь", En: "User"},
 	AnaliseChartWordsWritten:         {Ru: "Слов написано", En: "Words written"},
 	AnaliseChartInterlocusts:         {Ru: "Собеседники", En: "Interlocusts"},

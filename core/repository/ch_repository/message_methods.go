@@ -273,6 +273,41 @@ select tg_user_id, sum(words_count) as "words_count", sum(toxic_words_count) as 
 	return output, nil
 }
 
+func (r *Repository) GroupedCountGetByChatIdByUserIdAsc(
+	ctx context.Context,
+	chatId int64,
+	limit int64,
+	userIds []int64,
+) ([]GroupedCountGetByChatIdByUserIdOutput, error) {
+	rows, err := r.conn.Query(ctx, `
+with "user" as
+             (select arrayJoin(cast(?, 'Array(Int64)')) as "id")
+select u.id as "tg_user_id", sum(words_count) as "words_count", sum(toxic_words_count) as "toxic_words_count"
+	from "user" u
+         left join message m on m.tg_user_id = u.id
+where tg_chat_id = ?
+	group by 1
+		order by 2 asc
+		limit ?;
+`, userIds, chatId, limit)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select messages with cte")
+	}
+
+	output := make([]GroupedCountGetByChatIdByUserIdOutput, 0, 100)
+	for rows.Next() {
+		row := GroupedCountGetByChatIdByUserIdOutput{}
+		err = rows.ScanStruct(&row)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to scan row")
+		}
+
+		output = append(output, row)
+	}
+
+	return output, nil
+}
+
 func (r *Repository) CountGetByChatId(
 	ctx context.Context,
 	chatId int64,

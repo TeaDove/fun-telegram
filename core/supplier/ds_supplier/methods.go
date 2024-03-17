@@ -18,6 +18,7 @@ type DrawBarInput struct {
 
 	Values map[string]float64 `json:"values"`
 	Limit  int                `json:"limit,omitempty"`
+	Asc    bool               `json:"asc"`
 }
 
 func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, error) {
@@ -61,7 +62,7 @@ type DrawGraphInput struct {
 
 	Edges         []GraphEdge          `json:"edges,omitempty"`
 	Layout        string               `json:"layout,omitempty"`
-	WeightedEdges bool                 `json:"weighted_edges,omitempty"`
+	WeightedEdges bool                 `json:"weighted_edges"`
 	Nodes         map[string]GraphNode `json:"nodes,omitempty"`
 	RootNode      string               `json:"root_node,omitempty"`
 }

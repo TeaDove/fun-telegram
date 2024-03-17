@@ -87,3 +87,12 @@ func (r UsersInChat) ToMap() map[int64]UserInChat {
 
 	return map_
 }
+
+func (r UsersInChat) ToIds() []int64 {
+	slice := make([]int64, len(r))
+	for _, user := range r {
+		slice = append(slice, user.TgId)
+	}
+
+	return slice
+}

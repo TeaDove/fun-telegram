@@ -11,25 +11,35 @@ import (
 )
 
 type nameGetter struct {
-	m map[int64]string
+	idToUser map[int64]mongo_repository.UserInChat
 }
 
-func (r *nameGetter) Get(userId int64) string {
-	name, ok := r.m[userId]
-	if !ok || strings.TrimSpace(name) == "" {
+func (r *nameGetter) GetName(userId int64) string {
+	user, ok := r.idToUser[userId]
+	if !ok || strings.TrimSpace(user.TgName) == "" {
 		return fmt.Sprintf("id: %d", userId)
 	}
 
-	return name
+	return user.TgName
+}
+
+func (r *nameGetter) GetNameAndUsername(userId int64) string {
+	user, ok := r.idToUser[userId]
+	if !ok || (strings.TrimSpace(user.TgName) == "" && strings.TrimSpace(user.TgUsername) == "") {
+		return fmt.Sprintf("id: %d", userId)
+	}
+
+	return fmt.Sprintf("%s (@%s)", user.TgName, user.TgUsername)
 }
 
 func (r *Service) getNameGetter(usersInChat mongo_repository.UsersInChat) nameGetter {
-	idToName := make(map[int64]string, len(usersInChat))
+	idToUser := make(map[int64]mongo_repository.UserInChat, len(usersInChat))
+
 	for _, user := range usersInChat {
-		idToName[user.TgId] = fmt.Sprintf("%s", user.TgName)
+		idToUser[user.TgId] = user
 	}
 
-	return nameGetter{m: idToName}
+	return nameGetter{idToUser: idToUser}
 }
 
 func (r *Service) getNameGetterFromChatId(ctx context.Context, chatId int64) (nameGetter, error) {

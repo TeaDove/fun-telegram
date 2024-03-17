@@ -2,6 +2,7 @@ package analitics
 
 import (
 	"context"
+	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 	"sync"
 
 	"github.com/teadove/fun_telegram/core/service/resource"
@@ -17,17 +18,30 @@ func (r *Service) getChatterBoxes(
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
 	getter nameGetter,
+	asc bool,
+	usersInChat mongo_repository.UsersInChat,
 ) {
 	defer wg.Done()
-	const maxUsers = 15
 	output := statsReport{
 		repostImage: File{
-			Name:      "ChatterBoxes",
 			Extension: "jpeg",
 		},
 	}
 
-	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(ctx, input.TgChatId, maxUsers)
+	var err error
+	var userToCountArray []ch_repository.GroupedCountGetByChatIdByUserIdOutput
+	var title string
+
+	if asc {
+		userToCountArray, err = r.chRepository.GroupedCountGetByChatIdByUserIdAsc(ctx, input.TgChatId, 35, usersInChat.ToIds())
+		title = r.resourceService.Localize(ctx, resource.AnaliseChartLeastChatterBoxes, input.Locale)
+		output.repostImage.Name = "AntiChatterBoxes"
+	} else {
+		userToCountArray, err = r.chRepository.GroupedCountGetByChatIdByUserId(ctx, input.TgChatId, 25)
+		title = r.resourceService.Localize(ctx, resource.AnaliseChartChatterBoxes, input.Locale)
+		output.repostImage.Name = "ChatterBoxes"
+	}
+
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to get chatter boxes")
 		statsReportChan <- output
@@ -35,18 +49,19 @@ func (r *Service) getChatterBoxes(
 		return
 	}
 
-	userToCount := make(map[string]float64, maxUsers)
+	userToCount := make(map[string]float64, 25)
 	for _, message := range userToCountArray {
-		userToCount[getter.Get(message.TgUserId)] = float64(message.WordsCount)
+		userToCount[getter.GetNameAndUsername(message.TgUserId)] = float64(message.WordsCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartChatterBoxes, input.Locale),
+			Title:  title,
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUser, input.Locale),
 			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
 		},
 		Values: userToCount,
+		Asc:    asc,
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw in ds supplier")
@@ -99,7 +114,7 @@ func (r *Service) getMessageFindRepliedBy(
 
 	userToCount := make(map[string]float64, len(interlocutors))
 	for _, interlocutor := range interlocutors {
-		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
+		userToCount[getter.GetName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
@@ -159,7 +174,7 @@ func (r *Service) getMessageFindRepliesTo(
 
 	userToCount := make(map[string]float64, len(interlocutors))
 	for _, interlocutor := range interlocutors {
-		userToCount[getter.Get(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
+		userToCount[getter.GetName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
@@ -215,8 +230,8 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 
 		for _, reply := range replies {
 			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.Get(reply.TgUserId),
-				Second: getter.Get(user.TgId),
+				First:  getter.GetName(reply.TgUserId),
+				Second: getter.GetName(user.TgId),
 				Weight: float64(reply.MessagesCount),
 			})
 		}
@@ -281,8 +296,8 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 
 		for _, reply := range replies {
 			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.Get(reply.TgUserId),
-				Second: getter.Get(user.TgId),
+				First:  getter.GetName(reply.TgUserId),
+				Second: getter.GetName(user.TgId),
 				Weight: float64(reply.MessagesCount),
 			})
 		}

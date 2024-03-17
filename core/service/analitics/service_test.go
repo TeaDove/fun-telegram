@@ -68,7 +68,7 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
-		TgChatId: 1701683862,
+		TgChatId: 1798223288,
 		Tz:       3,
 		Locale:   resource.Ru,
 	}) // 1779431332 1350141926 1178533048
