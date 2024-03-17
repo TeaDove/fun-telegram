@@ -316,10 +316,10 @@ func (r *Presentation) dumpChannelRecommendations(
 }
 
 const (
-	defaultOrder    = 5
+	defaultOrder    = 7
 	allowedMaxOrder = 50
 
-	defaultMaxDepth = 3
+	defaultMaxDepth = 4
 	allowedMaxDepth = 10
 )
 

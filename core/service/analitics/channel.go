@@ -146,6 +146,9 @@ func dumpSliceToCsvZip(name string, slice any) (File, error) {
 }
 
 func (r *Service) DumpChannels(ctx context.Context, username string, depth int64, maxOrder int64) ([]File, error) {
+	// TODO draw ordered
+	// TODO fix self-loops
+
 	files := make([]File, 0, 3)
 
 	var err error
