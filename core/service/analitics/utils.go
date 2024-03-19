@@ -1,11 +1,8 @@
 package analitics
 
 import (
-	"context"
 	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
@@ -40,13 +37,4 @@ func (r *Service) getNameGetter(usersInChat mongo_repository.UsersInChat) nameGe
 	}
 
 	return nameGetter{idToUser: idToUser}
-}
-
-func (r *Service) getNameGetterFromChatId(ctx context.Context, chatId int64) (nameGetter, error) {
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, chatId)
-	if err != nil {
-		return nameGetter{}, errors.Wrap(err, "failed to get users in chat from mongo repository")
-	}
-
-	return r.getNameGetter(usersInChat), nil
 }

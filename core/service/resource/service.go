@@ -27,6 +27,7 @@ func (r *Service) Localize(ctx context.Context, code Code, locale Locale) string
 			Int("code", int(code)).
 			Str("locale", string(locale)).
 			Send()
+
 		return shared.Undefined
 	}
 

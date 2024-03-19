@@ -3,14 +3,15 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/gotd/td/telegram/query"
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/guregu/null/v5"
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"github.com/teadove/fun_telegram/core/shared"
-	"strconv"
-	"sync"
-	"time"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/tg"
@@ -23,7 +24,10 @@ const (
 	channelsDumpBatch = 100
 )
 
-func (r *Presentation) getChannelRecommendations(ctx context.Context, channel *tg.Channel) ([]tg.Channel, error) {
+func (r *Presentation) getChannelRecommendations(
+	ctx context.Context,
+	channel *tg.Channel,
+) ([]tg.Channel, error) {
 	inputPeerChannel := tg.InputChannel{
 		ChannelID:  channel.ID,
 		AccessHash: channel.AccessHash,
@@ -39,6 +43,7 @@ func (r *Presentation) getChannelRecommendations(ctx context.Context, channel *t
 	chats := recommendations.GetChats()
 
 	channels := make([]tg.Channel, 0, len(chats))
+
 	for _, recommendedChat := range chats {
 		recommendedChannel, ok := recommendedChat.(*tg.Channel) // nolint: sloppyTypeAssert
 		if !ok {
@@ -47,8 +52,10 @@ func (r *Presentation) getChannelRecommendations(ctx context.Context, channel *t
 				Interface("recommended.chat", recommendedChat).
 				Interface("original.channel", channel).
 				Send()
+
 			continue
 		}
+
 		channels = append(channels, *recommendedChannel)
 	}
 
@@ -63,7 +70,12 @@ func (r *Presentation) getChannelRecommendations(ctx context.Context, channel *t
 	return channels, nil
 }
 
-func (r *Presentation) loadChannelMessage(ctx context.Context, wg *sync.WaitGroup, chat *tg.Channel, elem messages.Elem) {
+func (r *Presentation) loadChannelMessage(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	chat *tg.Channel,
+	elem messages.Elem,
+) {
 	defer wg.Done()
 
 	msg, ok := elem.Msg.(*tg.Message)
@@ -108,9 +120,11 @@ func (r *Presentation) loadChannelMessages(ctx context.Context, chat *tg.Channel
 	historyIter := historyQuery.Iter()
 
 	msgCount := 0
+
 	const maxMsgCount = 80
 
 	elemCount := 0
+
 	const maxElemCount = 300
 
 	var wg sync.WaitGroup
@@ -131,7 +145,9 @@ func (r *Presentation) loadChannelMessages(ctx context.Context, chat *tg.Channel
 			}
 
 			msgCount++
+
 			wg.Add(1)
+
 			go r.loadChannelMessage(ctx, &wg, chat, elem)
 
 			if msgCount >= maxMsgCount {
@@ -164,7 +180,10 @@ func (r *Presentation) loadChannelMessages(ctx context.Context, chat *tg.Channel
 	return nil
 }
 
-func (r *Presentation) uploadChannelsToRepository(ctx context.Context, channels <-chan Channel) error {
+func (r *Presentation) uploadChannelsToRepository(
+	ctx context.Context,
+	channels <-chan Channel,
+) error {
 	channelsSlice := make([]ch_repository.Channel, 0, channelsDumpBatch)
 
 	for channel := range channels {
@@ -172,6 +191,7 @@ func (r *Presentation) uploadChannelsToRepository(ctx context.Context, channels 
 		if channel.TgAbout.Valid {
 			tgAbout = &channel.TgAbout.String
 		}
+
 		channelsSlice = append(channelsSlice, ch_repository.Channel{
 			TgId:               channel.TgId,
 			TgTitle:            channel.TgTitle,
@@ -218,6 +238,9 @@ type dumpChannelRecommendationsInput struct {
 	barMessageId      int
 }
 
+// dumpChannelRecommendations
+// nolint: cyclop
+// TODO fix cyclop
 func (r *Presentation) dumpChannelRecommendations(
 	ctx *ext.Context,
 	input dumpChannelRecommendationsInput,
@@ -228,7 +251,11 @@ func (r *Presentation) dumpChannelRecommendations(
 	if ok && !foundChannel.IsLeaf {
 		if input.depth < foundChannel.Depth {
 			// TODO optimise
-			zerolog.Ctx(ctx).Debug().Str("status", "channel.already.processed.but.with.less.depth").Str("title", input.chat.Title).Send()
+			zerolog.Ctx(ctx).
+				Debug().
+				Str("status", "channel.already.processed.but.with.less.depth").
+				Str("title", input.chat.Title).
+				Send()
 		} else {
 			zerolog.Ctx(ctx).Trace().Str("status", "channel.already.processed").Str("title", input.chat.Title).Send()
 			return nil
@@ -268,7 +295,10 @@ func (r *Presentation) dumpChannelRecommendations(
 
 	repositoryChannel.RecommendationsIds = make([]int64, 0, len(recommendedChannels))
 	for _, recommendedChannel := range recommendedChannels {
-		repositoryChannel.RecommendationsIds = append(repositoryChannel.RecommendationsIds, recommendedChannel.ID)
+		repositoryChannel.RecommendationsIds = append(
+			repositoryChannel.RecommendationsIds,
+			recommendedChannel.ID,
+		)
 	}
 
 	err = r.loadChannelMessages(ctx, input.chat)
@@ -276,7 +306,15 @@ func (r *Presentation) dumpChannelRecommendations(
 		return errors.Wrap(err, "failed to load channel messages")
 	}
 
-	go r.updateUploadChannelStatsMessage(ctx, input.update, input.barMessageId, input.tgInput, len(*input.channels), &repositoryChannel, input.path)
+	go r.updateUploadChannelStatsMessage(
+		ctx,
+		input.update,
+		input.barMessageId,
+		input.tgInput,
+		len(*input.channels),
+		&repositoryChannel,
+		input.path,
+	)
 
 	(*input.channels)[input.chat.ID] = repositoryChannel
 	input.channelsChan <- repositoryChannel
@@ -289,7 +327,15 @@ func (r *Presentation) dumpChannelRecommendations(
 
 		newPath := make([]string, len(input.path))
 		_ = copy(newPath, input.path)
-		newPath = append(newPath, fmt.Sprintf("(%d) %s (@%s)", idx, recommendedChannel.Title, recommendedChannel.Username))
+		newPath = append(
+			newPath,
+			fmt.Sprintf(
+				"(%d) %s (@%s)",
+				idx,
+				recommendedChannel.Title,
+				recommendedChannel.Username,
+			),
+		)
 
 		err = r.dumpChannelRecommendations(
 			ctx,
@@ -323,7 +369,10 @@ const (
 	allowedMaxDepth = 10
 )
 
-func (r *Presentation) getFullChannel(ctx context.Context, channel *tg.Channel) (*tg.ChannelFull, error) {
+func (r *Presentation) getFullChannel(
+	ctx context.Context,
+	channel *tg.Channel,
+) (*tg.ChannelFull, error) {
 	fullChannelClass, err := r.telegramApi.ChannelsGetFullChannel(ctx, channel.AsInput())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get full channel")
@@ -386,12 +435,22 @@ type Channel struct {
 	Depth int
 }
 
-func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.Update, input *input, channelName string) error {
+func (r *Presentation) uploadChannelStatsMessages(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+	channelName string,
+) error {
 	var maxDepth = defaultMaxDepth
+
 	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
 		if err != nil {
-			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()), nil)
+			_, err = ctx.Reply(
+				update,
+				fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()),
+				nil,
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -405,10 +464,15 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 	}
 
 	var maxRecommendation = defaultOrder
+
 	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
 		if err != nil {
-			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()), nil)
+			_, err = ctx.Reply(
+				update,
+				fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()),
+				nil,
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -442,6 +506,7 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 
 	channels := make(map[int64]Channel, 1000)
 	channelsChan := make(chan Channel, channelsDumpBatch*2)
+
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -449,6 +514,7 @@ func (r *Presentation) uploadChannelStatsMessages(ctx *ext.Context, update *ext.
 	var uploadChannelsToRepositoryErr error
 	go func() {
 		defer wg.Done()
+
 		uploadChannelsToRepositoryErr = r.uploadChannelsToRepository(ctx, channelsChan)
 	}()
 

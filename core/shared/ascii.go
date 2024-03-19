@@ -12,6 +12,7 @@ func ReplaceNonAsciiWithSpace(v string) string {
 				if unicode.IsPrint(r) && !unicode.IsSymbol(r) {
 					return r
 				}
+
 				return ' '
 			},
 			v,

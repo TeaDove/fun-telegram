@@ -2,12 +2,13 @@ package analitics
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
-	"os"
-	"testing"
 )
 
 func saveFile(t *testing.T, file *File) {

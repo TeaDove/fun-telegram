@@ -2,6 +2,7 @@ package redis_repository
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"

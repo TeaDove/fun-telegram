@@ -41,6 +41,9 @@ func TestIntegration_ChRepository_ChannelBatchInsert_Ok(t *testing.T) {
 	r := getRepository(t)
 	ctx := shared.GetCtx()
 
-	err := r.ChannelBatchInsert(ctx, []Channel{{TgId: 12, UploadedAt: time.Now()}, {TgId: 13, UploadedAt: time.Now()}})
+	err := r.ChannelBatchInsert(
+		ctx,
+		[]Channel{{TgId: 12, UploadedAt: time.Now()}, {TgId: 13, UploadedAt: time.Now()}},
+	)
 	assert.NoError(t, err)
 }

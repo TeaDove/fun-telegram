@@ -7,7 +7,9 @@ import (
 	"github.com/teadove/fun_telegram/core/schemas"
 )
 
-func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]schemas.StorageStats, error) {
+func (r *Repository) StatsForDatabase(
+	ctx context.Context,
+) (map[string]schemas.StorageStats, error) {
 	rows, err := r.conn.Query(ctx, `
 SELECT table as table,
        sum(bytes) AS bytes,

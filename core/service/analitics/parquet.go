@@ -2,17 +2,19 @@ package analitics
 
 import (
 	"context"
+	"io"
+
 	"github.com/pkg/errors"
 	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 	"github.com/xitongsys/parquet-go-source/mem"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/source"
 	"github.com/xitongsys/parquet-go/writer"
-	"io"
 )
 
 func getMemFileWrite(file *File) (source.ParquetFile, error) {
 	var err error
+
 	fw, err := mem.NewMemFileWriter(file.Name, func(name string, r io.Reader) error {
 		file.Content, err = io.ReadAll(r)
 		if err != nil {
@@ -29,9 +31,10 @@ func getMemFileWrite(file *File) (source.ParquetFile, error) {
 }
 
 func pwWriteSlice(pw *writer.ParquetWriter, slice []any) error {
-	pw.RowGroupSize = 128 * 1024 * 1024 //128M
-	pw.PageSize = 8 * 1024              //8K
+	pw.RowGroupSize = 128 * 1024 * 1024 // 128M
+	pw.PageSize = 8 * 1024              // 8K
 	pw.CompressionType = parquet.CompressionCodec_SNAPPY
+
 	for _, item := range slice {
 		err := pw.Write(item)
 		if err != nil {

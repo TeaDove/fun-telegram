@@ -31,11 +31,15 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	if err != nil {
 		return errors.Wrap(err, "failed to check if enabled")
 	}
+
 	if !chatSettings.Enabled {
 		return nil
 	}
 
-	reactionsBuf, err := r.redisRepository.Load(ctx, compileSpamVictimKey(chatId, update.EffectiveUser().ID))
+	reactionsBuf, err := r.redisRepository.Load(
+		ctx,
+		compileSpamVictimKey(chatId, update.EffectiveUser().ID),
+	)
 	if errors.Is(err, redis_repository.ErrKeyNotFound) {
 		return nil
 	}
@@ -61,7 +65,11 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 	}
 
 	reactionRequest.MsgID = update.EffectiveMessage.ID
-	zerolog.Ctx(ctx.Context).Debug().Str("status", "spamming.reactions").Interface("reactions", reactionRequest).Send()
+	zerolog.Ctx(ctx.Context).
+		Debug().
+		Str("status", "spamming.reactions").
+		Interface("reactions", reactionRequest).
+		Send()
 
 	_, err = r.telegramApi.MessagesSendReaction(ctx, &reactionRequest)
 	if err != nil {
@@ -86,7 +94,11 @@ func (r *Presentation) deleteSpam(ctx *ext.Context, update *ext.Update, input *i
 		return nil
 	}
 
-	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi, r.protoClient.PeerStorage)
+	err := update.EffectiveMessage.SetRepliedToMessage(
+		ctx,
+		r.telegramApi,
+		r.protoClient.PeerStorage,
+	)
 	if err != nil {
 		if !input.Silent {
 			_, err = ctx.Reply(update, "Err: reply not found", nil)
@@ -141,7 +153,11 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *inpu
 		return nil
 	}
 
-	err := update.EffectiveMessage.SetRepliedToMessage(ctx, r.telegramApi, r.protoClient.PeerStorage)
+	err := update.EffectiveMessage.SetRepliedToMessage(
+		ctx,
+		r.telegramApi,
+		r.protoClient.PeerStorage,
+	)
 	if err != nil {
 		err = r.replyIfNotSilent(ctx, update, input, "Err: reply not found")
 		if err != nil {
@@ -212,7 +228,11 @@ var (
 	}
 )
 
-func (r *Presentation) spamReactionCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
+func (r *Presentation) spamReactionCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) error {
 	if _, ok := input.Ops[FlagSpamReactionStop.Long]; ok {
 		return r.deleteSpam(ctx, update, input)
 	}

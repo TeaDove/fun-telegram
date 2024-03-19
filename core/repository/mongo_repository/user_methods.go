@@ -77,7 +77,11 @@ func (r *Repository) GetUserById(ctx context.Context, userId int64) (User, error
 func (r *Repository) GetUserByUsername(ctx context.Context, username string) (User, error) {
 	var user User
 
-	err := r.userCollection.FirstWithCtx(ctx, bson.M{"tg_username": strings.ToLower(username)}, &user)
+	err := r.userCollection.FirstWithCtx(
+		ctx,
+		bson.M{"tg_username": strings.ToLower(username)},
+		&user,
+	)
 	if err != nil {
 		return User{}, errors.WithStack(err)
 	}

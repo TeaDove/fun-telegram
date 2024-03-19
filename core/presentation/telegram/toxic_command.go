@@ -41,7 +41,13 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 	_, err = ctx.Reply(
 		update,
 		[]styling.StyledTextOption{
-			styling.Plain(r.resourceService.Localize(ctx, resource.CommandToxicMessageFound, chatSettings.Locale)),
+			styling.Plain(
+				r.resourceService.Localize(
+					ctx,
+					resource.CommandToxicMessageFound,
+					chatSettings.Locale,
+				),
+			),
 			styling.Blockquote(word),
 		},
 		nil)

@@ -42,7 +42,12 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	ctx.Context = zerolog.Ctx(ctx).With().Str("command", command).Ctx(ctx.Context).Logger().WithContext(ctx.Context)
+	ctx.Context = zerolog.Ctx(ctx).
+		With().
+		Str("command", command).
+		Ctx(ctx.Context).
+		Logger().
+		WithContext(ctx.Context)
 
 	commandInput := GetOpt(text, route.flags...)
 
@@ -69,7 +74,11 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	}
 
 	if ok {
-		_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrAccessDenies, chatSettings.Locale), nil)
+		_, err = ctx.Reply(
+			update,
+			r.resourceService.Localize(ctx, resource.ErrAccessDenies, chatSettings.Locale),
+			nil,
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -78,7 +87,11 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	}
 
 	if !r.checkFeatureEnabled(&chatSettings, command) {
-		_, err = ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrFeatureDisabled, chatSettings.Locale), nil)
+		_, err = ctx.Reply(
+			update,
+			r.resourceService.Localize(ctx, resource.ErrFeatureDisabled, chatSettings.Locale),
+			nil,
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -91,10 +104,15 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to check if admin")
 		}
+
 		if !ok {
 			_, err = ctx.Reply(
 				update,
-				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesAdmin, chatSettings.Locale),
+				r.resourceService.Localize(
+					ctx,
+					resource.ErrInsufficientPrivilegesAdmin,
+					chatSettings.Locale,
+				),
 				nil,
 			)
 			if err != nil {
@@ -104,12 +122,17 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			return nil
 		}
 	}
+
 	if route.requireOwner {
 		ok = r.checkFromOwner(ctx, update)
 		if !ok {
 			_, err = ctx.Reply(
 				update,
-				r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, chatSettings.Locale),
+				r.resourceService.Localize(
+					ctx,
+					resource.ErrInsufficientPrivilegesOwner,
+					chatSettings.Locale,
+				),
 				nil,
 			)
 			if err != nil {
@@ -121,6 +144,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	}
 
 	commandInput.StartedAt = time.Now().UTC()
+
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command.begin").
@@ -140,11 +164,20 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			Dur("elapsed", elapsed).
 			Send()
 
-		errMessage := r.resourceService.Localizef(ctx, resource.ErrISE, chatSettings.Locale, err.Error())
+		errMessage := r.resourceService.Localizef(
+			ctx,
+			resource.ErrISE,
+			chatSettings.Locale,
+			err.Error(),
+		)
+
 		var innerErr error
 
 		if commandInput.Silent {
-			_, innerErr = ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{Message: errMessage})
+			_, innerErr = ctx.SendMessage(
+				ctx.Self.ID,
+				&tg.MessagesSendMessageRequest{Message: errMessage},
+			)
 		} else {
 			_, innerErr = ctx.Reply(update, errMessage, nil)
 		}
@@ -155,6 +188,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 				Err(err).
 				Str("status", "failed.to.reply").
 				Send()
+
 			return nil
 		}
 

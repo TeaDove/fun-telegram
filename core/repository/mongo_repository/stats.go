@@ -22,10 +22,14 @@ func (r *Repository) StatsForMessages(ctx context.Context) (schemas.StorageStats
 	return r.StatsForTable(ctx, mgm.CollName(&Message{}))
 }
 
-func (r *Repository) StatsForTable(ctx context.Context, collName string) (schemas.StorageStats, error) {
+func (r *Repository) StatsForTable(
+	ctx context.Context,
+	collName string,
+) (schemas.StorageStats, error) {
 	result := r.client.Database(databaseName).RunCommand(ctx, bson.M{"collStats": collName})
 
 	var document bson.M
+
 	err := result.Decode(&document)
 	if err != nil {
 		return schemas.StorageStats{}, errors.WithStack(err)
@@ -54,7 +58,9 @@ func (r *Repository) StatsForTable(ctx context.Context, collName string) (schema
 	return stats, nil
 }
 
-func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]schemas.StorageStats, error) {
+func (r *Repository) StatsForDatabase(
+	ctx context.Context,
+) (map[string]schemas.StorageStats, error) {
 	colls, err := r.client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -73,6 +79,7 @@ func (r *Repository) StatsForDatabase(ctx context.Context) (map[string]schemas.S
 
 func (r *Repository) ReleaseMemory(ctx context.Context) (int, error) {
 	bytesFreed := 0
+
 	colls, err := r.client.Database(databaseName).ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		return 0, errors.WithStack(err)

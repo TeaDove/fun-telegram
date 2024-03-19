@@ -17,7 +17,10 @@ func captureInterrupt(ctx context.Context) {
 
 	go func() {
 		for sig := range c {
-			zerolog.Ctx(ctx).Info().Str("signal", sig.String()).Msg("captured exit signal, exiting...")
+			zerolog.Ctx(ctx).
+				Info().
+				Str("signal", sig.String()).
+				Msg("captured exit signal, exiting...")
 			pprof.StopCPUProfile()
 			os.Exit(0)
 		}

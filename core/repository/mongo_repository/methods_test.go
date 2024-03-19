@@ -40,7 +40,12 @@ func generateMessage(r *Repository, t *testing.T) []Message {
 				defer wg.Done()
 
 				text := strconv.Itoa(rand.Intn(1_000_000))
-				message := &Message{Text: text, TgChatID: int64(i), TgUserId: rand.Int63n(10), TgId: j}
+				message := &Message{
+					Text:     text,
+					TgChatID: int64(i),
+					TgUserId: rand.Int63n(10),
+					TgId:     j,
+				}
 				err := r.MessageCreate(ctx, message)
 				require.NoError(t, err)
 
@@ -60,7 +65,10 @@ func TestIntegration_DbRepository_MessageCreate_Ok(t *testing.T) {
 	r := getRepository(t)
 
 	id := rand.Int63n(1_000_000)
-	err := r.MessageCreate(context.Background(), &Message{Text: "Привет", TgChatID: id, TgUserId: id, TgId: 1})
+	err := r.MessageCreate(
+		context.Background(),
+		&Message{Text: "Привет", TgChatID: id, TgUserId: id, TgId: 1},
+	)
 	assert.NoError(t, err)
 
 	message := Message{}
@@ -168,9 +176,15 @@ func TestIntegration_DbRepository_MessageCreateOrNothingAndSetTime_Ok(t *testing
 
 	ctx := context.Background()
 	id := rand.Int63n(1_000_000)
-	err := r.MessageCreateOrNothingAndSetTime(ctx, &Message{Text: "2", TgChatID: id, TgUserId: id, TgId: 100})
+	err := r.MessageCreateOrNothingAndSetTime(
+		ctx,
+		&Message{Text: "2", TgChatID: id, TgUserId: id, TgId: 100},
+	)
 	require.NoError(t, err)
-	err = r.MessageCreateOrNothingAndSetTime(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 100})
+	err = r.MessageCreateOrNothingAndSetTime(
+		ctx,
+		&Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 100},
+	)
 	require.NoError(t, err)
 
 	msg, err := r.GetLastMessage(context.Background(), id)
@@ -378,7 +392,11 @@ func TestIntegration_DbRepository_PingMessageGetAndDeleteForDeletion_NoMessagesO
 
 	ctx := context.Background()
 	id := rand.Int63n(1_000_000)
-	err := r.PingMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1}, time.Now().UTC().Add(1*time.Hour))
+	err := r.PingMessageCreate(
+		ctx,
+		&Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1},
+		time.Now().UTC().Add(1*time.Hour),
+	)
 	require.NoError(t, err)
 
 	messages, err := r.PingMessageGetAndDeleteForDeletion(ctx)
@@ -392,7 +410,11 @@ func TestIntegration_DbRepository_PingMessageGetAndDeleteForDeletion_OneMessageO
 
 	ctx := context.Background()
 	id := rand.Int63n(1_000_000)
-	err := r.PingMessageCreate(ctx, &Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1}, time.Now().UTC().Add(-1*time.Hour))
+	err := r.PingMessageCreate(
+		ctx,
+		&Message{Text: "1", TgChatID: id, TgUserId: id, TgId: 1},
+		time.Now().UTC().Add(-1*time.Hour),
+	)
 	require.NoError(t, err)
 
 	messages, err := r.PingMessageGetAndDeleteForDeletion(ctx)

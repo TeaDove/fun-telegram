@@ -34,7 +34,11 @@ var (
 
 // kandkinskyCommandHandler
 // nolint: cyclop
-func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
+func (r *Presentation) kandkinskyCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) error {
 	if r.kandinskySupplier == nil {
 		_, err := ctx.Reply(update, "Err: kandinsky supplier is currently disabled", nil)
 		if err != nil {
@@ -129,7 +133,12 @@ func (r *Presentation) kandkinskyCommandHandler(ctx *ext.Context, update *ext.Up
 
 	err = ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{msg.ID})
 	if err != nil {
-		zerolog.Ctx(ctx.Context).Error().Stack().Err(err).Str("status", "failed.to.delete.msgs").Send()
+		zerolog.Ctx(ctx.Context).
+			Error().
+			Stack().
+			Err(err).
+			Str("status", "failed.to.delete.msgs").
+			Send()
 	}
 
 	return nil

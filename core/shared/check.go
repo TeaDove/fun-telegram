@@ -31,6 +31,11 @@ func CheckOfLog(run func(ctx context.Context) error) func(ctx context.Context) {
 func CloseOrLog(ctx context.Context, closer io.Closer) {
 	err := closer.Close()
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(errors.WithStack(err)).Str("status", "failed.to.close").Send()
+		zerolog.Ctx(ctx).
+			Error().
+			Stack().
+			Err(errors.WithStack(err)).
+			Str("status", "failed.to.close").
+			Send()
 	}
 }

@@ -37,7 +37,11 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return nil
 		}
 
-		_, err := ctx.Reply(update, r.resourceService.Localize(ctx, resource.ErrNiceTry, input.ChatSettings.Locale), nil)
+		_, err := ctx.Reply(
+			update,
+			r.resourceService.Localize(ctx, resource.ErrNiceTry, input.ChatSettings.Locale),
+			nil,
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -51,14 +55,23 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 		_, err = ctx.Reply(
 			update,
-			r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.ChatSettings.Locale, usernameToBanLower),
+			r.resourceService.Localizef(
+				ctx,
+				resource.CommandBanUserBanned,
+				input.ChatSettings.Locale,
+				usernameToBanLower,
+			),
 			nil,
 		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		zerolog.Ctx(ctx).Info().Str("status", "user.banned").Str("username", usernameToBanLower).Send()
+		zerolog.Ctx(ctx).
+			Info().
+			Str("status", "user.banned").
+			Str("username", usernameToBanLower).
+			Send()
 
 		return nil
 	}
@@ -66,7 +79,11 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 	if update.EffectiveUser().GetID() != ctx.Self.ID {
 		_, err := ctx.Reply(
 			update,
-			r.resourceService.Localize(ctx, resource.ErrInsufficientPrivilegesOwner, input.ChatSettings.Locale),
+			r.resourceService.Localize(
+				ctx,
+				resource.ErrInsufficientPrivilegesOwner,
+				input.ChatSettings.Locale,
+			),
 			nil,
 		)
 		if err != nil {
@@ -88,14 +105,23 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 			_, err = ctx.Reply(
 				update,
-				r.resourceService.Localizef(ctx, resource.CommandBanUserBanned, input.ChatSettings.Locale, usernameToBanLower),
+				r.resourceService.Localizef(
+					ctx,
+					resource.CommandBanUserBanned,
+					input.ChatSettings.Locale,
+					usernameToBanLower,
+				),
 				nil,
 			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
-			zerolog.Ctx(ctx).Info().Str("status", "user.banned").Str("username", usernameToBanLower).Send()
+			zerolog.Ctx(ctx).
+				Info().
+				Str("status", "user.banned").
+				Str("username", usernameToBanLower).
+				Send()
 		} else {
 			return errors.WithStack(err)
 		}

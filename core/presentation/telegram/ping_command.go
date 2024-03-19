@@ -14,10 +14,18 @@ import (
 
 // TODO: fix nolint
 // nolint: cyclop
-func (r *Presentation) pingCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
+func (r *Presentation) pingCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) error {
 	var deletePinAfter = 5 * time.Minute
 
-	msg, err := ctx.Reply(update, fmt.Sprintf("Ping requested by %s\n\n", GetNameFromTgUser(update.EffectiveUser())), nil)
+	msg, err := ctx.Reply(
+		update,
+		fmt.Sprintf("Ping requested by %s\n\n", GetNameFromTgUser(update.EffectiveUser())),
+		nil,
+	)
 	if err != nil {
 		return errors.Wrap(err, "failed to send ping messages")
 	}
@@ -60,10 +68,18 @@ func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
 		return nil
 	}
 
-	zerolog.Ctx(ctx).Debug().Str("status", "ping.messages.deleting").Int("count", len(messages)).Send()
+	zerolog.Ctx(ctx).
+		Debug().
+		Str("status", "ping.messages.deleting").
+		Int("count", len(messages)).
+		Send()
 
 	for _, message := range messages {
-		log := zerolog.Ctx(ctx).With().Int("msg_id", message.TgId).Int64("chat_id", message.TgChatID).Logger()
+		log := zerolog.Ctx(ctx).
+			With().
+			Int("msg_id", message.TgId).
+			Int64("chat_id", message.TgChatID).
+			Logger()
 
 		inputPeer := r.protoClient.PeerStorage.GetInputPeerById(message.TgChatID)
 		if inputPeer == nil {
@@ -71,13 +87,16 @@ func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
 			continue
 		}
 
-		_, err = r.telegramApi.MessagesUpdatePinnedMessage(ctx, &tg.MessagesUpdatePinnedMessageRequest{
-			Silent:    false,
-			Unpin:     true,
-			PmOneside: true,
-			Peer:      inputPeer,
-			ID:        message.TgId,
-		})
+		_, err = r.telegramApi.MessagesUpdatePinnedMessage(
+			ctx,
+			&tg.MessagesUpdatePinnedMessageRequest{
+				Silent:    false,
+				Unpin:     true,
+				PmOneside: true,
+				Peer:      inputPeer,
+				ID:        message.TgId,
+			},
+		)
 		if err != nil {
 			log.Error().Stack().Err(err).Str("status", "failed.to.unpin.message").Send()
 			continue

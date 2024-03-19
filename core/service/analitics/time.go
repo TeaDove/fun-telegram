@@ -26,7 +26,12 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 			Extension: "jpeg",
 		},
 	}
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatId(ctx, input.TgChatId, 86400*7)
+
+	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatId(
+		ctx,
+		input.TgChatId,
+		86400*7,
+	)
 	if err != nil {
 		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
 		statsReportChan <- statsReportResult
@@ -43,7 +48,11 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartWordsByDate, input.Locale),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartDate, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartWordsWritten,
+				input.Locale,
+			),
 		},
 		Values: map[string]map[time.Time]float64{"day": timeToCount},
 	})
@@ -71,7 +80,13 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 			Extension: "jpeg",
 		},
 	}
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatIdByUserId(ctx, input.TgChatId, input.TgUserId, 86400*7)
+
+	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatIdByUserId(
+		ctx,
+		input.TgChatId,
+		input.TgUserId,
+		86400*7,
+	)
 	if err != nil {
 		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
 		statsReportChan <- statsReportResult
@@ -88,7 +103,11 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 		DrawInput: ds_supplier.DrawInput{
 			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartWordsByDate, input.Locale),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartDate, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartWordsWritten,
+				input.Locale,
+			),
 		},
 		Values: map[string]map[time.Time]float64{"day": timeToCount},
 	})
@@ -117,7 +136,12 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatId(ctx, input.TgChatId, 60*30, input.Tz)
+	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatId(
+		ctx,
+		input.TgChatId,
+		60*30,
+		input.Tz,
+	)
 	if err != nil {
 		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
 		statsReportChan <- statsReportResult
@@ -130,6 +154,7 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 	}
 
 	timeToCount := make(map[string]map[time.Time]float64, 2)
+
 	for _, message := range messagesGrouped {
 		weekday := isweekendToString[message.IsWeekend]
 		_, ok := timeToCount[weekday]
@@ -142,9 +167,21 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  fmt.Sprintf("%s UTC+%d", r.resourceService.Localize(ctx, resource.AnaliseChartWordsByTimeOfDay, input.Locale), input.Tz),
+			Title: fmt.Sprintf(
+				"%s UTC+%d",
+				r.resourceService.Localize(
+					ctx,
+					resource.AnaliseChartWordsByTimeOfDay,
+					input.Locale,
+				),
+				input.Tz,
+			),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartWordsWritten,
+				input.Locale,
+			),
 		},
 		Values:   timeToCount,
 		OnlyTime: true,
@@ -174,7 +211,13 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatIdByUserId(ctx, input.TgChatId, input.TgUserId, 60*30, input.Tz)
+	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatIdByUserId(
+		ctx,
+		input.TgChatId,
+		input.TgUserId,
+		60*30,
+		input.Tz,
+	)
 	if err != nil {
 		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
 		statsReportChan <- statsReportResult
@@ -188,6 +231,7 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 	}
 
 	timeToCount := make(map[string]map[time.Time]float64, 2)
+
 	for _, message := range messagesGrouped {
 		weekday := isweekendToString[message.IsWeekend]
 		_, ok := timeToCount[weekday]
@@ -200,9 +244,21 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  fmt.Sprintf("%s UTC+%d", r.resourceService.Localize(ctx, resource.AnaliseChartWordsByTimeOfDay, input.Locale), input.Tz),
+			Title: fmt.Sprintf(
+				"%s UTC+%d",
+				r.resourceService.Localize(
+					ctx,
+					resource.AnaliseChartWordsByTimeOfDay,
+					input.Locale,
+				),
+				input.Tz,
+			),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartWordsWritten,
+				input.Locale,
+			),
 		},
 		Values:   timeToCount,
 		OnlyTime: true,
@@ -216,6 +272,4 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 
 	statsReportResult.repostImage.Content = jpgImg
 	statsReportChan <- statsReportResult
-
-	return
 }

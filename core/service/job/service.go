@@ -32,7 +32,16 @@ func New(
 	scheduler := gocron.NewScheduler(time.UTC)
 
 	tomorrow := time.Now().UTC()
-	tomorrowNight := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day()+1, 0, 0, 0, 0, tomorrow.Location())
+	tomorrowNight := time.Date(
+		tomorrow.Year(),
+		tomorrow.Month(),
+		tomorrow.Day()+1,
+		0,
+		0,
+		0,
+		0,
+		tomorrow.Location(),
+	)
 
 	_, err := scheduler.
 		Every(24*time.Hour).StartAt(tomorrowNight).
@@ -68,12 +77,14 @@ func (r *Service) Stats(ctx context.Context) (map[string]map[string]schemas.Stor
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
 	statsByDatabase["MongoDB"] = stats
 
 	stats, err = r.chRepository.StatsForDatabase(ctx)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
 	statsByDatabase["Clickhouse"] = stats
 
 	return statsByDatabase, nil
@@ -82,7 +93,12 @@ func (r *Service) Stats(ctx context.Context) (map[string]map[string]schemas.Stor
 func (r *Service) deleteOldMessagesChecked(ctx context.Context) {
 	_, err := r.DeleteOldMessages(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.delete.old.messages").Send()
+		zerolog.Ctx(ctx).
+			Error().
+			Stack().
+			Err(err).
+			Str("status", "failed.to.delete.old.messages").
+			Send()
 	}
 }
 

@@ -26,22 +26,22 @@ type telegram struct {
 
 	FloodWaiterEnabled bool          `env:"flood_waiter_enabled" envDefault:"true"`
 	RateLimiterEnabled bool          `env:"rate_limiter_enabled" envDefault:"true"`
-	RateLimiterRate    time.Duration `env:"rate_limiter_rate" envDefault:"100ms"`
-	RateLimiterLimit   int           `env:"rate_limiter_rate" envDefault:"100"`
-	SaveAllMessages    bool          `env:"save_all_messages" envDefault:"false"`
+	RateLimiterRate    time.Duration `env:"rate_limiter_rate"    envDefault:"100ms"`
+	RateLimiterLimit   int           `env:"rate_limiter_rate"    envDefault:"100"`
+	SaveAllMessages    bool          `env:"save_all_messages"    envDefault:"false"`
 }
 
 type storage struct {
-	RedisHost     string `env:"redis_host" envDefault:"localhost"`
-	MongoDbUrl    string `env:"mongo_db_url" envDefault:"mongodb://localhost:27017"`
+	RedisHost     string `env:"redis_host"     envDefault:"localhost"`
+	MongoDbUrl    string `env:"mongo_db_url"   envDefault:"mongodb://localhost:27017"`
 	ClickhouseUtl string `env:"clickhouse_url" envDefault:"localhost:9000"`
 }
 
 type Settings struct {
 	Telegram        telegram `envPrefix:"telegram__"`
 	Storage         storage  `envPrefix:"storage__"`
-	FileStoragePath string   `env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
-	LogLevel        string   `env:"log_level"         envDefault:"debug"`
+	FileStoragePath string   `                       env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
+	LogLevel        string   `                       env:"log_level"         envDefault:"debug"`
 
 	MessagesMaxSizeMB int `env:"messages_max_size_mb" envDefault:"100"`
 
@@ -49,7 +49,7 @@ type Settings struct {
 	KandinskySecret string `env:"kandinsky_secret"`
 
 	DsSupplierUrl string `env:"ds_supplier_url" envDefault:"http://0.0.0.0:8000"`
-	LogMemUsage   bool   `env:"log_mem_usage" endDefault:"true"`
+	LogMemUsage   bool   `env:"log_mem_usage"                                    endDefault:"true"`
 }
 
 func mustNewSettings() Settings {

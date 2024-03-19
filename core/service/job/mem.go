@@ -10,6 +10,7 @@ import (
 
 func (r *Service) logMemUsage(ctx context.Context) {
 	var m runtime.MemStats
+
 	runtime.ReadMemStats(&m)
 
 	zerolog.Ctx(ctx).

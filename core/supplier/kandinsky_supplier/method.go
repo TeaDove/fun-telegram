@@ -27,7 +27,12 @@ var (
 )
 
 func (r *Supplier) getModels(ctx context.Context) (int, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/key/api/v1/models", r.url), nil)
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"GET",
+		fmt.Sprintf("%s/key/api/v1/models", r.url),
+		nil,
+	)
 	if err != nil {
 		return 0, errors.WithStack(err)
 	}
@@ -47,7 +52,11 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 	}
 
 	if resp.StatusCode != 200 {
-		return 0, errors.Errorf("bad status code, status code: %d, content: %s", resp.StatusCode, string(respBytes))
+		return 0, errors.Errorf(
+			"bad status code, status code: %d, content: %s",
+			resp.StatusCode,
+			string(respBytes),
+		)
 	}
 
 	for _, v := range gjson.ParseBytes(respBytes).Array() {
@@ -77,13 +86,19 @@ type RequestGenerationRequest struct {
 	} `json:"generateParams"`
 }
 
-func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerationInput) (uuid.UUID, error) {
+func (r *Supplier) RequestGeneration(
+	ctx context.Context,
+	input *RequestGenerationInput,
+) (uuid.UUID, error) {
 	input.Style = strings.ToUpper(input.Style)
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
 
 	paramsPart := make(map[string][]string)
-	paramsPart["Content-Disposition"] = append(paramsPart["Content-Disposition"], "form-data; name=\"params\"")
+	paramsPart["Content-Disposition"] = append(
+		paramsPart["Content-Disposition"],
+		"form-data; name=\"params\"",
+	)
 	paramsPart["Content-Type"] = append(paramsPart["Content-Type"], "application/json")
 
 	paramsWriter, err := writer.CreatePart(paramsPart)
@@ -122,7 +137,12 @@ func (r *Supplier) RequestGeneration(ctx context.Context, input *RequestGenerati
 		return uuid.Nil, errors.WithStack(err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/key/api/v1/text2image/run", r.url), payload)
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"POST",
+		fmt.Sprintf("%s/key/api/v1/text2image/run", r.url),
+		payload,
+	)
 	if err != nil {
 		return uuid.Nil, errors.WithStack(err)
 	}
@@ -184,17 +204,29 @@ func (r *Supplier) Get(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	}
 
 	if gjson.GetBytes(respBytes, "censored").Bool() {
-		zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.censored").Str("id", id.String()).Send()
+		zerolog.Ctx(ctx).
+			Info().
+			Str("status", "kandinsky.image.censored").
+			Str("id", id.String()).
+			Send()
 		return nil, errors.WithStack(ErrImageWasCensored)
 	}
 
 	if gjson.GetBytes(respBytes, "status").String() == "DONE" {
 		for _, img := range gjson.GetBytes(respBytes, "images").Array() {
-			zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.generation.done").Str("id", id.String()).Send()
+			zerolog.Ctx(ctx).
+				Info().
+				Str("status", "kandinsky.image.generation.done").
+				Str("id", id.String()).
+				Send()
 			return []byte(img.String()), nil
 		}
 
-		return nil, errors.Wrapf(ErrImageCreationFailed, "failed to get image, content: %s", string(respBytes))
+		return nil, errors.Wrapf(
+			ErrImageCreationFailed,
+			"failed to get image, content: %s",
+			string(respBytes),
+		)
 	}
 
 	zerolog.Ctx(ctx).Info().Str("status", "kandinsky.image.not.ready").Send()
@@ -216,10 +248,15 @@ func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
 		if err != nil {
 			if errors.Is(err, ErrImageNotReady) {
 				sleepTime := delayFirstTerm * time.Duration(math.Pow(delayRate, float64(attempt)))
-				zerolog.Ctx(ctx).Info().Str("status", "kandinsky.sleeping").Dur("sleep_time", sleepTime).Send()
+				zerolog.Ctx(ctx).
+					Info().
+					Str("status", "kandinsky.sleeping").
+					Dur("sleep_time", sleepTime).
+					Send()
 
 				// Will sleep for 10s, 30, 90, 270, ...
 				time.Sleep(sleepTime)
+
 				attempt++
 
 				continue
@@ -236,7 +273,10 @@ func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	return nil, errors.Wrap(ErrImageCreationFailed, "image creation timed out")
 }
 
-func (r *Supplier) WaitGeneration(ctx context.Context, input *RequestGenerationInput) ([]byte, error) {
+func (r *Supplier) WaitGeneration(
+	ctx context.Context,
+	input *RequestGenerationInput,
+) ([]byte, error) {
 	id, err := r.RequestGeneration(ctx, input)
 	if err != nil {
 		return nil, errors.WithStack(err)

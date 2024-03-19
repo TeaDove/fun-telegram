@@ -39,6 +39,8 @@ func (r *Supplier) Ping(ctx context.Context) error {
 		return errors.Wrap(err, "failed to do request")
 	}
 
+	shared.CloseOrLog(ctx, resp.Body)
+
 	if resp.StatusCode != 200 {
 		return errors.Errorf("wrong status code: %d", resp.StatusCode)
 	}
@@ -61,7 +63,12 @@ func (r *Supplier) sendRequest(ctx context.Context, path string, input any) ([]b
 		return nil, errors.Wrap(err, "failed to marshal request body")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/%s", r.basePath, path), bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"POST",
+		fmt.Sprintf("%s/%s", r.basePath, path),
+		bytes.NewReader(reqBody),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to make request")
 	}
@@ -75,6 +82,8 @@ func (r *Supplier) sendRequest(ctx context.Context, path string, input any) ([]b
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read body request")
 	}
+
+	shared.CloseOrLog(ctx, resp.Body)
 
 	zerolog.Ctx(ctx).Debug().
 		Str("status", "ds.request.done").

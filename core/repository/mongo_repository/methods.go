@@ -217,7 +217,10 @@ func (r *Repository) RestartMessageCreate(ctx context.Context, message *Message)
 			return errors.WithStack(err)
 		}
 
-		err = r.messageCollection.First(bson.M{"tg_chat_id": message.TgChatID, "tg_id": message.TgId}, message)
+		err = r.messageCollection.First(
+			bson.M{"tg_chat_id": message.TgChatID, "tg_id": message.TgId},
+			message,
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -264,7 +267,11 @@ func (r *Repository) RestartMessageGetAndDelete(ctx context.Context) ([]Message,
 	return messages, nil
 }
 
-func (r *Repository) PingMessageCreate(ctx context.Context, message *Message, deleteAt time.Time) error {
+func (r *Repository) PingMessageCreate(
+	ctx context.Context,
+	message *Message,
+	deleteAt time.Time,
+) error {
 	err := r.messageCollection.CreateWithCtx(ctx, message)
 	if err != nil {
 		var mgerr mongo.WriteException
@@ -272,7 +279,10 @@ func (r *Repository) PingMessageCreate(ctx context.Context, message *Message, de
 			return errors.WithStack(err)
 		}
 
-		err = r.messageCollection.First(bson.M{"tg_chat_id": message.TgChatID, "tg_id": message.TgId}, message)
+		err = r.messageCollection.First(
+			bson.M{"tg_chat_id": message.TgChatID, "tg_id": message.TgId},
+			message,
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -293,6 +303,7 @@ func (r *Repository) PingMessageGetAndDeleteForDeletion(ctx context.Context) ([]
 	messages := make([]Message, 0, 5)
 
 	now := time.Now().UTC()
+
 	err := r.messageCollection.SimpleAggregateWithCtx(
 		ctx,
 		&messages,

@@ -36,7 +36,7 @@ func draw(t *testing.T, reportImages []File) {
 		require.NoError(t, err)
 
 		out, err := os.Create(fmt.Sprintf(".test-%s", reportImage.Filename()))
-		defer out.Close()
+		shared.CloseOrLog(shared.GetCtx(), out)
 
 		err = jpeg.Encode(out, img, nil)
 		require.NoError(t, err)

@@ -36,6 +36,7 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 			// Expects, that in private conversation everyone is admin
 			return true, nil
 		}
+
 		return false, errors.WithStack(err)
 	}
 
@@ -44,9 +45,15 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 		go func() {
 			_, err = r.updateMembers(ctx, update.EffectiveChat())
 			if err != nil {
-				zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.update.members").Send()
+				zerolog.Ctx(ctx).
+					Error().
+					Stack().
+					Err(err).
+					Str("status", "failed.to.update.members").
+					Send()
 			}
 		}()
+
 		return false, errors.New("user not found in members")
 	}
 

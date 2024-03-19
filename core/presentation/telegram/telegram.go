@@ -69,7 +69,11 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			WithMaxWait(time.Minute * 5).
 			WithMaxRetries(20).
 			WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
-				zerolog.Ctx(ctx).Warn().Str("status", "flood.waiting").Dur("dur", wait.Duration).Send()
+				zerolog.Ctx(ctx).
+					Warn().
+					Str("status", "flood.waiting").
+					Dur("dur", wait.Duration).
+					Send()
 			})
 
 		middlewares = append(middlewares, waiter)
@@ -78,7 +82,6 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 				return waiter.Run(ctx, f)
 			})
 		}
-
 	}
 
 	protoClient, err := gotgproto.NewClient(
@@ -91,11 +94,13 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
-			Session:          sessionMaker.SqliteSession(shared.AppSettings.Telegram.SessionFullPath),
-			Middlewares:      middlewares,
-			RunMiddleware:    runMiddleware,
-			RetryInterval:    10 * time.Second,
-			MaxRetries:       10,
+			Session: sessionMaker.SqliteSession(
+				shared.AppSettings.Telegram.SessionFullPath,
+			),
+			Middlewares:   middlewares,
+			RunMiddleware: runMiddleware,
+			RetryInterval: 10 * time.Second,
+			MaxRetries:    10,
 		})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create gotgproto client")
@@ -277,7 +282,12 @@ func MustNewTelegramPresentation(
 
 	err := presentation.updateRestartMessages(ctx)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.update.restart.messages").Send()
+		zerolog.Ctx(ctx).
+			Error().
+			Stack().
+			Err(err).
+			Str("status", "failed.to.update.restart.messages").
+			Send()
 	}
 
 	scheduler := gocron.NewScheduler(time.UTC)

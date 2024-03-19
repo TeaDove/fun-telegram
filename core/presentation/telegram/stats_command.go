@@ -26,7 +26,11 @@ var (
 	}
 )
 
-func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, input *input) (mongo_repository.User, bool, error) {
+func (r *Presentation) getUserFromFlag(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) (mongo_repository.User, bool, error) {
 	username, usernameFlagOk := input.Ops[FlagStatsUsername.Long]
 	if !usernameFlagOk || len(username) == 0 {
 		return mongo_repository.User{}, false, nil
@@ -40,7 +44,12 @@ func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, inp
 		}
 
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			err = r.replyIfNotSilent(ctx, update, input, fmt.Sprintf("Err: user not found by id: %d", targetUserId))
+			err = r.replyIfNotSilent(
+				ctx,
+				update,
+				input,
+				fmt.Sprintf("Err: user not found by id: %d", targetUserId),
+			)
 			if err != nil {
 				return mongo_repository.User{}, false, errors.Wrap(err, "failed to reply")
 			}
@@ -56,7 +65,12 @@ func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, inp
 	}
 
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		err = r.replyIfNotSilent(ctx, update, input, fmt.Sprintf("Err: user not found by username: %s", username))
+		err = r.replyIfNotSilent(
+			ctx,
+			update,
+			input,
+			fmt.Sprintf("Err: user not found by username: %s", username),
+		)
 		if err != nil {
 			return mongo_repository.User{}, false, errors.Wrap(err, "failed to reply")
 		}
@@ -65,12 +79,22 @@ func (r *Presentation) getUserFromFlag(ctx *ext.Context, update *ext.Update, inp
 	return mongo_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 }
 
-func (r *Presentation) statsChannelCommandHandler(ctx *ext.Context, update *ext.Update, input *input, channel string) (err error) {
+func (r *Presentation) statsChannelCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+	channel string,
+) (err error) {
 	var maxDepth = defaultMaxDepth
+
 	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
 		if err != nil {
-			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()), nil)
+			_, err = ctx.Reply(
+				update,
+				fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()),
+				nil,
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -84,10 +108,15 @@ func (r *Presentation) statsChannelCommandHandler(ctx *ext.Context, update *ext.
 	}
 
 	var maxOrder = defaultOrder
+
 	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
 		if err != nil {
-			_, err = ctx.Reply(update, fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()), nil)
+			_, err = ctx.Reply(
+				update,
+				fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()),
+				nil,
+			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -128,7 +157,14 @@ func (r *Presentation) statsChannelCommandHandler(ctx *ext.Context, update *ext.
 	return nil
 }
 
-func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
+// statsCommandHandler
+// nolint: cyclop
+// TODO fix cyclop
+func (r *Presentation) statsCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) (err error) {
 	if channel, ok := input.Ops[FlagStatsChannelName.Long]; ok {
 		return r.statsChannelCommandHandler(ctx, update, input, channel)
 	}
@@ -167,7 +203,11 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 		return errors.Wrapf(err, "no images in report")
 	}
 
-	firstFile, err := fileUploader.FromBytes(ctx, report.Images[0].Filename(), report.Images[0].Content)
+	firstFile, err := fileUploader.FromBytes(
+		ctx,
+		report.Images[0].Filename(),
+		report.Images[0].Content,
+	)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -197,7 +237,10 @@ func (r *Presentation) statsCommandHandler(ctx *ext.Context, update *ext.Update,
 
 	text = append(text,
 		styling.Plain(
-			r.resourceService.Localizef(ctx, resource.CommandStatsResponseSuccess, input.ChatSettings.Locale,
+			r.resourceService.Localizef(
+				ctx,
+				resource.CommandStatsResponseSuccess,
+				input.ChatSettings.Locale,
 				report.FirstMessageAt.Format(time.DateOnly),
 				report.MessagesCount,
 				time.Since(input.StartedAt).Seconds(),

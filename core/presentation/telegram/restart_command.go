@@ -12,12 +12,23 @@ import (
 	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
-func (r *Presentation) restartCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
+func (r *Presentation) restartCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) error {
 	reloadMessage, err := ctx.SendMessage(ctx.Self.ID,
 		&tg.MessagesSendMessageRequest{
-			Message: r.resourceService.Localize(ctx, resource.CommandRestartRestarting, input.ChatSettings.Locale),
+			Message: r.resourceService.Localize(
+				ctx,
+				resource.CommandRestartRestarting,
+				input.ChatSettings.Locale,
+			),
 		},
 	)
+	if err != nil {
+		return errors.Wrap(err, "failed to send message")
+	}
 
 	zerolog.Ctx(ctx).Warn().Str("status", "reload.begin").Send()
 
@@ -53,10 +64,15 @@ func (r *Presentation) updateRestartMessages(ctx context.Context) error {
 
 	for _, message := range messages {
 		tgCtx := r.protoClient.CreateContext()
+
 		_, err = tgCtx.EditMessage(message.TgChatID, &tg.MessagesEditMessageRequest{
-			Peer:    r.protoClient.Self.AsInputPeer(),
-			ID:      message.TgId,
-			Message: r.resourceService.Localize(ctx, resource.CommandRestartSuccess, chatSetting.Locale),
+			Peer: r.protoClient.Self.AsInputPeer(),
+			ID:   message.TgId,
+			Message: r.resourceService.Localize(
+				ctx,
+				resource.CommandRestartSuccess,
+				chatSetting.Locale,
+			),
 		})
 		if err != nil {
 			return errors.WithStack(err)

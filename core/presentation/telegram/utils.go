@@ -26,7 +26,12 @@ func filterNonNewMessages(update *ext.Update) bool {
 	}
 }
 
-func (r *Presentation) replyIfNotSilent(ctx *ext.Context, update *ext.Update, input *input, text any) error {
+func (r *Presentation) replyIfNotSilent(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+	text any,
+) error {
 	if input.Silent {
 		return nil
 	}

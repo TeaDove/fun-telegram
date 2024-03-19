@@ -29,7 +29,6 @@ func tgStatusToRepositoryStatus(status members.Status) mongo_repository.MemberSt
 		return mongo_repository.Banned
 	default:
 		return mongo_repository.Unknown
-
 	}
 }
 
@@ -38,7 +37,9 @@ func (r *Presentation) updateMembers(
 	effectiveChat types.EffectiveChat,
 ) (mongo_repository.UsersInChat, error) {
 	t0 := time.Now()
+
 	zerolog.Ctx(ctx).Info().Str("status", "members.uploading").Send()
+
 	usersInChat := make(mongo_repository.UsersInChat, 0, 50)
 
 	compileSlice := func(chatMember members.Member) error {
@@ -74,12 +75,17 @@ func (r *Presentation) updateMembers(
 			return errors.Wrap(err, "failed to upsert member")
 		}
 
-		zerolog.Ctx(ctx).Debug().Str("status", "member.uploaded").Interface("user", userInChat).Send()
+		zerolog.Ctx(ctx).
+			Debug().
+			Str("status", "member.uploaded").
+			Interface("user", userInChat).
+			Send()
 
 		return nil
 	}
 
 	var chatTitle string
+
 	switch t := effectiveChat.(type) {
 	case *types.Chat:
 		chat := r.telegramManager.Chat(t.Raw())
@@ -128,12 +134,13 @@ func (r *Presentation) getOrUpdateMembers(
 	effectiveChat types.EffectiveChat,
 ) (mongo_repository.UsersInChat, error) {
 	needUpload := false
+
 	chat, err := r.mongoRepository.GetChat(ctx, effectiveChat.GetID())
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.Wrap(err, "failed to get chat from repository")
-
 		}
+
 		needUpload = true
 	}
 

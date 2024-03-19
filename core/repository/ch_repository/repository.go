@@ -32,7 +32,11 @@ func New(ctx context.Context) (*Repository, error) {
 		Protocol: clickhouse.Native,
 		//Debug:    true,
 		Debugf: func(format string, v ...any) {
-			zerolog.Ctx(ctx).Debug().Str("status", "ch.log").Str("log", fmt.Sprintf(format, v...)).Send()
+			zerolog.Ctx(ctx).
+				Debug().
+				Str("status", "ch.log").
+				Str("log", fmt.Sprintf(format, v...)).
+				Send()
 		},
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
@@ -74,6 +78,7 @@ func (r *Repository) Ping(ctx context.Context) error {
 
 func (r *Repository) init(ctx context.Context) {
 	t0 := time.Now()
+
 	for _, sql := range initSQL {
 		err := r.conn.Exec(ctx, sql)
 		if err != nil {
@@ -81,5 +86,9 @@ func (r *Repository) init(ctx context.Context) {
 		}
 	}
 
-	zerolog.Ctx(ctx).Info().Str("status", "ch.migration.applied").Dur("elapsed", time.Since(t0)).Send()
+	zerolog.Ctx(ctx).
+		Info().
+		Str("status", "ch.migration.applied").
+		Dur("elapsed", time.Since(t0)).
+		Send()
 }

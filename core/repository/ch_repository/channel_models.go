@@ -1,20 +1,21 @@
 package ch_repository
 
 import (
-	mapset "github.com/deckarep/golang-set/v2"
 	"time"
+
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type Channel struct {
-	TgId       int64     `csv:"tg_id" ch:"tg_id" parquet:"name=tg_id, type=INT64"`
-	TgTitle    string    `csv:"tg_title" ch:"tg_title" parquet:"name=tg_title, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	TgId       int64     `csv:"tg_id"       ch:"tg_id"       parquet:"name=tg_id, type=INT64"`
+	TgTitle    string    `csv:"tg_title"    ch:"tg_title"    parquet:"name=tg_title, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	TgUsername string    `csv:"tg_username" ch:"tg_username" parquet:"name=tg_username, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	UploadedAt time.Time `ch:"uploaded_at"`
+	UploadedAt time.Time `                  ch:"uploaded_at"`
 
-	ParticipantCount   int64   `csv:"participant_count" ch:"participant_count" parquet:"name=participant_count, type=INT64"`
-	RecommendationsIds []int64 `ch:"recommendations_ids"`
-	IsLeaf             bool    `csv:"is_leaf" ch:"is_leaf" parquet:"name=is_leaf, type=BOOLEAN"`
-	TgAbout            *string `csv:"tg_about" ch:"tg_about" parquet:"name=tg_about, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	ParticipantCount   int64   `csv:"participant_count" ch:"participant_count"   parquet:"name=participant_count, type=INT64"`
+	RecommendationsIds []int64 `                        ch:"recommendations_ids"`
+	IsLeaf             bool    `csv:"is_leaf"           ch:"is_leaf"             parquet:"name=is_leaf, type=BOOLEAN"`
+	TgAbout            *string `csv:"tg_about"          ch:"tg_about"            parquet:"name=tg_about, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
 type Channels []Channel
@@ -29,9 +30,9 @@ func (r Channels) ToMap() map[int64]Channel {
 }
 
 type ChannelEdge struct {
-	TgIdIn  int64 `csv:"tg_id_in" ch:"tg_id_in" parquet:"name=tg_id_in, type=INT64"`
+	TgIdIn  int64 `csv:"tg_id_in"  ch:"tg_id_in"  parquet:"name=tg_id_in, type=INT64"`
 	TgIdOut int64 `csv:"tg_id_out" ch:"tg_id_out" parquet:"name=tg_id_out, type=INT64"`
-	Order   int64 `csv:"order" ch:"order" parquet:"name=order, type=INT64"`
+	Order   int64 `csv:"order"     ch:"order"     parquet:"name=order, type=INT64"`
 }
 
 type ChannelsEdges []ChannelEdge

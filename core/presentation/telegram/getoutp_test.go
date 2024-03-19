@@ -54,7 +54,11 @@ func TestUnit_StripWords_QuotesNotFromStart_Ok(t *testing.T) {
 	words := stripWords(`!ping --silent --negative="bad input" user not found hi!`)
 
 	assert.Len(t, words, 7)
-	assert.Equal(t, []string{"!ping", "--silent", `--negative=bad input`, "user", "not", "found", "hi!"}, words)
+	assert.Equal(
+		t,
+		[]string{"!ping", "--silent", `--negative=bad input`, "user", "not", "found", "hi!"},
+		words,
+	)
 }
 
 func TestUnit_GetArguments_LongDash_Ok(t *testing.T) {

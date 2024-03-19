@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/rs/zerolog"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
@@ -51,7 +52,11 @@ func (r *Presentation) getChatSettings(ctx context.Context, chatId int64) (ChatS
 	var setChannelLocale bool
 
 	if redisChatSettings.Locale == "" {
-		zerolog.Ctx(ctx).Warn().Str("status", "empty.locale").Interface("chat", redisChatSettings).Send()
+		zerolog.Ctx(ctx).
+			Warn().
+			Str("status", "empty.locale").
+			Interface("chat", redisChatSettings).
+			Send()
 		redisChatSettings.Locale = string(defaultLocale)
 		setChannelLocale = true
 	}
@@ -74,14 +79,21 @@ func (r *Presentation) getChatSettings(ctx context.Context, chatId int64) (ChatS
 	if setChannelLocale {
 		err = r.setChatSettings(ctx, chatId, &chatSettings)
 		if err != nil {
-			return ChatSettings{}, errors.Wrap(err, "failed to set channel settings because of failed parsing")
+			return ChatSettings{}, errors.Wrap(
+				err,
+				"failed to set channel settings because of failed parsing",
+			)
 		}
 	}
 
 	return chatSettings, nil
 }
 
-func (r *Presentation) setChatSettings(ctx context.Context, chatId int64, newChatSettings *ChatSettings) (err error) {
+func (r *Presentation) setChatSettings(
+	ctx context.Context,
+	chatId int64,
+	newChatSettings *ChatSettings,
+) (err error) {
 	redisChatSettings := redis_repository.ChatSettings{
 		Enabled:  newChatSettings.Enabled,
 		Locale:   string(newChatSettings.Locale),
@@ -134,7 +146,11 @@ var (
 
 // chatCommandHandler
 // nolint: gocyclo
-func (r *Presentation) chatCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
+func (r *Presentation) chatCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) (err error) {
 	chatId := update.EffectiveChat().GetID()
 	msgText := make([]styling.StyledTextOption, 0, 5)
 
@@ -176,7 +192,6 @@ func (r *Presentation) chatCommandHandler(ctx *ext.Context, update *ext.Update, 
 				msgText = append(msgText, styling.Plain(fmt.Sprintf("Feature enabled: %s", enable)))
 				input.ChatSettings.Features[enable] = true
 			}
-
 		}
 	}
 
@@ -189,7 +204,12 @@ func (r *Presentation) chatCommandHandler(ctx *ext.Context, update *ext.Update, 
 				ctx,
 				update,
 				input,
-				r.resourceService.Localizef(ctx, resource.ErrLocaleNotFound, input.ChatSettings.Locale, locale),
+				r.resourceService.Localizef(
+					ctx,
+					resource.ErrLocaleNotFound,
+					input.ChatSettings.Locale,
+					locale,
+				),
 			)
 			if err != nil {
 				return errors.WithStack(err)
@@ -200,8 +220,11 @@ func (r *Presentation) chatCommandHandler(ctx *ext.Context, update *ext.Update, 
 
 		input.ChatSettings.Locale = resourceLocale
 
-		msgText = append(msgText,
-			styling.Plain(r.resourceService.Localize(ctx, resource.CommandChatLocaleSuccess, resourceLocale)),
+		msgText = append(
+			msgText,
+			styling.Plain(
+				r.resourceService.Localize(ctx, resource.CommandChatLocaleSuccess, resourceLocale),
+			),
 			styling.Plain("\n\n"),
 		)
 	}
@@ -214,7 +237,12 @@ func (r *Presentation) chatCommandHandler(ctx *ext.Context, update *ext.Update, 
 				ctx,
 				update,
 				input,
-				r.resourceService.Localizef(ctx, resource.ErrUnprocessableEntity, input.ChatSettings.Locale, err),
+				r.resourceService.Localizef(
+					ctx,
+					resource.ErrUnprocessableEntity,
+					input.ChatSettings.Locale,
+					err,
+				),
 			)
 			if err != nil {
 				return errors.Wrap(err, "failed to reply if not silent")
@@ -241,13 +269,21 @@ func (r *Presentation) chatCommandHandler(ctx *ext.Context, update *ext.Update, 
 
 			return nil
 		}
-		tz8 := int8(tzInt)
 
+		tz8 := int8(tzInt)
 		input.ChatSettings.Tz = tz8
 		input.ChatSettings.TimeLoc = int8ToLoc(tz8)
 
-		msgText = append(msgText,
-			styling.Plain(r.resourceService.Localizef(ctx, resource.CommandChatTzSuccess, input.ChatSettings.Locale, input.ChatSettings.TimeLoc.String())),
+		msgText = append(
+			msgText,
+			styling.Plain(
+				r.resourceService.Localizef(
+					ctx,
+					resource.CommandChatTzSuccess,
+					input.ChatSettings.Locale,
+					input.ChatSettings.TimeLoc.String(),
+				),
+			),
 		)
 	}
 
@@ -262,8 +298,9 @@ func (r *Presentation) chatCommandHandler(ctx *ext.Context, update *ext.Update, 
 			return errors.Wrap(err, "failed to reply")
 		}
 
-		return
+		return nil
 	}
+
 	err = r.replyIfNotSilent(ctx, update, input, msgText)
 	if err != nil {
 		return errors.Wrap(err, "failed to reply")

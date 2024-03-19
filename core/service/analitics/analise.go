@@ -2,8 +2,9 @@ package analitics
 
 import (
 	"context"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 	"sync"
+
+	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
@@ -28,13 +29,24 @@ func (r *Service) getChatterBoxes(
 		},
 	}
 
-	var err error
-	var userToCountArray []ch_repository.GroupedCountGetByChatIdByUserIdOutput
-	var title string
+	var (
+		err              error
+		userToCountArray []ch_repository.GroupedCountGetByChatIdByUserIdOutput
+		title            string
+	)
 
 	if asc {
-		userToCountArray, err = r.chRepository.GroupedCountGetByChatIdByUserIdAsc(ctx, input.TgChatId, 35, usersInChat.ToIds())
-		title = r.resourceService.Localize(ctx, resource.AnaliseChartLeastChatterBoxes, input.Locale)
+		userToCountArray, err = r.chRepository.GroupedCountGetByChatIdByUserIdAsc(
+			ctx,
+			input.TgChatId,
+			35,
+			usersInChat.ToIds(),
+		)
+		title = r.resourceService.Localize(
+			ctx,
+			resource.AnaliseChartLeastChatterBoxes,
+			input.Locale,
+		)
 		output.repostImage.Name = "AntiChatterBoxes"
 	} else {
 		userToCountArray, err = r.chRepository.GroupedCountGetByChatIdByUserId(ctx, input.TgChatId, 25)
@@ -58,7 +70,11 @@ func (r *Service) getChatterBoxes(
 		DrawInput: ds_supplier.DrawInput{
 			Title:  title,
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUser, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartWordsWritten, input.Locale),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartWordsWritten,
+				input.Locale,
+			),
 		},
 		Values: userToCount,
 		Asc:    asc,
@@ -119,9 +135,21 @@ func (r *Service) getMessageFindRepliedBy(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliedBy, input.Locale),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartMessagesSent, input.Locale),
+			Title: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartUserRepliedBy,
+				input.Locale,
+			),
+			XLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartInterlocusts,
+				input.Locale,
+			),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartMessagesSent,
+				input.Locale,
+			),
 		},
 		Values: userToCount,
 	})
@@ -179,9 +207,21 @@ func (r *Service) getMessageFindRepliesTo(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliesTo, input.Locale),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartMessagesSent, input.Locale),
+			Title: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartUserRepliesTo,
+				input.Locale,
+			),
+			XLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartInterlocusts,
+				input.Locale,
+			),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartMessagesSent,
+				input.Locale,
+			),
 		},
 		Values: userToCount,
 	})
@@ -212,6 +252,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 		},
 	}
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
+
 	for _, user := range usersInChat {
 		replies, err := r.chRepository.MessageFindRepliesTo(
 			ctx,
@@ -278,6 +319,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 		},
 	}
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
+
 	for _, user := range usersInChat {
 		replies, err := r.chRepository.MessageFindRepliesTo(
 			ctx,
@@ -313,9 +355,21 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
 		WeightedEdges: false,
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliedBy, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUserRepliesTo, input.Locale),
+			Title: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartInterlocusts,
+				input.Locale,
+			),
+			XLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartUserRepliedBy,
+				input.Locale,
+			),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartUserRepliesTo,
+				input.Locale,
+			),
 		},
 		Edges: edges,
 	})

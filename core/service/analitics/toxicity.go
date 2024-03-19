@@ -20,7 +20,9 @@ func (r *Service) getMostToxicUsers(
 	getter nameGetter,
 ) {
 	defer wg.Done()
+
 	const maxUsers = 15
+
 	output := statsReport{
 		repostImage: File{
 			Name:      "MostToxicUsers",
@@ -28,7 +30,11 @@ func (r *Service) getMostToxicUsers(
 		},
 	}
 
-	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(ctx, input.TgChatId, maxUsers)
+	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(
+		ctx,
+		input.TgChatId,
+		maxUsers,
+	)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to get GroupedCountGetByChatIdByUserId")
 		statsReportChan <- output
@@ -38,14 +44,26 @@ func (r *Service) getMostToxicUsers(
 
 	userToCount := make(map[string]float64, maxUsers)
 	for _, message := range userToCountArray {
-		userToCount[getter.GetName(message.TgUserId)] = float64(message.ToxicWordsCount) / float64(message.WordsCount) * 100
+		userToCount[getter.GetName(message.TgUserId)] = float64(
+			message.ToxicWordsCount,
+		) / float64(
+			message.WordsCount,
+		) * 100
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartToxicityPercentShort, input.Locale),
+			Title: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartToxicityPercentShort,
+				input.Locale,
+			),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUser, input.Locale),
-			YLabel: r.resourceService.Localize(ctx, resource.AnaliseChartToxicityPercentLong, input.Locale),
+			YLabel: r.resourceService.Localize(
+				ctx,
+				resource.AnaliseChartToxicityPercentLong,
+				input.Locale,
+			),
 		},
 		Values: userToCount,
 	})

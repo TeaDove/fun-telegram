@@ -60,11 +60,13 @@ const maxCheckTime = 5 * time.Second
 func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 	outerCtx, outerCancel := context.WithTimeout(ctx, maxCheckTime+time.Millisecond*100)
 	defer outerCancel()
+
 	ctx, cancel := context.WithTimeout(outerCtx, maxCheckTime)
 	defer cancel()
 
 	checkers := map[string]ServiceChecker{}
 	maps.Copy(checkers, r.checkers)
+
 	if frequent {
 		for name, checker := range checkers {
 			if !checker.ForFrequent {
@@ -99,17 +101,23 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 					Str("service", result.Name).
 					Dur("elapsed", elapsed).Send()
 			}
+
 			result.Elapsed = elapsed
 
 			checkResults = append(checkResults, result)
 			delete(checkers, result.Name)
+
 			if len(checkers) == 0 {
 				shouldBreak = true
 			}
+
 		case <-outerCtx.Done():
 			elapsed := time.Since(t0)
 			for name := range checkers {
-				checkResults = append(checkResults, CheckResult{Name: name, Err: ctx.Err(), Elapsed: elapsed})
+				checkResults = append(
+					checkResults,
+					CheckResult{Name: name, Err: ctx.Err(), Elapsed: elapsed},
+				)
 				zerolog.Ctx(ctx).
 					Error().Stack().
 					Err(ctx.Err()).
@@ -117,9 +125,9 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 					Str("service", name).
 					Dur("elapsed", elapsed).Send()
 			}
+
 			shouldBreak = true
 		}
-
 	}
 
 	return checkResults

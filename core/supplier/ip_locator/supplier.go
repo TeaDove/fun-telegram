@@ -32,7 +32,12 @@ type IpLocation struct {
 }
 
 func (r *Supplier) GetLocation(ctx context.Context, ip string) (IpLocation, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://ip-api.com/json/%s", ip), nil)
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"GET",
+		fmt.Sprintf("http://ip-api.com/json/%s", ip),
+		nil,
+	)
 	if err != nil {
 		return IpLocation{}, errors.WithStack(err)
 	}

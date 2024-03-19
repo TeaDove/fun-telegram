@@ -12,11 +12,16 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func (r *Presentation) compileHelpMessage(ctx context.Context, input *input) []styling.StyledTextOption {
+func (r *Presentation) compileHelpMessage(
+	ctx context.Context,
+	input *input,
+) []styling.StyledTextOption {
 	helpMessage := make([]styling.StyledTextOption, 0, 20)
 	helpMessage = append(
 		helpMessage,
-		styling.Plain(r.resourceService.Localize(ctx, resource.CommandHelpBegin, input.ChatSettings.Locale)),
+		styling.Plain(
+			r.resourceService.Localize(ctx, resource.CommandHelpBegin, input.ChatSettings.Locale),
+		),
 	)
 
 	keys := maps.Keys(r.router)
@@ -34,27 +39,48 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *input) []s
 				),
 			),
 		)
+
 		if command.requireAdmin {
-			helpMessage = append(helpMessage,
-				styling.Bold(r.resourceService.Localize(ctx, resource.AdminRequires, input.ChatSettings.Locale)),
+			helpMessage = append(
+				helpMessage,
+				styling.Bold(
+					r.resourceService.Localize(
+						ctx,
+						resource.AdminRequires,
+						input.ChatSettings.Locale,
+					),
+				),
 				styling.Plain("\n"),
 			)
 		}
+
 		if command.requireOwner {
-			helpMessage = append(helpMessage,
-				styling.Bold(r.resourceService.Localize(ctx, resource.OwnerRequires, input.ChatSettings.Locale)),
+			helpMessage = append(
+				helpMessage,
+				styling.Bold(
+					r.resourceService.Localize(
+						ctx,
+						resource.OwnerRequires,
+						input.ChatSettings.Locale,
+					),
+				),
 				styling.Plain("\n"),
 			)
 		}
+
 		if command.example != "" {
-			helpMessage = append(helpMessage,
-				styling.Plain(r.resourceService.Localize(ctx, resource.Example, input.ChatSettings.Locale)),
+			helpMessage = append(
+				helpMessage,
+				styling.Plain(
+					r.resourceService.Localize(ctx, resource.Example, input.ChatSettings.Locale),
+				),
 				styling.Plain(": "),
 				styling.Code(
 					fmt.Sprintf("!%s %s\n",
 						commandName,
 						command.example,
-					)))
+					)),
+			)
 		}
 
 		for _, flag := range command.flags {
@@ -65,15 +91,26 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *input) []s
 						"-%s/%s - %s\n",
 						flag.Long,
 						flag.Short,
-						r.resourceService.Localize(ctx, flag.Description, input.ChatSettings.Locale),
+						r.resourceService.Localize(
+							ctx,
+							flag.Description,
+							input.ChatSettings.Locale,
+						),
 					),
 				),
 			)
 		}
 
 		if !r.checkFeatureEnabled(&input.ChatSettings, commandName) {
-			helpMessage = append(helpMessage,
-				styling.Bold(r.resourceService.Localize(ctx, resource.CommandHelpDisabled, input.ChatSettings.Locale)),
+			helpMessage = append(
+				helpMessage,
+				styling.Bold(
+					r.resourceService.Localize(
+						ctx,
+						resource.CommandHelpDisabled,
+						input.ChatSettings.Locale,
+					),
+				),
 				styling.Plain("\n"),
 			)
 		}
@@ -84,7 +121,11 @@ func (r *Presentation) compileHelpMessage(ctx context.Context, input *input) []s
 	return helpMessage
 }
 
-func (r *Presentation) helpCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
+func (r *Presentation) helpCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) error {
 	_, err := ctx.Reply(update, r.compileHelpMessage(ctx, input), nil)
 	if err != nil {
 		return errors.WithStack(err)

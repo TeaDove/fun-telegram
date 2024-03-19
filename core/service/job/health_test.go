@@ -28,9 +28,11 @@ func TestIntegration_JobService_HealthChecker_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("test")
 	r := getService(t)
 
-	r.checkers = map[string]ServiceChecker{"health-service": {Checker: func(ctx context.Context) error {
-		return nil
-	}}}
+	r.checkers = map[string]ServiceChecker{
+		"health-service": {Checker: func(ctx context.Context) error {
+			return nil
+		}},
+	}
 
 	checkResults := r.Check(ctx, false)
 	assert.Equal(t, "health-service", checkResults[0].Name)
@@ -42,9 +44,11 @@ func TestIntegration_JobService_HealthChecker_ErrOk(t *testing.T) {
 	r := getService(t)
 
 	err := errors.New("something went wrong")
-	r.checkers = map[string]ServiceChecker{"unhealth-service": {Checker: func(ctx context.Context) error {
-		return err
-	}}}
+	r.checkers = map[string]ServiceChecker{
+		"unhealth-service": {Checker: func(ctx context.Context) error {
+			return err
+		}},
+	}
 
 	checkResults := r.Check(ctx, false)
 	assert.Equal(t, "unhealth-service", checkResults[0].Name)

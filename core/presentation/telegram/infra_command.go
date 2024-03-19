@@ -11,7 +11,11 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Update, input *input) (err error) {
+func (r *Presentation) infraStatsCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	input *input,
+) (err error) {
 	statsByDatabase, err := r.jobService.Stats(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get stats of databases")
@@ -21,17 +25,21 @@ func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Up
 
 	for database, stats := range statsByDatabase {
 		message = append(message, styling.Bold(database), styling.Plain("\n"))
+
 		collNames := maps.Keys(stats)
 		for _, collName := range collNames {
 			if stats[collName].Count == 0 {
 				delete(stats, collName)
 			}
 		}
+
 		collNames = maps.Keys(stats)
+
 		slices.SortFunc(collNames, func(a, b string) int {
 			if stats[a].TotalSizeBytes < stats[b].TotalSizeBytes {
 				return 1
 			}
+
 			return -1
 		})
 
@@ -42,11 +50,20 @@ func (r *Presentation) infraStatsCommandHandler(ctx *ext.Context, update *ext.Up
 				styling.Plain(fmt.Sprintf("    %s\n", collName)),
 				styling.Plain(fmt.Sprintf("        count: %d\n", collStats.Count)),
 				styling.Plain(
-					fmt.Sprintf("        totalSize: %.2fmb\n", shared.ToKilo(collStats.TotalSizeBytes)/1024),
+					fmt.Sprintf(
+						"        totalSize: %.2fmb\n",
+						shared.ToKilo(collStats.TotalSizeBytes)/1024,
+					),
 				),
-				styling.Plain(fmt.Sprintf("        avgObjWithIndexSize: %db\n", collStats.AvgObjWithIndexSizeBytes)),
+				styling.Plain(
+					fmt.Sprintf(
+						"        avgObjWithIndexSize: %db\n",
+						collStats.AvgObjWithIndexSizeBytes,
+					),
+				),
 			)
 		}
+
 		message = append(message, styling.Plain("\n"))
 	}
 

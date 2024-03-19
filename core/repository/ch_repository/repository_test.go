@@ -30,7 +30,13 @@ func TestIntegration_ChRepository_MessageFindInterlocutors_Ok(t *testing.T) {
 
 	r := getRepository(t)
 
-	output, err := r.MessageFindInterlocutors(shared.GetCtx(), 1701683862, 418878871, 10, time.Minute*5)
+	output, err := r.MessageFindInterlocutors(
+		shared.GetCtx(),
+		1701683862,
+		418878871,
+		10,
+		time.Minute*5,
+	)
 	assert.NoError(t, err)
 	shared.SendInterface(output)
 }

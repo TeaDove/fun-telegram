@@ -24,6 +24,7 @@ func (r *Presentation) healthCommandHandler(ctx *ext.Context, update *ext.Update
 		} else {
 			message = append(message, styling.Code("OK"))
 		}
+
 		message = append(message, styling.Plain("\n\n"))
 	}
 

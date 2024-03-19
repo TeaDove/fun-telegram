@@ -1,15 +1,13 @@
 package analitics
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
-	"github.com/gocarina/gocsv"
+	"runtime"
+	"time"
+
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
-	"runtime"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -24,7 +22,11 @@ func (r *Service) ChannelInsert(ctx context.Context, channel *ch_repository.Chan
 		return errors.Wrap(err, "failed to insert channel")
 	}
 
-	zerolog.Ctx(ctx).Debug().Str("status", "channel.inserted").Interface("title", channel.TgTitle).Send()
+	zerolog.Ctx(ctx).
+		Debug().
+		Str("status", "channel.inserted").
+		Interface("title", channel.TgTitle).
+		Send()
 
 	return nil
 }
@@ -40,8 +42,12 @@ func (r *Service) ChannelSelect(ctx context.Context, id int64) (ch_repository.Ch
 
 var channelDataTtl = time.Hour * 24 * 60
 
-func (r *Service) channelEdgeBatchInsert(ctx context.Context, channels ch_repository.Channels) error {
+func (r *Service) channelEdgeBatchInsert(
+	ctx context.Context,
+	channels ch_repository.Channels,
+) error {
 	edges := make([]ch_repository.ChannelEdge, 0, len(channels)*2)
+
 	for _, channelIn := range channels {
 		for idx, channelOut := range channelIn.RecommendationsIds {
 			edges = append(edges, ch_repository.ChannelEdge{
@@ -60,6 +66,9 @@ func (r *Service) channelEdgeBatchInsert(ctx context.Context, channels ch_reposi
 	return nil
 }
 
+// ChannelBatchInsert
+// nolint: cyclop
+// TODO fix cyclop
 func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_repository.Channel) error {
 	channelIds := make([]int64, len(channels))
 	for idx, channel := range channels {
@@ -76,9 +85,11 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 	leafsCount := 0
 	alreadyProcessed := 0
 	newChannels := make([]ch_repository.Channel, 0, len(channels))
+
 	for _, channel := range channels {
 		oldChannel, ok := oldChannelsMap[channel.TgId]
-		if ok && time.Since(oldChannel.UploadedAt) < channelDataTtl && !oldChannel.IsLeaf && channel.IsLeaf {
+		if ok && time.Since(oldChannel.UploadedAt) < channelDataTtl && !oldChannel.IsLeaf &&
+			channel.IsLeaf {
 			alreadyProcessed++
 			continue
 		}
@@ -87,6 +98,7 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 		if channel.RecommendationsIds == nil {
 			leafsCount++
 		}
+
 		newChannels = append(newChannels, channel)
 	}
 
@@ -111,48 +123,55 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 	return nil
 }
 
-func dumpSliceToCsvZip(name string, slice any) (File, error) {
-	file := File{
-		Name:      name,
-		Extension: "csv.zip",
-	}
+//func dumpSliceToCsvZip(name string, slice any) (File, error) {
+//	file := File{
+//		Name:      name,
+//		Extension: "csv.zip",
+//	}
+//
+//	sliceBytes, err := gocsv.MarshalBytes(slice)
+//	if err != nil {
+//		return File{}, errors.Wrap(err, "failed to dump to csv")
+//	}
+//
+//	buf := new(bytes.Buffer)
+//	zipWriter := zip.NewWriter(buf)
+//
+//	zipFile, err := zipWriter.Create(name + ".csv")
+//	if err != nil {
+//		return File{}, errors.Wrap(err, "failed to create zip")
+//	}
+//
+//	_, err = zipFile.Write(sliceBytes)
+//	if err != nil {
+//		return File{}, errors.Wrap(err, "failed to write bytes to zip")
+//	}
+//
+//	err = zipWriter.Close()
+//	if err != nil {
+//		return File{}, errors.Wrap(err, "failed to close zip writer")
+//	}
+//
+//	file.Content = buf.Bytes()
+//
+//	return file, nil
+//}
 
-	sliceBytes, err := gocsv.MarshalBytes(slice)
-	if err != nil {
-		return File{}, errors.Wrap(err, "failed to dump to csv")
-	}
-
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
-
-	zipFile, err := zipWriter.Create(name + ".csv")
-	if err != nil {
-		return File{}, errors.Wrap(err, "failed to create zip")
-	}
-
-	_, err = zipFile.Write(sliceBytes)
-	if err != nil {
-		return File{}, errors.Wrap(err, "failed to write bytes to zip")
-	}
-
-	err = zipWriter.Close()
-	if err != nil {
-		return File{}, errors.Wrap(err, "failed to close zip writer")
-	}
-
-	file.Content = buf.Bytes()
-
-	return file, nil
-}
-
-func (r *Service) DumpChannels(ctx context.Context, username string, depth int64, maxOrder int64) ([]File, error) {
-	// TODO draw ordered
-	// TODO fix self-loops
-
+// DumpChannels
+// nolint: cyclop
+// TODO fix self-loops
+func (r *Service) DumpChannels(
+	ctx context.Context,
+	username string,
+	depth int64,
+	maxOrder int64,
+) ([]File, error) {
 	files := make([]File, 0, 3)
 
-	var err error
-	var channelEdges ch_repository.ChannelsEdges
+	var (
+		err          error
+		channelEdges ch_repository.ChannelsEdges
+	)
 
 	if username != "" {
 		channelEdges, err = r.chRepository.ChannelEdgesSelectDFS(ctx, username, depth, maxOrder)
@@ -234,7 +253,12 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 		return File{}, errors.Wrap(err, "failed to select channel by username")
 	}
 
-	channelEdges, err := r.chRepository.ChannelEdgesSelectDFS(ctx, input.TgUsername, input.Depth, input.MaxOrder)
+	channelEdges, err := r.chRepository.ChannelEdgesSelectDFS(
+		ctx,
+		input.TgUsername,
+		input.Depth,
+		input.MaxOrder,
+	)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to dsf channel edges")
 	}
@@ -268,7 +292,9 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 
 	nodes := make(map[string]ds_supplier.GraphNode, len(channels))
 	for _, node := range channels {
-		nodes[shared.ReplaceNonAsciiWithSpace(node.TgTitle)] = ds_supplier.GraphNode{Weight: float64(node.ParticipantCount)}
+		nodes[shared.ReplaceNonAsciiWithSpace(node.TgTitle)] = ds_supplier.GraphNode{
+			Weight: float64(node.ParticipantCount),
+		}
 	}
 
 	zerolog.Ctx(ctx).
@@ -280,7 +306,12 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 
 	drawInput := ds_supplier.DrawGraphInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:       r.resourceService.Localizef(ctx, resource.AnaliseChartChannelNeighbors, input.Locale, rootChannel.TgTitle),
+			Title: r.resourceService.Localizef(
+				ctx,
+				resource.AnaliseChartChannelNeighbors,
+				input.Locale,
+				rootChannel.TgTitle,
+			),
 			FigSize:     []int{50, 35},
 			ImageFormat: "png",
 		},

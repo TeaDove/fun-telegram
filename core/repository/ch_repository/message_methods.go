@@ -91,6 +91,7 @@ from message am final
 	}
 
 	output := make([]MessageFindInterlocutorsOutput, 0, limit)
+
 	for rows.Next() {
 		row := MessageFindInterlocutorsOutput{}
 		err = rows.ScanStruct(&row)
@@ -124,6 +125,7 @@ order by 2 desc limit ?
 	}
 
 	output := make([]MessageFindInterlocutorsOutput, 0, limit)
+
 	for rows.Next() {
 		row := MessageFindInterlocutorsOutput{}
 		err = rows.ScanStruct(&row)
@@ -158,6 +160,7 @@ select am.tg_user_id as tg_user_id, count(1) as count
 	}
 
 	output := make([]MessageFindInterlocutorsOutput, 0, limit)
+
 	for rows.Next() {
 		row := MessageFindInterlocutorsOutput{}
 		err = rows.ScanStruct(&row)
@@ -195,6 +198,7 @@ select am.tg_user_id as tg_user_id, am.reply_to_user_id as replied_tg_user_id, c
 	}
 
 	output := make([]MessageFindAllRepliedByOutput, 0, limit)
+
 	for rows.Next() {
 		row := MessageFindAllRepliedByOutput{}
 		err = rows.ScanStruct(&row)
@@ -223,6 +227,7 @@ select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_t
 	}
 
 	output := make([]Message, 0, 100)
+
 	for rows.Next() {
 		row := Message{}
 		err = rows.ScanStruct(&row)
@@ -260,6 +265,7 @@ select tg_user_id, sum(words_count) as "words_count", sum(toxic_words_count) as 
 	}
 
 	output := make([]GroupedCountGetByChatIdByUserIdOutput, 0, 100)
+
 	for rows.Next() {
 		row := GroupedCountGetByChatIdByUserIdOutput{}
 		err = rows.ScanStruct(&row)
@@ -295,6 +301,7 @@ where tg_chat_id = ?
 	}
 
 	output := make([]GroupedCountGetByChatIdByUserIdOutput, 0, 100)
+
 	for rows.Next() {
 		row := GroupedCountGetByChatIdByUserIdOutput{}
 		err = rows.ScanStruct(&row)
@@ -365,6 +372,7 @@ select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_t
 	}
 
 	output := make([]Message, 0, 100)
+
 	for rows.Next() {
 		row := Message{}
 		err = rows.ScanStruct(&row)
@@ -397,7 +405,11 @@ select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_t
 	return message, nil
 }
 
-func (r *Repository) GetLastMessageByChatIdByUserId(ctx context.Context, chatId int64, userId int64) (Message, error) {
+func (r *Repository) GetLastMessageByChatIdByUserId(
+	ctx context.Context,
+	chatId int64,
+	userId int64,
+) (Message, error) {
 	row := r.conn.QueryRow(ctx, `
 select created_at, tg_chat_id, tg_id, tg_user_id, text, reply_to_msg_id, reply_to_user_id from message final
 	where tg_chat_id = ? and tg_user_id = ?
@@ -429,7 +441,11 @@ type MessagesGroupedByTimeByWeekday struct {
 
 // GetMessagesGroupedByDateByChatId
 // precision = 60 means per minute, 86400 - per day
-func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatId int64, precision int) ([]MessagesGroupedByTime, error) {
+func (r *Repository) GetMessagesGroupedByDateByChatId(
+	ctx context.Context,
+	chatId int64,
+	precision int,
+) ([]MessagesGroupedByTime, error) {
 	rows, err := r.conn.Query(ctx, `
 	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", 
 	       sum(words_count) as "words_count"
@@ -443,6 +459,7 @@ func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatI
 	}
 
 	output := make([]MessagesGroupedByTime, 0, 100)
+
 	for rows.Next() {
 		row := MessagesGroupedByTime{}
 		err = rows.ScanStruct(&row)
@@ -456,7 +473,12 @@ func (r *Repository) GetMessagesGroupedByDateByChatId(ctx context.Context, chatI
 	return output, nil
 }
 
-func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(ctx context.Context, chatId int64, userId int64, precision int) ([]MessagesGroupedByTime, error) {
+func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(
+	ctx context.Context,
+	chatId int64,
+	userId int64,
+	precision int,
+) ([]MessagesGroupedByTime, error) {
 	rows, err := r.conn.Query(ctx, `
 	select fromUnixTimestamp(intDiv(toUnixTimestamp(created_at), ?) * ?) as "created_at", sum(m.words_count) as "words_count"
 		from message m final
@@ -469,6 +491,7 @@ func (r *Repository) GetMessagesGroupedByDateByChatIdByUserId(ctx context.Contex
 	}
 
 	output := make([]MessagesGroupedByTime, 0, 100)
+
 	for rows.Next() {
 		row := MessagesGroupedByTime{}
 		err = rows.ScanStruct(&row)
@@ -504,6 +527,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatId(
 	}
 
 	output := make([]MessagesGroupedByTimeByWeekday, 0, 100)
+
 	for rows.Next() {
 		row := MessagesGroupedByTimeByWeekday{}
 		err = rows.ScanStruct(&row)
@@ -538,6 +562,7 @@ func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
 	}
 
 	output := make([]MessagesGroupedByTimeByWeekday, 0, 100)
+
 	for rows.Next() {
 		row := MessagesGroupedByTimeByWeekday{}
 		err = rows.ScanStruct(&row)
@@ -551,7 +576,10 @@ func (r *Repository) GetMessagesGroupedByTimeByChatIdByUserId(
 	return output, nil
 }
 
-func (r *Repository) MessagesGetByChatIds(ctx context.Context, tgChatIds []int64) ([]Message, error) {
+func (r *Repository) MessagesGetByChatIds(
+	ctx context.Context,
+	tgChatIds []int64,
+) ([]Message, error) {
 	rows, err := r.conn.Query(ctx, `
 select m.created_at,
        m.tg_chat_id,
@@ -570,6 +598,7 @@ from message m final
 	}
 
 	output := make([]Message, 0, 100)
+
 	for rows.Next() {
 		row := Message{}
 		err = rows.ScanStruct(&row)
