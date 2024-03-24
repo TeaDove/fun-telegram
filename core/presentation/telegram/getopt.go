@@ -78,7 +78,7 @@ func stripWords(text string) []string {
 
 // GetOpt
 // nolint: gocyclo
-func GetOpt(text string, flags ...optFlag) (input input) {
+func GetOpt(text string, flags ...optFlag) (output input) {
 	const longHypenByte = 226
 
 	flags = append(flags, FlagSilent)
@@ -90,12 +90,12 @@ func GetOpt(text string, flags ...optFlag) (input input) {
 		shortToLong[flag.Short] = flag.Long
 	}
 
-	input.Ops = make(map[string]string, 3)
+	output.Ops = make(map[string]string, 3)
 	textBuilder := strings.Builder{}
 	words := stripWords(text)
 
 	if len(words) <= 1 {
-		return input
+		return output
 	}
 
 	for _, word := range words[1:] {
@@ -154,17 +154,17 @@ func GetOpt(text string, flags ...optFlag) (input input) {
 			continue
 		}
 
-		input.Ops[long] = statement
+		output.Ops[long] = strings.Trim(statement, `"`)
 	}
 
-	_, ok := input.Ops[FlagSilent.Long]
+	_, ok := output.Ops[FlagSilent.Long]
 	if ok {
-		input.Silent = true
+		output.Silent = true
 	}
 
-	delete(input.Ops, FlagSilent.Long)
+	delete(output.Ops, FlagSilent.Long)
 
-	input.Text = strings.Trim(textBuilder.String(), " ")
+	output.Text = strings.Trim(textBuilder.String(), " ")
 
-	return input
+	return output
 }

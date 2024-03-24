@@ -53,6 +53,11 @@ const (
 	CommandUploadStatsDescription
 	CommandDumpStatsDescription
 
+	CommandRegRuleDescription
+	CommandRegRuleFlagDeleteDescription
+	CommandRegRuleFlagRegexpDescription
+	CommandRegRuleFlagListDescription
+
 	CommandBanDescription
 	CommandBanUserBanned
 	CommandBanUserUnbanned
@@ -332,4 +337,12 @@ var localizer = map[Code]map[Locale]string{
 	},
 	CommandChatDescription:       {Ru: "настройки чата", En: "chat settings"},
 	AnaliseChartChannelNeighbors: {Ru: `Соседи канала "%s"`, En: `"%s"'s neignbors`},
+
+	CommandRegRuleDescription: {
+		Ru: "создания правила по регулярным выражениям",
+		En: "creates rule based on regexp",
+	},
+	CommandRegRuleFlagDeleteDescription: {Ru: "удаление правила", En: "deletes rule"},
+	CommandRegRuleFlagRegexpDescription: {Ru: "регулярное выражение", En: "regexp"},
+	CommandRegRuleFlagListDescription:   {Ru: "вывести правила", En: "list rules"},
 }

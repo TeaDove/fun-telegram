@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -142,12 +143,16 @@ func MustNewTelegramPresentation(
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.deleteOut, Outgoing: true,
+			Callback: presentation.deleteOut,
+			Filters:  filters.Message.Text,
+			Outgoing: true,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.route, Outgoing: true,
+			Callback: presentation.route,
+			Filters:  filters.Message.Text,
+			Outgoing: true,
 		},
 	)
 
@@ -186,6 +191,13 @@ func MustNewTelegramPresentation(
 			description: resource.CommandKandinskyDescription,
 			flags:       []optFlag{FlagKandinskyNegativePrompt, FlagKandinskyStyle},
 			example:     "--style=ANIME girl in space, sticker, realism, cute_mood, bold colors, disney",
+		},
+		"regrule": {
+			executor:     presentation.regruleCommandHandler,
+			description:  resource.CommandRegRuleDescription,
+			flags:        []optFlag{FlagRegRuleRegexp, FlagRegRuleDelete, FlagRegRuleList},
+			example:      "—regexp=\"^\\w+$\" ПРИВЕТ ЧЕ КАК",
+			requireAdmin: true,
 		},
 		"location": {
 			executor:    presentation.locationCommandHandler,
@@ -258,17 +270,23 @@ func MustNewTelegramPresentation(
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
 			Callback:      presentation.spamReactionMessageHandler,
-			Filters:       nil,
+			Filters:       filters.Message.Text,
 			UpdateFilters: nil,
 			Outgoing:      true,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback:      presentation.toxicFinderMessagesProcessor,
-			Filters:       nil,
-			UpdateFilters: nil,
-			Outgoing:      true,
+			Callback: presentation.toxicFinderMessagesProcessor,
+			Filters:  filters.Message.Text,
+			Outgoing: true,
+		},
+	)
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback: presentation.regRuleFinderMessagesProcessor,
+			Filters:  filters.Message.Text,
+			Outgoing: true,
 		},
 	)
 
