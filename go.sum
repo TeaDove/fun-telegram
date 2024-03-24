@@ -120,8 +120,8 @@ github.com/ClickHouse/clickhouse-go/v2 v2.18.0/go.mod h1:ztQvX6wm7kAbhJslS87EXEh
 github.com/GoogleCloudPlatform/cloudsql-proxy v1.29.0/go.mod h1:spvB9eLJH9dutlbPSRmHvSXXHOwGRyeXh1jVdquA2G8=
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
-github.com/TeaDove/gotgproto v0.0.0-20240324123811-0f06719f558e h1:WEp2UWbE85aoWkzIpqsSPVxoJyuLT502s8dCOE9EsFY=
-github.com/TeaDove/gotgproto v0.0.0-20240324123811-0f06719f558e/go.mod h1:1bmoZNhFOxQFtMVi72Fm3f5xhic6KHWNG9XVf9Uy1d0=
+github.com/TeaDove/gotgproto v0.0.0-20240324134834-a1e86893f7d8 h1:yxfxoPg7MIwkpuJ1RM5FIRGh4MKEIO1hRF5qE3Irzfw=
+github.com/TeaDove/gotgproto v0.0.0-20240324134834-a1e86893f7d8/go.mod h1:1bmoZNhFOxQFtMVi72Fm3f5xhic6KHWNG9XVf9Uy1d0=
 github.com/aaaton/golem/v4 v4.0.0/go.mod h1:OfK/S5v9Exsx1yO21WorREuIVV+Y5K2hygP0A9oJCCI=
 github.com/aaaton/golem/v4 v4.0.1 h1:jvnnTmzdfZC8cUGIo6obIcnmB3stTaf5Uw64OMx3C84=
 github.com/aaaton/golem/v4 v4.0.1/go.mod h1:OfK/S5v9Exsx1yO21WorREuIVV+Y5K2hygP0A9oJCCI=

@@ -10,8 +10,7 @@ import (
 const toxicFeatureName = "toxic"
 
 func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
-	ok := filterNonNewMessages(update)
-	if !ok {
+	if update.EffectiveUser() == nil {
 		return nil
 	}
 
@@ -24,7 +23,7 @@ func (r *Presentation) toxicFinderMessagesProcessor(ctx *ext.Context, update *ex
 		return nil
 	}
 
-	ok = r.checkFeatureEnabled(&chatSettings, toxicFeatureName)
+	ok := r.checkFeatureEnabled(&chatSettings, toxicFeatureName)
 	if !ok {
 		return nil
 	}

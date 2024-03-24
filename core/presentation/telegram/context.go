@@ -8,11 +8,14 @@ import (
 func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error {
 	chatName := GetChatName(update.EffectiveChat())
 
+	tgDict := zerolog.Dict().Str("chat", chatName)
+	if update.EffectiveUser() != nil {
+		tgDict.Str("username", update.EffectiveUser().Username)
+	}
+
 	ctx.Context = zerolog.Ctx(ctx).
 		With().
-		Dict("tg", zerolog.Dict().
-			Str("chat", chatName).
-			Str("username", update.EffectiveUser().Username)).
+		Dict("tg", tgDict).
 		Ctx(ctx.Context).
 		Logger().
 		WithContext(ctx.Context)

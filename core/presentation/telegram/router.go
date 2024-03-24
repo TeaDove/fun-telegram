@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"github.com/teadove/fun_telegram/core/shared"
 	"strings"
 	"time"
 
@@ -24,13 +25,16 @@ type messageProcessor struct {
 // route
 // nolint: gocyclo
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
-	ok := filterNonNewMessages(update)
-	if !ok {
+	shared.SendInterface(update)
+	println("in route")
+	if update.EffectiveUser() == nil {
+		println(update.EffectiveUser())
 		return nil
 	}
 
 	text := update.EffectiveMessage.Message.Message
 	if len(text) == 0 || !(text[0] == '!' || text[0] == '/') {
+		println("empty text")
 		return nil
 	}
 
@@ -39,8 +43,10 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	route, ok := r.router[command]
 	if !ok {
+		println("not an command")
 		return nil
 	}
+	println("command", command)
 
 	ctx.Context = zerolog.Ctx(ctx).
 		With().
@@ -149,7 +155,6 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Debug().
 		Str("status", "executing.command.begin").
 		//Interface("input", commandInput).
-		Str("command", firstWord).
 		Send()
 
 	err = route.executor(ctx, update, &commandInput)

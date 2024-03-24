@@ -17,6 +17,10 @@ func compileSpamVictimKey(chatId int64, userId int64) string {
 }
 
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
+	if update.EffectiveUser() == nil {
+		return nil
+	}
+
 	ok := filterNonNewMessages(update)
 	if !ok {
 		return nil

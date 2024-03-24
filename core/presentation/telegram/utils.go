@@ -15,17 +15,6 @@ import (
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
-func filterNonNewMessages(update *ext.Update) bool {
-	switch update.UpdateClass.(type) {
-	case *tg.UpdateNewChannelMessage:
-		return true
-	case *tg.UpdateNewMessage:
-		return true
-	default:
-		return false
-	}
-}
-
 func (r *Presentation) replyIfNotSilent(
 	ctx *ext.Context,
 	update *ext.Update,

@@ -3,7 +3,12 @@ package telegram
 import (
 	"context"
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/glebarez/sqlite"
+	"github.com/gotd/contrib/middleware/floodwait"
+	"github.com/gotd/contrib/middleware/ratelimit"
+	"github.com/gotd/td/telegram"
+	"golang.org/x/time/rate"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -13,9 +18,6 @@ import (
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
-	"github.com/gotd/contrib/middleware/floodwait"
-	"github.com/gotd/contrib/middleware/ratelimit"
-	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
@@ -28,7 +30,6 @@ import (
 	"github.com/teadove/fun_telegram/core/shared"
 	"github.com/teadove/fun_telegram/core/supplier/ip_locator"
 	"github.com/teadove/fun_telegram/core/supplier/kandinsky_supplier"
-	"golang.org/x/time/rate"
 )
 
 type Presentation struct {
@@ -105,8 +106,8 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			)),
 			Middlewares:   middlewares,
 			RunMiddleware: runMiddleware,
-			RetryInterval: 10 * time.Second,
-			MaxRetries:    10,
+			//RetryInterval: 10 * time.Second,
+			//MaxRetries:    10,
 			//Logger:        protoLogger,
 			DC: 2,
 		})
@@ -115,6 +116,12 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 	}
 
 	return protoClient, nil
+}
+
+var newMessageTypes = mapset.NewSet("updateNewChannelMessage", "updateNewMessage")
+
+func filterNonNewMessages(u *ext.Update) bool {
+	return newMessageTypes.Contains(u.UpdateClass.TypeName())
 }
 
 func MustNewTelegramPresentation(
@@ -151,24 +158,19 @@ func MustNewTelegramPresentation(
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.deleteOut,
-			Outgoing: true,
-			Filters:  filters.Message.Text,
+			Callback:      presentation.deleteOut,
+			Outgoing:      true,
+			Filters:       filters.Message.Text,
+			UpdateFilters: filterNonNewMessages,
 		},
 	)
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.animeDetectionMessagesProcessor,
-			Outgoing: true,
-			Filters:  filters.Message.Media,
-		},
-	)
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
-			Callback: presentation.route,
-			Outgoing: true,
-			Filters:  filters.Message.Text,
+			Callback:      presentation.route,
+			Outgoing:      true,
+			Filters:       filters.Message.Text,
+			UpdateFilters: filterNonNewMessages,
 		},
 	)
 
@@ -278,16 +280,28 @@ func MustNewTelegramPresentation(
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.spamReactionMessageHandler,
-			Outgoing: true,
-			Filters:  filters.Message.Text,
+			Callback:      presentation.spamReactionMessageHandler,
+			Outgoing:      true,
+			Filters:       filters.Message.Text,
+			UpdateFilters: filterNonNewMessages,
 		},
 	)
+
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.toxicFinderMessagesProcessor,
-			Outgoing: true,
-			Filters:  filters.Message.Text,
+			Callback:      presentation.toxicFinderMessagesProcessor,
+			Outgoing:      true,
+			Filters:       filters.Message.Text,
+			UpdateFilters: filterNonNewMessages,
+		},
+	)
+
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.animeDetectionMessagesProcessor,
+			Outgoing:      true,
+			Filters:       filters.Message.Media,
+			UpdateFilters: filterNonNewMessages,
 		},
 	)
 
@@ -353,12 +367,12 @@ func (r *Presentation) panicHandler(
 	update *ext.Update,
 	errorString string,
 ) {
-	zerolog.Ctx(ctx.Context).Error().
-		Stack().
-		Err(errors.New(errorString)).
+	zerolog.Ctx(ctx.Context).
+		Error().
 		Str("status", "panic.while.processing.update").
 		Interface("update", update).
 		Send()
+	println(errorString)
 }
 
 func (r *Presentation) Run() error {
