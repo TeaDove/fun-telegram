@@ -2,6 +2,8 @@ package telegram
 
 import (
 	"context"
+	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
+	"github.com/glebarez/sqlite"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -83,6 +85,10 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			})
 		}
 	}
+	//protoLogger, err := zap.NewDevelopment()
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "failed to create logger")
+	//}
 
 	protoClient, err := gotgproto.NewClient(
 		shared.AppSettings.Telegram.AppID,
@@ -94,13 +100,15 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
-			Session: sessionMaker.SqliteSession(
+			Session: sessionMaker.SqlSession(sqlite.Open(
 				shared.AppSettings.Telegram.SessionFullPath,
-			),
+			)),
 			Middlewares:   middlewares,
 			RunMiddleware: runMiddleware,
 			RetryInterval: 10 * time.Second,
 			MaxRetries:    10,
+			//Logger:        protoLogger,
+			DC: 2,
 		})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create gotgproto client")
@@ -137,17 +145,30 @@ func MustNewTelegramPresentation(
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.injectContext, Outgoing: true,
+			Callback: presentation.injectContext,
+			Outgoing: true,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.deleteOut, Outgoing: true,
+			Callback: presentation.deleteOut,
+			Outgoing: true,
+			Filters:  filters.Message.Text,
+		},
+	)
+
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback: presentation.animeDetectionMessagesProcessor,
+			Outgoing: true,
+			Filters:  filters.Message.Media,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.route, Outgoing: true,
+			Callback: presentation.route,
+			Outgoing: true,
+			Filters:  filters.Message.Text,
 		},
 	)
 
@@ -257,18 +278,16 @@ func MustNewTelegramPresentation(
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback:      presentation.spamReactionMessageHandler,
-			Filters:       nil,
-			UpdateFilters: nil,
-			Outgoing:      true,
+			Callback: presentation.spamReactionMessageHandler,
+			Outgoing: true,
+			Filters:  filters.Message.Text,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback:      presentation.toxicFinderMessagesProcessor,
-			Filters:       nil,
-			UpdateFilters: nil,
-			Outgoing:      true,
+			Callback: presentation.toxicFinderMessagesProcessor,
+			Outgoing: true,
+			Filters:  filters.Message.Text,
 		},
 	)
 
@@ -311,6 +330,7 @@ func (r *Presentation) setFeatures() {
 	}
 
 	r.features[toxicFeatureName] = false
+	r.features[animeDetectionFeatureName] = false
 }
 
 func (r *Presentation) errorHandler(

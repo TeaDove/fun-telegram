@@ -2,13 +2,17 @@ from fastapi import FastAPI
 
 
 from starlette.responses import StreamingResponse
-from service.plot_service import PlotService
 from schemas.plot import Points, Bar, TimeSeries, Graph
+from shared.container import init_combat_container
+from schemas.anime import AnimePredictionResponse
 from fastapi import Request
 import time
 
+from fastapi import UploadFile
+
+
 app = FastAPI()
-service = PlotService()
+container = init_combat_container()
 
 
 @app.middleware("http")
@@ -27,26 +31,40 @@ def health() -> dict[str, bool]:
 
 @app.post("/points", response_class=StreamingResponse)
 def draw_fig(points: Points) -> StreamingResponse:
-    return StreamingResponse(service.draw_points(points), media_type="image/jpeg")
+    return StreamingResponse(
+        container.plot_service.draw_points(points), media_type="image/jpeg"
+    )
 
 
 @app.post("/histogram", response_class=StreamingResponse)
 def draw_bar(input_: Bar) -> StreamingResponse:
-    return StreamingResponse(service.draw_bar(input_), media_type="image/jpeg")
+    return StreamingResponse(
+        container.plot_service.draw_bar(input_), media_type="image/jpeg"
+    )
 
 
 @app.post("/timeseries", response_class=StreamingResponse)
 def draw_timeseries(input_: TimeSeries) -> StreamingResponse:
-    return StreamingResponse(service.draw_timeseries(input_), media_type="image/jpeg")
+    return StreamingResponse(
+        container.plot_service.draw_timeseries(input_), media_type="image/jpeg"
+    )
 
 
 @app.post("/graph", response_class=StreamingResponse)
 def draw_graph(input_: Graph) -> StreamingResponse:
-    return StreamingResponse(service.draw_graph(input_), media_type="image/jpeg")
+    return StreamingResponse(
+        container.plot_service.draw_graph(input_), media_type="image/jpeg"
+    )
 
 
 @app.post("/graph-as-heatmap", response_class=StreamingResponse)
 def draw_graph_as_heatmap(input_: Graph) -> StreamingResponse:
     return StreamingResponse(
-        service.draw_graph_as_heatmap(input_), media_type="image/jpeg"
+        container.plot_service.draw_graph_as_heatmap(input_), media_type="image/jpeg"
     )
+
+
+@app.post("/anime/predict", response_model=AnimePredictionResponse)
+async def amine_predict(image: UploadFile) -> AnimePredictionResponse:
+    prediction = container.anime_service.make_prediction(await image.read())
+    return AnimePredictionResponse(prediction=prediction)

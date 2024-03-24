@@ -1,5 +1,6 @@
 bootstrap*
 ### Builds ###
+ds/weights.pth 
 fun-telegram-v*
 fun-telegram
 
