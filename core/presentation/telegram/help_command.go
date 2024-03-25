@@ -39,6 +39,24 @@ func (r *Presentation) compileHelpMessage(
 				),
 			),
 		)
+		for _, flag := range command.flags {
+			helpMessage = append(
+				helpMessage,
+				styling.Code(fmt.Sprintf("-%s", flag.Short)),
+				styling.Plain("/"),
+				styling.Code(fmt.Sprintf("--%s", flag.Long)),
+				styling.Plain(
+					fmt.Sprintf(
+						" - %s\n",
+						r.resourceService.Localize(
+							ctx,
+							flag.Description,
+							input.ChatSettings.Locale,
+						),
+					),
+				),
+			)
+		}
 
 		if command.requireAdmin {
 			helpMessage = append(
@@ -80,24 +98,6 @@ func (r *Presentation) compileHelpMessage(
 						commandName,
 						command.example,
 					)),
-			)
-		}
-
-		for _, flag := range command.flags {
-			helpMessage = append(
-				helpMessage,
-				styling.Plain(
-					fmt.Sprintf(
-						"-%s/%s - %s\n",
-						flag.Long,
-						flag.Short,
-						r.resourceService.Localize(
-							ctx,
-							flag.Description,
-							input.ChatSettings.Locale,
-						),
-					),
-				),
 			)
 		}
 

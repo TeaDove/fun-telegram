@@ -50,7 +50,9 @@ const (
 	CommandKandinskyFlagStyleDescription
 	CommandKandinskyFlagNegativePromptDescription
 	CommandLocationDescription
+
 	CommandUploadStatsDescription
+
 	CommandDumpStatsDescription
 
 	CommandRegRuleDescription

@@ -352,11 +352,10 @@ func (r *Presentation) panicHandler(
 	errorString string,
 ) {
 	zerolog.Ctx(ctx.Context).Error().
-		Stack().
-		Err(errors.New(errorString)).
 		Str("status", "panic.while.processing.update").
 		Interface("update", update).
 		Send()
+	println(errorString)
 }
 
 func (r *Presentation) Run() error {

@@ -2,7 +2,8 @@ package telegram
 
 import (
 	"context"
-	"fmt"
+	errors2 "github.com/celestix/gotgproto/errors"
+	"github.com/celestix/gotgproto/types"
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
@@ -21,27 +22,39 @@ func (r *Presentation) pingCommandHandler(
 ) error {
 	var deletePinAfter = 5 * time.Minute
 
-	msg, err := ctx.Reply(
-		update,
-		fmt.Sprintf("Ping requested by %s\n\n", GetNameFromTgUser(update.EffectiveUser())),
-		nil,
+	var msgToPing *types.Message
+
+	err := update.EffectiveMessage.SetRepliedToMessage(
+		ctx,
+		r.telegramApi,
+		r.protoClient.PeerStorage,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to send ping messages")
+		if !(errors.Is(err, errors2.ErrReplyNotMessage) || errors.Is(err, errors2.ErrMessageNotExist)) {
+			return errors.Wrap(err, "failed to set reply to message")
+		}
+		msgToPing = update.EffectiveMessage
+	} else {
+		msgToPing = update.EffectiveMessage.ReplyToMessage
+	}
+
+	userId, err := GetSenderId(msgToPing)
+	if err != nil {
+		return errors.Wrap(err, "failed to get sender id")
 	}
 
 	err = r.mongoRepository.PingMessageCreate(
 		ctx,
 		&mongo_repository.Message{
 			TgChatID: update.EffectiveChat().GetID(),
-			TgUserId: ctx.Self.ID,
-			Text:     msg.Text,
-			TgId:     msg.ID,
+			TgUserId: userId,
+			Text:     msgToPing.Text,
+			TgId:     msgToPing.ID,
 		},
 		time.Now().UTC().Add(deletePinAfter),
 	)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to create ping message")
 	}
 
 	_, err = r.telegramApi.MessagesUpdatePinnedMessage(ctx, &tg.MessagesUpdatePinnedMessageRequest{
@@ -49,11 +62,13 @@ func (r *Presentation) pingCommandHandler(
 		Unpin:     false,
 		PmOneside: true,
 		Peer:      update.EffectiveChat().GetInputPeer(),
-		ID:        msg.ID,
+		ID:        msgToPing.ID,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to pin message")
 	}
+
+	_ = ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{update.EffectiveMessage.ID})
 
 	return nil
 }
@@ -102,13 +117,7 @@ func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
 			continue
 		}
 
-		err = r.protoClient.CreateContext().DeleteMessages(message.TgChatID, []int{message.TgId})
-		if err != nil {
-			log.Error().Stack().Err(err).Str("status", "failed.to.delete.message").Send()
-			continue
-		}
-
-		log.Info().Str("status", "ping.message.deleted").Send()
+		log.Info().Str("status", "ping.message.unpinned").Send()
 	}
 
 	return nil
