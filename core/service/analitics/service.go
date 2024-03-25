@@ -290,7 +290,7 @@ func (r *Service) analiseWholeChat(
 
 	wg.Add(1)
 
-	go r.getMostToxicUsers(ctx, &wg, statsReportChan, input, getter)
+	go r.getMostToxicUsers(ctx, &wg, statsReportChan, input, getter, usersInChat)
 
 	wg.Add(1)
 

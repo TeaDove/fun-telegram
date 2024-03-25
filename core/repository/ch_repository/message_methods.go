@@ -251,15 +251,18 @@ func (r *Repository) GroupedCountGetByChatIdByUserId(
 	ctx context.Context,
 	chatId int64,
 	limit int64,
+	userIds []int64,
 ) ([]GroupedCountGetByChatIdByUserIdOutput, error) {
 	rows, err := r.conn.Query(ctx, `
+with "user" as (select arrayJoin(cast(?, 'Array(Int64)')) as "id")
 select tg_user_id, sum(words_count) as "words_count", sum(toxic_words_count) as "toxic_words_count"
-	from message final
-	where tg_chat_id = ?
+	from "user" u
+         left join message m on m.tg_user_id = u.id
+	where m.tg_chat_id = ?
 		group by 1
 			order by 2 desc
 			limit ?;
-`, chatId, limit)
+`, userIds, chatId, limit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find interlocutors")
 	}
@@ -279,23 +282,43 @@ select tg_user_id, sum(words_count) as "words_count", sum(toxic_words_count) as 
 	return output, nil
 }
 
+const (
+	GroupedCountGetByChatIdByUserIdQueryAsc = `
+with "user" as (select arrayJoin(cast(?, 'Array(Int64)')) as "id")
+select u.id as "tg_user_id", sum(words_count) as "words_count", sum(toxic_words_count) as "toxic_words_count"
+	from "user" u
+         left join message m on m.tg_user_id = u.id
+where m.tg_chat_id = ?
+	group by 1
+		order by 2 asc
+		limit ?;
+`
+	GroupedCountGetByChatIdByUserIdQueryDesc = `
+with "user" as (select arrayJoin(cast(?, 'Array(Int64)')) as "id")
+select u.id as "tg_user_id", sum(words_count) as "words_count", sum(toxic_words_count) as "toxic_words_count"
+	from "user" u
+         left join message m on m.tg_user_id = u.id
+where m.tg_chat_id = ?
+	group by 1
+		order by 2 desc
+		limit ?;
+`
+)
+
 func (r *Repository) GroupedCountGetByChatIdByUserIdAsc(
 	ctx context.Context,
 	chatId int64,
 	limit int64,
 	userIds []int64,
+	asc bool,
 ) ([]GroupedCountGetByChatIdByUserIdOutput, error) {
-	rows, err := r.conn.Query(ctx, `
-with "user" as
-             (select arrayJoin(cast(?, 'Array(Int64)')) as "id")
-select u.id as "tg_user_id", sum(words_count) as "words_count", sum(toxic_words_count) as "toxic_words_count"
-	from "user" u
-         left join message m on m.tg_user_id = u.id
-where tg_chat_id = ?
-	group by 1
-		order by 2 asc
-		limit ?;
-`, userIds, chatId, limit)
+	var query string
+	if asc {
+		query = GroupedCountGetByChatIdByUserIdQueryAsc
+	} else {
+		query = GroupedCountGetByChatIdByUserIdQueryDesc
+	}
+	rows, err := r.conn.Query(ctx, query, userIds, chatId, limit)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to select messages with cte")
 	}

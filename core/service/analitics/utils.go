@@ -11,6 +11,11 @@ type nameGetter struct {
 	idToUser map[int64]mongo_repository.UserInChat
 }
 
+func (r *nameGetter) Contains(userId int64) bool {
+	_, ok := r.idToUser[userId]
+	return ok
+}
+
 func (r *nameGetter) GetName(userId int64) string {
 	user, ok := r.idToUser[userId]
 	if !ok || strings.TrimSpace(user.TgName) == "" {

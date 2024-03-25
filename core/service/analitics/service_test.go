@@ -36,10 +36,11 @@ func draw(t *testing.T, reportImages []File) {
 		require.NoError(t, err)
 
 		out, err := os.Create(fmt.Sprintf(".test-%s", reportImage.Filename()))
-		shared.CloseOrLog(shared.GetCtx(), out)
 
 		err = jpeg.Encode(out, img, nil)
 		require.NoError(t, err)
+
+		shared.CloseOrLog(shared.GetCtx(), out)
 	}
 }
 
@@ -68,7 +69,7 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
-		TgChatId: 1798223288,
+		TgChatId: 1825059942,
 		Tz:       3,
 		Locale:   resource.Ru,
 	}) // 1779431332 1350141926 1178533048

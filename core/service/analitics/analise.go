@@ -4,8 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
-
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
@@ -30,18 +28,12 @@ func (r *Service) getChatterBoxes(
 	}
 
 	var (
-		err              error
-		userToCountArray []ch_repository.GroupedCountGetByChatIdByUserIdOutput
-		title            string
+		title string
+		limit int64
 	)
 
 	if asc {
-		userToCountArray, err = r.chRepository.GroupedCountGetByChatIdByUserIdAsc(
-			ctx,
-			input.TgChatId,
-			35,
-			usersInChat.ToIds(),
-		)
+		limit = 35
 		title = r.resourceService.Localize(
 			ctx,
 			resource.AnaliseChartLeastChatterBoxes,
@@ -49,11 +41,18 @@ func (r *Service) getChatterBoxes(
 		)
 		output.repostImage.Name = "AntiChatterBoxes"
 	} else {
-		userToCountArray, err = r.chRepository.GroupedCountGetByChatIdByUserId(ctx, input.TgChatId, 25)
+		limit = 25
 		title = r.resourceService.Localize(ctx, resource.AnaliseChartChatterBoxes, input.Locale)
 		output.repostImage.Name = "ChatterBoxes"
 	}
 
+	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserIdAsc(
+		ctx,
+		input.TgChatId,
+		limit,
+		usersInChat.ToIds(),
+		asc,
+	)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to get chatter boxes")
 		statsReportChan <- output
@@ -270,6 +269,10 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 		}
 
 		for _, reply := range replies {
+			if !getter.Contains(reply.TgUserId) {
+				continue
+			}
+
 			edges = append(edges, ds_supplier.GraphEdge{
 				First:  getter.GetName(reply.TgUserId),
 				Second: getter.GetName(user.TgId),
@@ -286,12 +289,12 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	}
 
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
-		WeightedEdges: false,
 		DrawInput: ds_supplier.DrawInput{
 			Title: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
 		},
-		Edges:  edges,
-		Layout: "circular_tree",
+		Edges:         edges,
+		Layout:        "neato",
+		WeightedEdges: true,
 	})
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
@@ -337,6 +340,10 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 		}
 
 		for _, reply := range replies {
+			if !getter.Contains(reply.TgUserId) {
+				continue
+			}
+
 			edges = append(edges, ds_supplier.GraphEdge{
 				First:  getter.GetName(reply.TgUserId),
 				Second: getter.GetName(user.TgId),

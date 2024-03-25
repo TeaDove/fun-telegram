@@ -118,10 +118,11 @@ class GraphNode(BaseModel):
 
 
 class GraphLayout(str, enum.Enum):
-    SPRING_LAYOUT = "spring"
-    CIRCULAR_LAYOUT = "circular"
-    SPECTRAL_LAYOUT = "spectral"
-    CIRCULAR_TREE_LAYOUT = "circular_tree"
+    SPRING = "spring"
+    CIRCULAR = "circular"
+    SPECTRAL = "spectral"
+    CIRCULAR_TREE = "circular_tree"
+    NEATO = "neato"
 
 
 class Graph(Plot):
@@ -136,6 +137,6 @@ class Graph(Plot):
         ]
     )
     weighted_edges: bool = True
-    layout: GraphLayout = GraphLayout.CIRCULAR_LAYOUT
+    layout: GraphLayout = GraphLayout.CIRCULAR
     nodes: dict[str, GraphNode] | None = None
     root_node: str | None = None

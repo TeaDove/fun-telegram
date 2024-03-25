@@ -267,14 +267,16 @@ class PlotService:
                 edgewidths[idx] = colors[2]
 
         # positions for all nodes - seed for reproducibility
-        if input_.layout == GraphLayout.CIRCULAR_LAYOUT:
+        if input_.layout == GraphLayout.CIRCULAR:
             pos = nx.circular_layout(g)
-        elif input_.layout == GraphLayout.SPRING_LAYOUT:
+        elif input_.layout == GraphLayout.SPRING:
             pos = nx.spring_layout(g, k=5 / math.sqrt(g.order()))
-        elif input_.layout == GraphLayout.SPECTRAL_LAYOUT:
+        elif input_.layout == GraphLayout.SPECTRAL:
             pos = nx.spectral_layout(g)
-        elif input_.layout == GraphLayout.CIRCULAR_TREE_LAYOUT:
+        elif input_.layout == GraphLayout.CIRCULAR_TREE:
             pos = graphviz_layout(g, prog="twopi", root=input_.root_node)
+        elif input_.layout == GraphLayout.NEATO:
+            pos = graphviz_layout(g, prog="neato", root=input_.root_node)
         else:
             pos = nx.circular_layout(g)
 
