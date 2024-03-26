@@ -190,7 +190,7 @@ func (r *Service) analiseUserChat(
 		)
 	}
 
-	getter := r.getNameGetter(usersInChat)
+	getter := r.getNameGetter(usersInChat, input.Anonymize)
 
 	report := AnaliseReport{
 		Images:         make([]File, 0, 6),
@@ -253,7 +253,7 @@ func (r *Service) analiseWholeChat(
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
 
-	getter := r.getNameGetter(usersInChat)
+	getter := r.getNameGetter(usersInChat, input.Anonymize)
 
 	report := AnaliseReport{
 		Images:         make([]File, 0, 7),
@@ -311,8 +311,9 @@ type AnaliseChatInput struct {
 	TgChatId int64
 	Tz       int8
 
-	TgUserId int64
-	Locale   resource.Locale
+	TgUserId  int64
+	Locale    resource.Locale
+	Anonymize bool
 }
 
 func (r *Service) AnaliseChat(

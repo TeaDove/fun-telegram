@@ -212,6 +212,7 @@ func MustNewTelegramPresentation(
 				FlagStatsChannelName,
 				FlagStatsChannelDepth,
 				FlagStatsChannelMaxOrder,
+				FlagStatsAnonymize,
 			},
 			requireAdmin: true,
 		},

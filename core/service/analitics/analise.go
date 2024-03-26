@@ -62,7 +62,7 @@ func (r *Service) getChatterBoxes(
 
 	userToCount := make(map[string]float64, 25)
 	for _, message := range userToCountArray {
-		userToCount[getter.GetNameAndUsername(message.TgUserId)] = float64(message.WordsCount)
+		userToCount[getter.getNameAndUsername(message.TgUserId)] = float64(message.WordsCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
@@ -129,7 +129,7 @@ func (r *Service) getMessageFindRepliedBy(
 
 	userToCount := make(map[string]float64, len(interlocutors))
 	for _, interlocutor := range interlocutors {
-		userToCount[getter.GetName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
+		userToCount[getter.getName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
@@ -201,7 +201,7 @@ func (r *Service) getMessageFindRepliesTo(
 
 	userToCount := make(map[string]float64, len(interlocutors))
 	for _, interlocutor := range interlocutors {
-		userToCount[getter.GetName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
+		userToCount[getter.getName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
@@ -269,13 +269,13 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 		}
 
 		for _, reply := range replies {
-			if !getter.Contains(reply.TgUserId) {
+			if !getter.contains(reply.TgUserId) {
 				continue
 			}
 
 			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.GetName(reply.TgUserId),
-				Second: getter.GetName(user.TgId),
+				First:  getter.getName(reply.TgUserId),
+				Second: getter.getName(user.TgId),
 				Weight: float64(reply.MessagesCount),
 			})
 		}
@@ -340,13 +340,13 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 		}
 
 		for _, reply := range replies {
-			if !getter.Contains(reply.TgUserId) {
+			if !getter.contains(reply.TgUserId) {
 				continue
 			}
 
 			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.GetName(reply.TgUserId),
-				Second: getter.GetName(user.TgId),
+				First:  getter.getName(reply.TgUserId),
+				Second: getter.getName(user.TgId),
 				Weight: float64(reply.MessagesCount),
 			})
 		}

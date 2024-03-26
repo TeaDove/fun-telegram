@@ -86,6 +86,7 @@ const (
 	CommandStatsResponseSuccess
 	CommandStatsFlagTZDescription
 	CommandStatsFlagUsernameDescription
+	CommandStatsFlagAnonymizeDescription
 	CommandStatsFlagDepthDescription
 	CommandStatsFlagChannelMaxOrderDescription
 	CommandStatsFlagCountDescription
@@ -237,6 +238,10 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "username или id юзера, если подан - скомпилирует статистику относительно данного пользователя",
 		En: "username or id of user, if presented, will compile stats by set username",
 	},
+	CommandStatsFlagAnonymizeDescription: {
+		Ru: "анонизировать имена пользователей",
+		En: "anonymize names of users",
+	},
 	CommandStatsFlagDepthDescription: {
 		Ru: "глубина рекурсивного анализа рекомендаций канала",
 		En: "depth of recursion analysis of channel's recommendations",
@@ -304,8 +309,8 @@ var localizer = map[Code]map[Locale]string{
 
 	AnaliseChartChatterBoxes: {Ru: "Болтушки", En: "Chatter boxes"},
 	AnaliseChartLeastChatterBoxes: {
-		Ru: "Анти-болтушки (только участники)",
-		En: "Least chatter boxes (only members)",
+		Ru: "Анти-болтушки",
+		En: "Least chatter boxes",
 	},
 	AnaliseChartUser:         {Ru: "Пользователь", En: "User"},
 	AnaliseChartWordsWritten: {Ru: "Слов написано", En: "Words written"},

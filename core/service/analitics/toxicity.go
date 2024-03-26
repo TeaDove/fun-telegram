@@ -47,7 +47,7 @@ func (r *Service) getMostToxicUsers(
 
 	userToCount := make(map[string]float64, maxUsers)
 	for _, message := range userToCountArray {
-		userToCount[getter.GetName(message.TgUserId)] = float64(
+		userToCount[getter.getName(message.TgUserId)] = float64(
 			message.ToxicWordsCount,
 		) / float64(
 			message.WordsCount,

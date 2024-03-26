@@ -24,6 +24,11 @@ var (
 		Short:       "u",
 		Description: resource.CommandStatsFlagUsernameDescription,
 	}
+	FlagStatsAnonymize = optFlag{
+		Long:        "anonymize",
+		Short:       "a",
+		Description: resource.CommandStatsFlagAnonymizeDescription,
+	}
 )
 
 func (r *Presentation) getUserFromFlag(
@@ -169,10 +174,13 @@ func (r *Presentation) statsCommandHandler(
 		return r.statsChannelCommandHandler(ctx, update, input, channel)
 	}
 
+	_, anonymize := input.Ops[FlagStatsAnonymize.Long]
+
 	analiseInput := analitics.AnaliseChatInput{
-		TgChatId: update.EffectiveChat().GetID(),
-		Tz:       input.ChatSettings.Tz,
-		Locale:   input.ChatSettings.Locale,
+		TgChatId:  update.EffectiveChat().GetID(),
+		Tz:        input.ChatSettings.Tz,
+		Locale:    input.ChatSettings.Locale,
+		Anonymize: anonymize,
 	}
 
 	targetUser, usernameFlagOk, err := r.getUserFromFlag(ctx, update, input)

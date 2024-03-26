@@ -69,9 +69,10 @@ func TestIntegration_AnaliticsService_AnaliseChat_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
-		TgChatId: 1825059942,
-		Tz:       3,
-		Locale:   resource.Ru,
+		TgChatId:  1825059942,
+		Tz:        3,
+		Locale:    resource.Ru,
+		Anonymize: true,
 	}) // 1779431332 1350141926 1178533048
 	require.NoError(t, err)
 
