@@ -224,7 +224,7 @@ class PlotService:
             list_[i] = ((list_[i] - min_) / dif * start_end_dif) + start
 
     def draw_graph(self, input_: Graph) -> BytesIO:
-        self.concat_graph(input_)
+        # self.concat_graph(input_)
         self._prepare_graph(input_)
 
         fig, ax = self._get_fig_and_ax(input_)
@@ -258,12 +258,14 @@ class PlotService:
         else:
             for idx in range(len(edgewidths)):
                 edgewidths[idx] = edgewidths[idx] / max_
-                if edgewidths[idx] < 0.7:
-                    if edgewidths[idx] < 0.3:
-                        edgewidths[idx] = colors[0]
-                        continue
+                if edgewidths[idx] > 0.7:
+                    edgewidths[idx] = colors[0]
+                    continue
+
+                if edgewidths[idx] > 0.3:
                     edgewidths[idx] = colors[1]
                     continue
+
                 edgewidths[idx] = colors[2]
 
         # positions for all nodes - seed for reproducibility
