@@ -11,11 +11,11 @@ core-docker-buildx-local:
 	GOARCH=amd64 GOOS=linux CGO_ENABLED=0 go build -o=bootstrap-amd64
 	rm -f bootstrap-arm64
 	GOARCH=arm64 GOOS=linux CGO_ENABLED=0 go build -o=bootstrap-arm64
-	docker buildx build --platform linux/amd64,linux/arm64 -f=DockerfileCoreLocal . --tag $(CORE_DOCKER_IMAGE) --push
+	docker buildx build --platform linux/amd64,linux/arm64 -f=DockerfileLocal . --tag $(CORE_DOCKER_IMAGE) --push
 	rm -f bootstrap-amd64 bootstrap-arm64
 
 core-docker-buildx: docker-login
-	docker buildx build --platform linux/arm64,linux/amd64 -f=DockerfileCore . --tag $(CORE_DOCKER_IMAGE) --push
+	docker buildx build --platform linux/arm64,linux/amd64 -f=Dockerfile . --tag $(CORE_DOCKER_IMAGE) --push
 
 lint:
 	golangci-lint run ./...
