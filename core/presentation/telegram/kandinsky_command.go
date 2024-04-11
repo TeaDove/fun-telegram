@@ -3,6 +3,7 @@ package telegram
 import (
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/uploader"
@@ -71,11 +72,14 @@ func (r *Presentation) kandkinskyCommandHandler(
 	requestedUser := update.EffectiveUser()
 
 	imageAnnotation := fmt.Sprintf(
-		"Image requested by %s\n\nPrompt: %s\nStyle: %s",
+		"Image requested by %s\n\nPrompt: %s\n",
 		requestedUser.Username,
 		kandinskyInput.Prompt,
-		kandinskyInput.Style,
 	)
+
+	if kandinskyInput.Style != "" {
+		imageAnnotation += fmt.Sprintf("Style: %s\n", kandinskyInput.Style)
+	}
 
 	msg, err := ctx.Reply(
 		update,
@@ -85,6 +89,8 @@ func (r *Presentation) kandkinskyCommandHandler(
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	t0 := time.Now()
 
 	img, err := r.kandinskySupplier.WaitGeneration(ctx, &kandinskyInput)
 	if err != nil {
@@ -119,6 +125,8 @@ func (r *Presentation) kandkinskyCommandHandler(
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	imageAnnotation += fmt.Sprintf("Created in %.2fm\n", time.Since(t0).Minutes())
 
 	_, err = ctx.SendMedia(update.EffectiveChat().GetID(), &tg.MessagesSendMediaRequest{
 		Media: &tg.InputMediaUploadedPhoto{

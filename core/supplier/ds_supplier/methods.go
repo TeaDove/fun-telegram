@@ -7,11 +7,18 @@ import (
 )
 
 type DrawInput struct {
-	Title       string `json:"title,omitempty"`
-	XLabel      string `json:"xlabel,omitempty"`
-	YLabel      string `json:"ylabel,omitempty"`
-	FigSize     []int  `json:"figsize,omitempty"`
-	ImageFormat string `json:"image_format,omitempty"`
+	Title         string `json:"title,omitempty"`
+	XLabel        string `json:"xlabel,omitempty"`
+	YLabel        string `json:"ylabel,omitempty"`
+	FigSize       []int  `json:"figsize,omitempty"`
+	ImageFormat   string `json:"image_format,omitempty"`
+	LabelFontSize int    `json:"label_font_size,omitempty"`
+}
+
+func (r *DrawInput) setDefault() {
+	if r.LabelFontSize == 0 {
+		r.LabelFontSize = 14
+	}
 }
 
 type DrawBarInput struct {
@@ -23,6 +30,8 @@ type DrawBarInput struct {
 }
 
 func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, error) {
+	input.setDefault()
+
 	body, err := r.sendRequest(ctx, "histogram", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
@@ -39,6 +48,8 @@ type DrawTimeseriesInput struct {
 }
 
 func (r *Supplier) DrawTimeseries(ctx context.Context, input *DrawTimeseriesInput) ([]byte, error) {
+	input.setDefault()
+
 	body, err := r.sendRequest(ctx, "timeseries", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
@@ -69,6 +80,8 @@ type DrawGraphInput struct {
 }
 
 func (r *Supplier) DrawGraph(ctx context.Context, input *DrawGraphInput) ([]byte, error) {
+	input.setDefault()
+
 	body, err := r.sendRequest(ctx, "graph", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")
@@ -78,6 +91,8 @@ func (r *Supplier) DrawGraph(ctx context.Context, input *DrawGraphInput) ([]byte
 }
 
 func (r *Supplier) DrawGraphAsHeatpmap(ctx context.Context, input *DrawGraphInput) ([]byte, error) {
+	input.setDefault()
+
 	body, err := r.sendRequest(ctx, "graph-as-heatmap", input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to draw")

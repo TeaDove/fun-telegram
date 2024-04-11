@@ -278,13 +278,6 @@ func MustNewTelegramPresentation(
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.toxicFinderMessagesProcessor,
-			Filters:  filters.Message.Text,
-			Outgoing: true,
-		},
-	)
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
 			Callback: presentation.regRuleFinderMessagesProcessor,
 			Filters:  filters.Message.Text,
 			Outgoing: true,
@@ -328,8 +321,6 @@ func (r *Presentation) setFeatures() {
 	for commandName, command := range r.router {
 		r.features[commandName] = !command.disabledByDefault
 	}
-
-	r.features[toxicFeatureName] = false
 }
 
 func (r *Presentation) errorHandler(
