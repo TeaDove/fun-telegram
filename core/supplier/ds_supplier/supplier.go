@@ -89,8 +89,9 @@ func (r *Supplier) doRequest(ctx context.Context, req *http.Request) ([]byte, er
 
 	zerolog.Ctx(ctx).Debug().
 		Str("status", "ds.request.done").
-		Dur("elapsed", time.Since(t0)).
-		Str("path", req.URL.Path).Send()
+		Float64("elapsed.s", shared.ToFixed(time.Since(t0).Seconds(), 2)).
+		Str("path", req.URL.Path).
+		Send()
 
 	if resp.StatusCode >= 400 {
 		return nil, errors.Errorf("bad status code: %d, content: %s", resp.StatusCode, string(body))
