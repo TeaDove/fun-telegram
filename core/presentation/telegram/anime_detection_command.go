@@ -1,8 +1,9 @@
 package telegram
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/celestix/gotgproto/ext"
-	"github.com/celestix/gotgproto/functions"
 	"github.com/pkg/errors"
 )
 
@@ -11,10 +12,6 @@ const animeDetectionFeatureName = "anime-detection"
 var confLevelThreshold = 0.55
 
 func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
-	if update.EffectiveMessage.Media == nil {
-		return nil
-	}
-
 	chatSettings, err := r.getChatSettings(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.Wrap(err, "failed to get chat settings")
@@ -28,7 +25,7 @@ func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update 
 	if !ok {
 		return nil
 	}
-	//
+
 	// mediaDocument, ok := update.EffectiveMessage.Media.(*tg.MessageMediaDocument)
 	// if ok {
 	//	document, ok := mediaDocument.Document.(*tg.Document)
@@ -45,47 +42,33 @@ func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update 
 	//	//}
 	//}
 
-	filename, err := functions.GetMediaFileNameWithId(update.EffectiveMessage.Media)
-	if err != nil {
-		return errors.Wrap(err, "failed to get media file name")
-	}
-
+	var buf bytes.Buffer
 	_, err = ctx.DownloadMedia(
 		update.EffectiveMessage.Media,
-		ext.DownloadOutputPath(filename),
+		ext.DownloadOutputStream{Writer: &buf},
 		nil,
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to download media")
 	}
 
-	// var buf bytes.Buffer
-	// _, err = ctx.DownloadMedia(
-	//	update.EffectiveMessage.Media,
-	//	ext.DownloadOutputStream{Writer: &buf},
-	//	nil,
-	//)
+	conf, err := r.analiticsService.AnimePrediction(ctx, buf.Bytes())
 	if err != nil {
-		return errors.Wrap(err, "failed to download media")
+		return errors.Wrap(err, "failed to predict anime")
 	}
 
-	// conf, err := r.analiticsService.AnimePrediction(ctx, buf.Bytes())
-	// if err != nil {
-	//	return errors.Wrap(err, "failed to predict anime")
-	//}
-	//
-	// if conf < confLevelThreshold {
-	//	return nil
-	//}
-	//
-	// _, err = ctx.Reply(
-	//	update,
-	//	fmt.Sprintf("WARNING!, Anime detected!\nConfidence: %.2f%%", conf*100),
-	//	nil,
-	//)
-	//if err != nil {
-	//	return errors.Wrap(err, "failed to predict anime")
-	//}
+	if conf < confLevelThreshold {
+		return nil
+	}
+
+	_, err = ctx.Reply(
+		update,
+		fmt.Sprintf("WARNING!, Anime detected!\nConfidence: %.2f%%", conf*100),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to predict anime")
+	}
 
 	return nil
 }
