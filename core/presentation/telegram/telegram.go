@@ -289,6 +289,14 @@ func MustNewTelegramPresentation(
 			Outgoing:      true,
 		},
 	)
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.animeDetectionMessagesProcessor,
+			Outgoing:      true,
+			Filters:       filters.Message.Media,
+			UpdateFilters: filterNonNewMessages,
+		},
+	)
 
 	dp, ok := protoClient.Dispatcher.(*dispatcher.NativeDispatcher)
 	if !ok {
