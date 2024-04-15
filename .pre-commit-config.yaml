@@ -1,24 +1,16 @@
 repos:
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
     hooks:
-      - id: go-fmt
-      - id: go-vet
-      - id: go-build
-      - id: go-mod-tidy
+      -   id: go-build-mod
+      -   id: go-mod-tidy
+      -   id: go-fumpt
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.57.2
+    hooks:
+      - id: golangci-lint
   - repo: https://github.com/segmentio/golines
     rev: v0.12.2
     hooks:
       - id: golines
         args: [--base-formatter=gofmt --max-len=120 --no-reformat-tags]
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
-    rev: v0.2.2
-    hooks:
-      # Run the linter.
-      - id: ruff
-        types_or: [ python, pyi, jupyter ]
-        args: [ --fix ]
-      # Run the formatter.
-      - id: ruff-format
-        types_or: [ python, pyi, jupyter ]

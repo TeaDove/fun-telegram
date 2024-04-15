@@ -30,7 +30,7 @@ func New(ctx context.Context) (*Repository, error) {
 			"max_query_size":     3000000000000,
 		},
 		Protocol: clickhouse.Native,
-		//Debug:    true,
+		// Debug:    true,
 		Debugf: func(format string, v ...any) {
 			zerolog.Ctx(ctx).
 				Debug().

@@ -90,7 +90,7 @@ func (r *Presentation) statsChannelCommandHandler(
 	input *input,
 	channel string,
 ) (err error) {
-	var maxDepth = defaultMaxDepth
+	maxDepth := defaultMaxDepth
 
 	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
@@ -112,7 +112,7 @@ func (r *Presentation) statsChannelCommandHandler(
 		}
 	}
 
-	var maxOrder = defaultOrder
+	maxOrder := defaultOrder
 
 	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)

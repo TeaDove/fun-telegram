@@ -118,7 +118,6 @@ func (r *Presentation) uploadMessageToRepository(
 		}
 
 		err := r.analiticsService.MessageInsert(ctx, &analiticsMessage)
-
 		if err != nil {
 			zerolog.Ctx(ctx).
 				Error().
@@ -246,7 +245,7 @@ func (r *Presentation) uploadStatsUpload(
 		maxElapsed = time.Hour
 	)
 
-	var maxCount = shared.DefaultUploadCount
+	maxCount := shared.DefaultUploadCount
 
 	if userMaxCountS, ok := input.Ops[FlagUploadStatsCount.Long]; ok {
 		userMaxCount, err := strconv.Atoi(userMaxCountS)
@@ -268,7 +267,7 @@ func (r *Presentation) uploadStatsUpload(
 		}
 	}
 
-	var maxQueryAge = shared.DefaultUploadQueryAge
+	maxQueryAge := shared.DefaultUploadQueryAge
 
 	if userQueryAgeS, ok := input.Ops[FlagUploadStatsDay.Long]; ok {
 		userQueryAge, err := strconv.Atoi(userQueryAgeS)
@@ -335,17 +334,9 @@ func (r *Presentation) uploadStatsUpload(
 
 			return nil
 		}
-	} else {
-		lastMessage, err := r.analiticsService.GetLastMessage(ctx, update.EffectiveChat().GetID())
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.get.last.message").Send()
-		} else {
-			offset = int(lastMessage.TgId) - 1
-		}
-
-		zerolog.Ctx(ctx).Info().Str("status", "stats.upload.begin").Int("offset", offset).Send()
 	}
 
+	zerolog.Ctx(ctx).Info().Str("status", "stats.upload.begin").Int("offset", offset).Send()
 	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
 	historyQuery.BatchSize(iterHistoryBatchSize)
 	historyQuery.OffsetID(offset)

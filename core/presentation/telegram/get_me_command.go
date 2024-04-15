@@ -20,7 +20,8 @@ func (r *Presentation) getMeCommandHandler(
 			"id: "), styling.Code(strconv.FormatInt(user.ID, 10)), styling.Plain("\n" +
 			"mention: "), styling.MentionName(user.FirstName, user.AsInput()), styling.Plain("\n\n" +
 			"Chat: \n" +
-			"id: "), styling.Code(strconv.FormatInt(chat.GetID(), 10))}
+			"id: "), styling.Code(strconv.FormatInt(chat.GetID(), 10)),
+	}
 
 	// TODO add replied user information
 	//  if update.EffectiveMessage.ReplyToMessage != nil {

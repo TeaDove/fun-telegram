@@ -24,11 +24,6 @@ type messageProcessor struct {
 // route
 // nolint: gocyclo
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
-	ok := filterNonNewMessages(update)
-	if !ok {
-		return nil
-	}
-
 	text := update.EffectiveMessage.Message.Message
 	if len(text) == 0 || !(text[0] == '!' || text[0] == '/') {
 		return nil
@@ -148,7 +143,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command.begin").
-		//Interface("input", commandInput).
+		// Interface("input", commandInput).
 		Str("command", firstWord).
 		Send()
 

@@ -2,8 +2,9 @@ package analitics
 
 import (
 	"fmt"
-	"github.com/teadove/fun_telegram/core/shared"
 	"strings"
+
+	"github.com/teadove/fun_telegram/core/shared"
 
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )

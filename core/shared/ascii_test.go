@@ -1,8 +1,9 @@
 package shared
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUnit_Shared_TrimUnprintable_Ok(t *testing.T) {

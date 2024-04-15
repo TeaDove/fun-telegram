@@ -17,11 +17,6 @@ func compileSpamVictimKey(chatId int64, userId int64) string {
 }
 
 func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.Update) error {
-	ok := filterNonNewMessages(update)
-	if !ok {
-		return nil
-	}
-
 	chatId := update.EffectiveChat().GetID()
 	if chatId == 0 {
 		return nil
@@ -220,13 +215,11 @@ func (r *Presentation) addSpam(ctx *ext.Context, update *ext.Update, input *inpu
 	return nil
 }
 
-var (
-	FlagSpamReactionStop = optFlag{
-		Long:        "stop",
-		Short:       "s",
-		Description: resource.CommandSpamReactionFlagStopDescription,
-	}
-)
+var FlagSpamReactionStop = optFlag{
+	Long:        "stop",
+	Short:       "s",
+	Description: resource.CommandSpamReactionFlagStopDescription,
+}
 
 func (r *Presentation) spamReactionCommandHandler(
 	ctx *ext.Context,

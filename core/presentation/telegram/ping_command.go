@@ -2,9 +2,10 @@ package telegram
 
 import (
 	"context"
+	"time"
+
 	errors2 "github.com/celestix/gotgproto/errors"
 	"github.com/celestix/gotgproto/types"
-	"time"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/tg"
@@ -20,7 +21,7 @@ func (r *Presentation) pingCommandHandler(
 	update *ext.Update,
 	input *input,
 ) error {
-	var deletePinAfter = 5 * time.Minute
+	deletePinAfter := 5 * time.Minute
 
 	var msgToPing *types.Message
 

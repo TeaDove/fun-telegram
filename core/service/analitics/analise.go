@@ -260,7 +260,6 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 			9,
 			3,
 		)
-
 		if err != nil {
 			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
 			statsReportChan <- output
@@ -331,7 +330,6 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 			0,
 			20,
 		)
-
 		if err != nil {
 			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
 			statsReportChan <- output

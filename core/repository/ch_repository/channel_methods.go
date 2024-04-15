@@ -240,7 +240,7 @@ func (r *Repository) ChannelEdgesSelectDFS(
 	channelEdgesResult := mapset.NewSet[ChannelEdge]()
 	tgIds := []int64{channel.TgId}
 
-	for _ = range depth {
+	for range depth {
 		channelEdges, err := r.ChannelEdgesSelectById(ctx, tgIds, maxOrder)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to select channel edges by id")

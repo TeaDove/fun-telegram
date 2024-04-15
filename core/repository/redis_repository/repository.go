@@ -8,8 +8,10 @@ import (
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
-var emptyBytes = []byte{}
-var ErrKeyNotFound = errors.New("key not found")
+var (
+	emptyBytes     = []byte{}
+	ErrKeyNotFound = errors.New("key not found")
+)
 
 type Repository struct {
 	rbs redis.Client

@@ -378,7 +378,8 @@ func (r *Presentation) getFullChannel(
 		return nil, errors.Wrap(err, "failed to get full channel")
 	}
 
-	fullChannel, ok := fullChannelClass.FullChat.(*tg.ChannelFull) // nolint: sloppyTypeAssert
+	// nolint: sloppyTypeAssert
+	fullChannel, ok := fullChannelClass.FullChat.(*tg.ChannelFull)
 	if !ok {
 		return nil, errors.New("not a channel")
 	}
@@ -441,7 +442,7 @@ func (r *Presentation) uploadChannelStatsMessages(
 	input *input,
 	channelName string,
 ) error {
-	var maxDepth = defaultMaxDepth
+	maxDepth := defaultMaxDepth
 
 	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
@@ -463,7 +464,7 @@ func (r *Presentation) uploadChannelStatsMessages(
 		}
 	}
 
-	var maxRecommendation = defaultOrder
+	maxRecommendation := defaultOrder
 
 	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
 		userV, err := strconv.Atoi(userFlagS)
@@ -494,7 +495,8 @@ func (r *Presentation) uploadChannelStatsMessages(
 		return errors.New("chats not found")
 	}
 
-	realChannel, ok := channel.Chats[0].(*tg.Channel) // nolint: sloppyTypeAssert
+	// nolint: sloppyTypeAssert
+	realChannel, ok := channel.Chats[0].(*tg.Channel)
 	if !ok {
 		return errors.New("not an channel")
 	}

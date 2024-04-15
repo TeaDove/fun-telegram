@@ -1,6 +1,7 @@
 package ch_repository
 
-var initSQL = []string{`
+var initSQL = []string{
+	`
 CREATE TABLE IF NOT EXISTS message
 (
     created_at timestamp,

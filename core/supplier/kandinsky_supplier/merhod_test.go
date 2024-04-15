@@ -9,11 +9,13 @@ import (
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
-var ctx = context.Background()
-var input = RequestGenerationInput{
-	Prompt: "Girl with green bear",
-	Style:  "anime",
-}
+var (
+	ctx   = context.Background()
+	input = RequestGenerationInput{
+		Prompt: "Girl with green bear",
+		Style:  "anime",
+	}
+)
 
 func getSupplier(t *testing.T) *Supplier {
 	supplier, err := New(ctx, shared.AppSettings.KandinskyKey, shared.AppSettings.KandinskySecret)

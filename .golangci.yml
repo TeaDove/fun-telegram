@@ -7,7 +7,6 @@ issues:
         - wsl
         - bodyclose
         - forbidigo
-
 linters:
   enable:
     - asciicheck
@@ -24,20 +23,17 @@ linters:
     - errorlint
     - execinquery
     - exportloopref
-    - forbidigo
     - forcetypeassert
     - ginkgolinter
     - gocheckcompilerdirectives
     - gofmt
-    #    - goerr113
     - unparam
-    #    - wrapcheck
+    - zerologlint
     - unconvert
     - megacheck
     - staticcheck
     - unused
     - gosimple
-    #    - dupl # TODO remove comment
     - goconst
     - gocyclo
     - nakedret

@@ -2,8 +2,10 @@ package telegram
 
 import (
 	"context"
-	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"time"
+
+	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
+	"github.com/glebarez/sqlite"
 
 	"github.com/go-co-op/gocron"
 
@@ -95,8 +97,8 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
-			Session: sessionMaker.SqliteSession(
-				shared.AppSettings.Telegram.SessionFullPath,
+			Session: sessionMaker.SqlSession(
+				sqlite.Open(shared.AppSettings.Telegram.SessionFullPath),
 			),
 			Middlewares:   middlewares,
 			RunMiddleware: runMiddleware,
@@ -138,21 +140,24 @@ func MustNewTelegramPresentation(
 
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.injectContext, Outgoing: true,
-		},
-	)
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
-			Callback: presentation.deleteOut,
-			Filters:  filters.Message.Text,
+			Callback: presentation.injectContext,
 			Outgoing: true,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.route,
-			Filters:  filters.Message.Text,
-			Outgoing: true,
+			Callback:      presentation.deleteOut,
+			Filters:       filters.Message.Text,
+			UpdateFilters: filterNonNewMessages,
+			Outgoing:      true,
+		},
+	)
+	protoClient.Dispatcher.AddHandler(
+		handlers.Message{
+			Callback:      presentation.route,
+			Filters:       filters.Message.Text,
+			UpdateFilters: filterNonNewMessages,
+			Outgoing:      true,
 		},
 	)
 
@@ -272,15 +277,16 @@ func MustNewTelegramPresentation(
 		handlers.Message{
 			Callback:      presentation.spamReactionMessageHandler,
 			Filters:       filters.Message.Text,
-			UpdateFilters: nil,
+			UpdateFilters: filterNonNewMessages,
 			Outgoing:      true,
 		},
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback: presentation.regRuleFinderMessagesProcessor,
-			Filters:  filters.Message.Text,
-			Outgoing: true,
+			Callback:      presentation.regRuleFinderMessagesProcessor,
+			Filters:       filters.Message.Text,
+			UpdateFilters: filterNonNewMessages,
+			Outgoing:      true,
 		},
 	)
 

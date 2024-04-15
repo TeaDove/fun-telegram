@@ -22,7 +22,6 @@ func (r *Repository) HSet(ctx context.Context, hkey string, values ...any) error
 func (r *Repository) HGetAll(ctx context.Context, key string, v any) error {
 	cmd := r.rbs.HGetAll(ctx, key)
 	map_, err := cmd.Result()
-
 	if err != nil {
 		return errors.Wrap(err, "failed to hgetall")
 	}

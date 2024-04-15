@@ -2,14 +2,15 @@ package telegram
 
 import (
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/dlclark/regexp2"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/service/resource"
-	"strconv"
-	"time"
 )
 
 var (
@@ -141,11 +142,6 @@ func (r *Presentation) regruleCommandHandler(
 }
 
 func (r *Presentation) regRuleFinderMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
-	ok := filterNonNewMessages(update)
-	if !ok {
-		return nil
-	}
-
 	chatSettings, err := r.getChatSettings(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.WithStack(err)
@@ -155,7 +151,7 @@ func (r *Presentation) regRuleFinderMessagesProcessor(ctx *ext.Context, update *
 		return nil
 	}
 
-	ok = r.checkFeatureEnabled(&chatSettings, "regrule")
+	ok := r.checkFeatureEnabled(&chatSettings, "regrule")
 	if !ok {
 		return nil
 	}

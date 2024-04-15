@@ -25,15 +25,10 @@ test:
 	go test ./... -cover -count=1 -p=100
 
 core-run:
-	CGO_ENABLED=0 go run main.go
+	CGO_ENABLED=1 go run main.go
 
 core-run-docker-rebuild:
 	docker-compose -f docker-compose-local.yaml up -d --build
-
-update-local:
-	git pull
-	docker-compose -f docker-compose-local.yaml up -d --build
-	docker-compose logs -f client ds
 
 infra-run:
 	docker-compose -f docker-compose-infra.yaml up -d
