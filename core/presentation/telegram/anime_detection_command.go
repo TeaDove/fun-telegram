@@ -3,8 +3,12 @@ package telegram
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/telegram/message/styling"
+	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 const animeDetectionFeatureName = "anime-detection"
@@ -26,21 +30,19 @@ func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update 
 		return nil
 	}
 
-	// mediaDocument, ok := update.EffectiveMessage.Media.(*tg.MessageMediaDocument)
-	// if ok {
-	//	document, ok := mediaDocument.Document.(*tg.Document)
-	//	if !ok {
-	//		return nil
-	//	}
-	//
-	//	if !imageMimeTypes.Contains(document.MimeType) {
-	//		return nil
-	//	}
-	//
-	//	//if document.DCID != r.protoClient.DC {
-	//	//	return nil
-	//	//}
-	//}
+	mediaDocument, ok := update.EffectiveMessage.Media.(*tg.MessageMediaDocument)
+	if ok {
+		document, ok := mediaDocument.Document.(*tg.Document)
+		if !ok {
+			zerolog.Ctx(ctx).Debug().Str("status", "not.an.document").Send()
+			return nil
+		}
+
+		if document.DCID != r.protoClient.DC {
+			zerolog.Ctx(ctx).Debug().Str("status", "different.dc").Send()
+			return nil
+		}
+	}
 
 	var buf bytes.Buffer
 	_, err = ctx.DownloadMedia(
@@ -63,7 +65,11 @@ func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update 
 
 	_, err = ctx.Reply(
 		update,
-		fmt.Sprintf("WARNING!, Anime detected!\nConfidence: %.2f%%", conf*100),
+		[]styling.StyledTextOption{
+			styling.Bold("WARNING!!!\n\n"),
+			styling.Plain("Anime detected!\n"),
+			styling.Plain("Confidence: "), styling.Code(fmt.Sprintf("%.2f%%", conf*100)),
+		},
 		nil,
 	)
 	if err != nil {

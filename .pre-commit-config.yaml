@@ -4,7 +4,6 @@ repos:
     hooks:
       -   id: go-build-mod
       -   id: go-mod-tidy
-      -   id: go-fumpt
   - repo: https://github.com/golangci/golangci-lint
     rev: v1.57.2
     hooks:

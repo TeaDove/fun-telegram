@@ -104,6 +104,7 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			RunMiddleware: runMiddleware,
 			RetryInterval: 10 * time.Second,
 			MaxRetries:    10,
+			DC:            2,
 		})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create gotgproto client")
@@ -335,6 +336,8 @@ func (r *Presentation) setFeatures() {
 	for commandName, command := range r.router {
 		r.features[commandName] = !command.disabledByDefault
 	}
+
+	r.features[animeDetectionFeatureName] = false
 }
 
 func (r *Presentation) errorHandler(
