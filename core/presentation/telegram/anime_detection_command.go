@@ -15,7 +15,11 @@ const animeDetectionFeatureName = "anime-detection"
 
 var confLevelThreshold = 0.55
 
+// animeDetectionMessagesProcessor
+// Currently no working
 func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
+	return nil
+
 	chatSettings, err := r.getChatSettings(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.Wrap(err, "failed to get chat settings")
