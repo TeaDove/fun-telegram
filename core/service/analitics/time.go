@@ -3,6 +3,7 @@ package analitics
 import (
 	"context"
 	"fmt"
+	"github.com/teadove/fun_telegram/core/shared"
 	"sync"
 	"time"
 
@@ -168,13 +169,13 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title: fmt.Sprintf(
-				"%s UTC+%d",
+				"%s UTC%s",
 				r.resourceService.Localize(
 					ctx,
 					resource.AnaliseChartWordsByTimeOfDay,
 					input.Locale,
 				),
-				input.Tz,
+				shared.IntToSignedString(input.Tz),
 			),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
 			YLabel: r.resourceService.Localize(
@@ -245,13 +246,13 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title: fmt.Sprintf(
-				"%s UTC+%d",
+				"%s UTC%s",
 				r.resourceService.Localize(
 					ctx,
 					resource.AnaliseChartWordsByTimeOfDay,
 					input.Locale,
 				),
-				input.Tz,
+				shared.IntToSignedString(input.Tz),
 			),
 			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
 			YLabel: r.resourceService.Localize(

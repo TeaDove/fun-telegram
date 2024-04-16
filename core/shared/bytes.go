@@ -2,6 +2,7 @@ package shared
 
 import (
 	"math"
+	"strconv"
 
 	"golang.org/x/exp/constraints"
 )
@@ -21,4 +22,13 @@ func ToKilo[T constraints.Integer](bytes T) float64 {
 
 func ToMega[T constraints.Integer](bytes T) float64 {
 	return ToFixed(float64(bytes)/1024/1024, 2)
+}
+
+func IntToSignedString[T constraints.Integer](number T) string {
+	str := strconv.Itoa(int(number))
+	if number >= 0 {
+		return str
+	}
+
+	return "-" + str
 }
