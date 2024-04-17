@@ -34,5 +34,5 @@ func IntToSignedString[T constraints.Integer](number T) string {
 		return "+" + str
 	}
 
-	return "-" + str
+	return str
 }
