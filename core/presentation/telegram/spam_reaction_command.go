@@ -22,6 +22,10 @@ func (r *Presentation) spamReactionMessageHandler(ctx *ext.Context, update *ext.
 		return nil
 	}
 
+	if update.EffectiveUser() == nil {
+		return nil
+	}
+
 	chatSettings, err := r.getChatSettings(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.Wrap(err, "failed to check if enabled")

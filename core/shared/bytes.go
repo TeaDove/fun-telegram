@@ -25,9 +25,13 @@ func ToMega[T constraints.Integer](bytes T) float64 {
 }
 
 func IntToSignedString[T constraints.Integer](number T) string {
+	if number == 0 {
+		return ""
+	}
+
 	str := strconv.Itoa(int(number))
 	if number >= 0 {
-		return str
+		return "+" + str
 	}
 
 	return "-" + str

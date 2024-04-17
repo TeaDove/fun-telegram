@@ -149,7 +149,7 @@ func MustNewTelegramPresentation(
 		handlers.Message{
 			Callback:      presentation.deleteOut,
 			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessages,
+			UpdateFilters: filterNonNewMessagesNotFromUser,
 			Outgoing:      true,
 		},
 	)
@@ -157,7 +157,7 @@ func MustNewTelegramPresentation(
 		handlers.Message{
 			Callback:      presentation.route,
 			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessages,
+			UpdateFilters: filterNonNewMessagesNotFromUser,
 			Outgoing:      true,
 		},
 	)
@@ -278,7 +278,7 @@ func MustNewTelegramPresentation(
 		handlers.Message{
 			Callback:      presentation.spamReactionMessageHandler,
 			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessages,
+			UpdateFilters: filterNonNewMessagesNotFromUser,
 			Outgoing:      true,
 		},
 	)
@@ -286,7 +286,7 @@ func MustNewTelegramPresentation(
 		handlers.Message{
 			Callback:      presentation.regRuleFinderMessagesProcessor,
 			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessages,
+			UpdateFilters: filterNonNewMessagesNotFromUser,
 			Outgoing:      true,
 		},
 	)
@@ -295,7 +295,7 @@ func MustNewTelegramPresentation(
 			Callback:      presentation.animeDetectionMessagesProcessor,
 			Outgoing:      true,
 			Filters:       filters.Message.Media,
-			UpdateFilters: filterNonNewMessages,
+			UpdateFilters: filterNonNewMessagesNotFromUser,
 		},
 	)
 

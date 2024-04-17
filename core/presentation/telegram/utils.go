@@ -26,6 +26,14 @@ func filterNonNewMessages(update *ext.Update) bool {
 	}
 }
 
+func filterNonNewMessagesNotFromUser(update *ext.Update) bool {
+	if !filterNonNewMessages(update) {
+		return false
+	}
+
+	return update.EffectiveUser() != nil
+}
+
 func (r *Presentation) replyIfNotSilent(
 	ctx *ext.Context,
 	update *ext.Update,
