@@ -41,6 +41,7 @@ services:
     environment:
       _UVICORN__HOST: "0.0.0.0"
       _UVICORN__PORT: 8000
+      _UVICORN__WORKERS: 2
     volumes: []
     healthcheck:
       test: curl -f http://127.0.0.1:8000/health || exit 1
