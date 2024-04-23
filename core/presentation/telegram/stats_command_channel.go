@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -222,6 +223,12 @@ func (r *Presentation) uploadChannelsToRepository(
 	return nil
 }
 
+type Path struct {
+	depth    int
+	title    string
+	username string
+}
+
 type dumpChannelRecommendationsInput struct {
 	tgInput      *input
 	channels     *map[int64]Channel
@@ -231,7 +238,7 @@ type dumpChannelRecommendationsInput struct {
 
 	depth         int
 	stopRecursion bool
-	path          []string
+	path          []Path
 
 	maxDepth          int
 	maxRecommendation int
@@ -306,15 +313,15 @@ func (r *Presentation) dumpChannelRecommendations(
 		return errors.Wrap(err, "failed to load channel messages")
 	}
 
-	go r.updateUploadChannelStatsMessage(
-		ctx,
-		input.update,
-		input.barMessageId,
-		input.tgInput,
-		len(*input.channels),
-		&repositoryChannel,
-		input.path,
-	)
+	nonLeafsCount := 0
+
+	for _, channel := range *input.channels {
+		if !channel.IsLeaf {
+			nonLeafsCount++
+		}
+	}
+
+	go r.updateUploadChannelStatsMessage(ctx, &repositoryChannel, &input, nonLeafsCount)
 
 	(*input.channels)[input.chat.ID] = repositoryChannel
 	input.channelsChan <- repositoryChannel
@@ -325,16 +332,15 @@ func (r *Presentation) dumpChannelRecommendations(
 			input.stopRecursion = true
 		}
 
-		newPath := make([]string, len(input.path))
+		newPath := make([]Path, len(input.path))
 		_ = copy(newPath, input.path)
 		newPath = append(
 			newPath,
-			fmt.Sprintf(
-				"(%d) %s (@%s)",
+			Path{ //	"(%d) %s (@%s)",
 				idx,
 				recommendedChannel.Title,
 				recommendedChannel.Username,
-			),
+			},
 		)
 
 		err = r.dumpChannelRecommendations(
@@ -389,32 +395,45 @@ func (r *Presentation) getFullChannel(
 
 func (r *Presentation) updateUploadChannelStatsMessage(
 	ctx *ext.Context,
-	update *ext.Update,
-	msgId int,
-	input *input,
-	count int,
 	channel *Channel,
-	path []string,
+	input *dumpChannelRecommendationsInput,
+	nonLeafsCount int,
 ) {
 	var pathText string
-	for _, pathItem := range path {
-		pathText += "\n ➔ " + pathItem
+	for _, pathItem := range input.path {
+		pathText += fmt.Sprintf(
+			"\n ➔ (%d) %s (@%s)",
+			pathItem.depth,
+			pathItem.title,
+			pathItem.username,
+		)
 	}
 
-	elapsed := time.Since(input.StartedAt).Minutes()
-	_, err := ctx.EditMessage(update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
-		Peer: update.EffectiveChat().GetInputPeer(),
-		ID:   msgId,
+	elapsed := time.Since(input.tgInput.StartedAt).Minutes()
+	speed := float64(nonLeafsCount) / elapsed
+	maxCount := math.Pow(float64(input.maxRecommendation), float64(input.maxDepth))
+
+	var totalTime float64
+	if speed == 0 {
+		totalTime = math.Inf(1)
+	} else {
+		totalTime = maxCount / speed
+	}
+
+	_, err := ctx.EditMessage(input.update.EffectiveChat().GetID(), &tg.MessagesEditMessageRequest{
+		Peer: input.update.EffectiveChat().GetInputPeer(),
+		ID:   input.barMessageId,
 		Message: fmt.Sprintf(
 			"Channels uploading\n\n"+
 				"Recommendations found for current channel: %d\n"+
-				"Total channels found: %d\n"+
-				"Elapsed: %.2fm, Speed: %.2f(channels/m)\n"+
+				"Channels processed: %d\n"+
+				"Elapsed: %.2fm\nSpeed: %.2f(channels/m)\nETA: %.2fm\n"+
 				"Path: %s\n",
 			len(channel.RecommendationsIds),
-			count,
+			nonLeafsCount,
 			elapsed,
-			float64(count)/elapsed,
+			speed,
+			totalTime-elapsed,
 			pathText,
 		),
 	})
@@ -532,7 +551,7 @@ func (r *Presentation) uploadChannelStatsMessages(
 			stopRecursion:     false,
 			maxDepth:          maxDepth,
 			maxRecommendation: maxRecommendation,
-			path:              []string{realChannel.Title},
+			path:              []Path{{title: realChannel.Title, username: realChannel.Username}},
 			channelsChan:      channelsChan,
 		},
 	)
