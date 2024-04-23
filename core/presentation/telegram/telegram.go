@@ -98,7 +98,7 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			InMemory:         false,
 			DisableCopyright: true,
 			Session: sessionMaker.SqlSession(
-				sqlite.Open(shared.AppSettings.Telegram.SessionFullPath),
+				sqlite.Open(".mtproto"),
 			),
 			Middlewares:   middlewares,
 			RunMiddleware: runMiddleware,

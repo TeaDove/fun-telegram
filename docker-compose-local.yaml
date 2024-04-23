@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: DockerfileCore
     volumes:
-      - "~/.config/fun-telegram:/config"
+      - ".mtproto:/.mtproto"
       - ".env:/.env"
     depends_on:
       redis:

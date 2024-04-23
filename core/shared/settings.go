@@ -2,14 +2,12 @@ package shared
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
 
 	"github.com/caarlos0/env/v7"
 	"github.com/joho/godotenv"
-	"github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -18,11 +16,9 @@ const (
 )
 
 type telegram struct {
-	AppID           int    `env:"app_id,required"`
-	AppHash         string `env:"app_hash,required"`
-	PhoneNumber     string `env:"phone_number,required"`
-	SessionPath     string `env:"session_storage_path"  envDefault:"telegram-session.json"`
-	SessionFullPath string
+	AppID       int    `env:"app_id,required"`
+	AppHash     string `env:"app_hash,required"`
+	PhoneNumber string `env:"phone_number,required"`
 
 	FloodWaiterEnabled bool          `env:"flood_waiter_enabled" envDefault:"true"`
 	RateLimiterEnabled bool          `env:"rate_limiter_enabled" envDefault:"true"`
@@ -38,10 +34,9 @@ type storage struct {
 }
 
 type Settings struct {
-	Telegram        telegram `envPrefix:"telegram__"`
-	Storage         storage  `envPrefix:"storage__"`
-	FileStoragePath string   `                       env:"file_storage_path" envDefault:"~/.config/fun-telegram/"`
-	LogLevel        string   `                       env:"log_level"         envDefault:"debug"`
+	Telegram telegram `envPrefix:"telegram__"`
+	Storage  storage  `envPrefix:"storage__"`
+	LogLevel string   `                       env:"log_level" envDefault:"debug"`
 
 	MessagesMaxSizeMB int `env:"messages_max_size_mb" envDefault:"100"`
 
@@ -60,11 +55,6 @@ func mustNewSettings() Settings {
 
 	err := env.Parse(&settings, env.Options{Prefix: defaultEnvPrefix})
 	Check(ctx, errors.Wrap(err, "failed to env parse"))
-
-	realPath, err := homedir.Expand(settings.FileStoragePath)
-	Check(ctx, errors.Wrap(err, "failed to homedir expand"))
-
-	settings.Telegram.SessionFullPath = filepath.Join(realPath, settings.Telegram.SessionPath)
 
 	return settings
 }
