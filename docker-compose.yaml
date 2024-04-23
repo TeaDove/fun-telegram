@@ -49,8 +49,6 @@ services:
       timeout: 20s
       retries: 3
       start_period: 5s
-    ports:
-      - '8000:8000'
     deploy:
       resources:
         limits:
