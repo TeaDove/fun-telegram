@@ -411,7 +411,7 @@ func (r *Presentation) updateUploadChannelStatsMessage(
 
 	elapsed := time.Since(input.tgInput.StartedAt).Minutes()
 	speed := float64(nonLeafsCount) / elapsed
-	maxCount := math.Pow(float64(input.maxRecommendation), float64(input.maxDepth))
+	maxCount := math.Pow(float64(input.maxRecommendation), float64(input.maxDepth-1))
 
 	var totalTime float64
 	if speed == 0 {
