@@ -3,6 +3,10 @@ package telegram
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/gotd/td/telegram/message"
+	"github.com/gotd/td/telegram/message/styling"
+	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"strconv"
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
@@ -31,6 +35,11 @@ var (
 		Short:       "s",
 		Description: resource.CommandKandinskyFlagStyleDescription,
 	}
+	FlagPageStyle = optFlag{
+		Long:        "page",
+		Short:       "p",
+		Description: resource.CommandKandinskyFlagStyleDescription,
+	}
 )
 
 // kandkinskyCommandHandler
@@ -47,6 +56,10 @@ func (r *Presentation) kandkinskyCommandHandler(
 		}
 
 		return nil
+	}
+
+	if pageStr, ok := input.Ops[FlagPageStyle.Long]; ok {
+		return r.kandkinskyPaginateImagesCommandHandler(ctx, update, pageStr)
 	}
 
 	var kandinskyInput kandinsky_supplier.RequestGenerationInput
@@ -126,9 +139,9 @@ func (r *Presentation) kandkinskyCommandHandler(
 		return errors.WithStack(err)
 	}
 
-	imageAnnotation += fmt.Sprintf("Created in %.2fm\n", time.Since(t0).Minutes())
+	imageAnnotation += fmt.Sprintf("Created in %s\n", time.Since(t0).String())
 
-	_, err = ctx.SendMedia(update.EffectiveChat().GetID(), &tg.MessagesSendMediaRequest{
+	imgMsg, err := ctx.SendMedia(update.EffectiveChat().GetID(), &tg.MessagesSendMediaRequest{
 		Media: &tg.InputMediaUploadedPhoto{
 			File: f,
 		},
@@ -139,6 +152,35 @@ func (r *Presentation) kandkinskyCommandHandler(
 		return errors.WithStack(err)
 	}
 
+	tgImage, ok := imgMsg.Media.(*tg.MessageMediaPhoto)
+	if !ok {
+		return errors.New("imgMsg.Media has wrong type")
+	}
+
+	tgPhoto, ok := tgImage.Photo.(*tg.Photo)
+	if !ok {
+		return errors.New("tgImage.Photo has wrong type")
+	}
+
+	err = r.analiticsService.KandinskyImageInsert(ctx, &mongo_repository.KandinskyImageDenormalized{
+		TgInputPhoto: tg.InputPhoto{
+			ID:            tgPhoto.ID,
+			AccessHash:    tgPhoto.AccessHash,
+			FileReference: tgPhoto.FileReference,
+		},
+		KandinskyInput: kandinskyInput,
+		ImgContent:     unbasedImg,
+		Message: mongo_repository.Message{
+			TgChatID: update.EffectiveChat().GetID(),
+			TgId:     imgMsg.ID,
+			TgUserId: ctx.Self.ID,
+			Text:     imgMsg.Text,
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to insert image")
+	}
+
 	err = ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{msg.ID})
 	if err != nil {
 		zerolog.Ctx(ctx.Context).
@@ -147,6 +189,73 @@ func (r *Presentation) kandkinskyCommandHandler(
 			Err(err).
 			Str("status", "failed.to.delete.msgs").
 			Send()
+	}
+
+	return nil
+}
+
+func (r *Presentation) kandkinskyPaginateImagesCommandHandler(
+	ctx *ext.Context,
+	update *ext.Update,
+	pageStr string,
+) error {
+	const pageSize = 10
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		_, err = ctx.Reply(
+			update,
+			fmt.Sprintf("Err: failed to parse page flag: %s", err.Error()),
+			nil,
+		)
+		if err != nil {
+			return errors.Wrap(err, "failed to reply")
+		}
+
+		return nil
+	}
+
+	images, err := r.analiticsService.KandinskyImagePaginate(
+		ctx,
+		&mongo_repository.KandinskyImagePaginateInput{
+			TgChatId: update.EffectiveChat().GetID(),
+			Page:     page,
+			PageSize: pageSize,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to get pagination")
+	}
+
+	if len(images) == 0 {
+		_, err = ctx.Reply(
+			update,
+			"Err: no images found",
+			nil,
+		)
+		if err != nil {
+			return errors.Wrap(err, "failed to reply")
+		}
+	}
+
+	album := make([]message.MultiMediaOption, 0, 10)
+
+	for id, image := range images {
+		album = append(album,
+			message.Photo(
+				&image.TgInputPhoto,
+				styling.Plain(fmt.Sprintf("%d) %s", id, image.KandinskyInput.Prompt)),
+			),
+		)
+	}
+
+	_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Album(
+		ctx,
+		album[0],
+		album[1:]...,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to send album")
 	}
 
 	return nil

@@ -71,8 +71,8 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 
 type RequestGenerationInput struct {
 	Prompt               string
-	NegativePromptUnclip string
-	Style                string
+	NegativePromptUnclip string `json:",omitempty"`
+	Style                string `json:",omitempty"`
 }
 
 type RequestGenerationRequest struct {
@@ -251,7 +251,7 @@ func (r *Supplier) WaitGet(ctx context.Context, id uuid.UUID) ([]byte, error) {
 				zerolog.Ctx(ctx).
 					Info().
 					Str("status", "kandinsky.sleeping").
-					Dur("sleep_time", sleepTime).
+					Float64("sleep_time.s", sleepTime.Seconds()).
 					Send()
 
 				// Will sleep for 10s, 30, 90, 270, ...

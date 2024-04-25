@@ -123,7 +123,8 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 					Err(ctx.Err()).
 					Str("status", "health.check.failed").
 					Str("service", name).
-					Dur("elapsed", elapsed).Send()
+					Str("elapsed", elapsed.String()).
+					Send()
 			}
 
 			shouldBreak = true

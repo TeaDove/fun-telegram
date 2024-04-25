@@ -6,7 +6,7 @@ DOCKER_IMAGE ?= ghcr.io/teadove/fun-telegram:$(BUILD_VERSION)
 docker-login:
 	docker login ghcr.io
 
-core-docker-buildx-local:
+docker-buildx-local:
 	rm -f bootstrap-amd64
 	GOARCH=amd64 GOOS=linux CGO_ENABLED=0 go build -o=bootstrap-amd64
 	rm -f bootstrap-arm64
@@ -14,7 +14,7 @@ core-docker-buildx-local:
 	docker buildx build --platform linux/amd64,linux/arm64 -f=DockerfileLocal . --tag $(DOCKER_IMAGE) --push
 	rm -f bootstrap-amd64 bootstrap-arm64
 
-core-docker-buildx: docker-login
+docker-buildx: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 -f=Dockerfile . --tag $(DOCKER_IMAGE) --push
 
 lint:
@@ -24,10 +24,10 @@ lint:
 test:
 	go test ./... -cover -count=1 -p=100
 
-core-run:
+run:
 	CGO_ENABLED=0 go run main.go
 
-core-run-docker-rebuild:
+run-docker-rebuild:
 	docker-compose -f docker-compose-local.yaml up -d --build
 
 infra-run:

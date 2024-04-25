@@ -125,7 +125,8 @@ func (r *AnaliseReport) appendFromChan(
 	for statsReportValue := range statsReportChan {
 		report := zerolog.Dict().
 			Str("stats.name", statsReportValue.repostImage.Name).
-			Dur("elapsed", time.Since(t0))
+			Str("elapsed", time.Since(t0).String())
+
 		if statsReportValue.err != nil {
 			zerolog.Ctx(ctx).
 				Error().Stack().Err(statsReportValue.err).

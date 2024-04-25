@@ -48,6 +48,7 @@ const (
 	CommandSpamReactionFlagStopDescription
 	CommandKandinskyDescription
 	CommandKandinskyFlagStyleDescription
+	CommandKandinskyFlagPageDescription
 	CommandKandinskyFlagNegativePromptDescription
 	CommandLocationDescription
 
@@ -288,8 +289,12 @@ var localizer = map[Code]map[Locale]string{
 		En: "stop spamming reactions",
 	},
 	CommandKandinskyFlagStyleDescription: {
-		Ru: "выставить стиль изображения",
-		En: "set image style",
+		Ru: "выставить стиль изображения, допустимые стили: KANDINSKY, UHD, ANIME, DEFAULT",
+		En: "set image style, allowed styles: KANDINSKY, UHD, ANIME, DEFAULT",
+	},
+	CommandKandinskyFlagPageDescription: {
+		Ru: "если выставлено, будет покажет уже сгенерированные картинки в этом чате и задаст пагинацию через этот флаг",
+		En: "if presented, will show already generated images in this chat and paginate over this flag",
 	},
 	CommandKandinskyFlagNegativePromptDescription: {
 		Ru: "добавить негативный промпт",

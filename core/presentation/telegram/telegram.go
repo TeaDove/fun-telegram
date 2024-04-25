@@ -75,7 +75,7 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 				zerolog.Ctx(ctx).
 					Warn().
 					Str("status", "flood.waiting").
-					Dur("dur", wait.Duration).
+					Str("dur", wait.Duration.String()).
 					Send()
 			})
 
@@ -195,7 +195,7 @@ func MustNewTelegramPresentation(
 		"kandinsky": {
 			executor:    presentation.kandkinskyCommandHandler,
 			description: resource.CommandKandinskyDescription,
-			flags:       []optFlag{FlagKandinskyNegativePrompt, FlagKandinskyStyle},
+			flags:       []optFlag{FlagKandinskyNegativePrompt, FlagKandinskyStyle, FlagPageStyle},
 			example:     "--style=ANIME girl in space, sticker, realism, cute_mood, bold colors, disney",
 		},
 		"regrule": {

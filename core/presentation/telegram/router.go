@@ -156,7 +156,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			Stack().
 			Err(errors.WithStack(err)).
 			Str("status", "failed.to.process.command").
-			Dur("elapsed", elapsed).
+			Str("elapsed", elapsed.String()).
 			Send()
 
 		errMessage := r.resourceService.Localizef(
@@ -193,7 +193,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	zerolog.Ctx(ctx.Context).
 		Info().
 		Str("status", "executing.command.done").
-		Dur("elapsed", elapsed).
+		Str("elapsed", elapsed.String()).
 		Send()
 
 	return nil

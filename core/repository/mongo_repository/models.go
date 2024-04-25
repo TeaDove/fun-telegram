@@ -1,6 +1,8 @@
 package mongo_repository
 
 import (
+	"github.com/gotd/td/tg"
+	"github.com/teadove/fun_telegram/core/supplier/kandinsky_supplier"
 	"time"
 
 	"github.com/kamva/mgm/v3"
@@ -95,4 +97,28 @@ func (r UsersInChat) ToIds() []int64 {
 	}
 
 	return slice
+}
+
+type Image struct {
+	mgm.DefaultModel `bson:",inline"`
+
+	Content []byte `bson:"content"`
+}
+
+type TgImage struct {
+	mgm.DefaultModel `bson:",inline"`
+
+	TgInputPhoto tg.InputPhoto `bson:"tg_input_photo"`
+
+	MessageId primitive.ObjectID `bson:"message_id"`
+	ImageId   primitive.ObjectID `bson:"image_id"`
+}
+
+type KandinskyImage struct {
+	mgm.DefaultModel `bson:",inline"`
+
+	Input kandinsky_supplier.RequestGenerationInput `bson:"input"`
+
+	TgImageId primitive.ObjectID `bson:"tg_image_id"`
+	ImageId   primitive.ObjectID `bson:"image_id"`
 }

@@ -122,7 +122,7 @@ func (r *Presentation) updateMembers(
 	zerolog.Ctx(ctx).
 		Info().
 		Str("status", "members.uploaded").
-		Dur("elapsed", time.Since(t0)).
+		Str("elapsed", time.Since(t0).String()).
 		Int("count", len(usersInChat)).
 		Send()
 

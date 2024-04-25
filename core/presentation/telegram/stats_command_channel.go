@@ -64,7 +64,7 @@ func (r *Presentation) getChannelRecommendations(
 		Str("status", "recommendations.got").
 		Str("title", channel.Title).
 		Int("count", len(channels)).
-		Dur("elapsed", time.Since(t0)).
+		Str("elapsed", time.Since(t0).String()).
 		Send()
 	time.Sleep(500 * time.Millisecond)
 

@@ -18,6 +18,10 @@ type Repository struct {
 	restartMessageCollection *mgm.Collection
 	pingMessageCollection    *mgm.Collection
 
+	imageCollection          *mgm.Collection
+	tgImageCollection        *mgm.Collection
+	kandinskyImageCollection *mgm.Collection
+
 	client *mongo.Client
 }
 
@@ -41,6 +45,10 @@ func New() (*Repository, error) {
 	r.pingMessageCollection = mgm.Coll(&PingMessage{})
 	r.memberCollection = mgm.Coll(&Member{})
 	r.chatCollection = mgm.Coll(&Chat{})
+
+	r.imageCollection = mgm.Coll(&Image{})
+	r.kandinskyImageCollection = mgm.Coll(&KandinskyImage{})
+	r.tgImageCollection = mgm.Coll(&TgImage{})
 
 	r.client, err = mgm.NewClient(options.Client().ApplyURI(shared.AppSettings.Storage.MongoDbUrl))
 	if err != nil {

@@ -89,7 +89,7 @@ func (r *Supplier) doRequest(ctx context.Context, req *http.Request) ([]byte, er
 
 	zerolog.Ctx(ctx).Debug().
 		Str("status", "ds.request.done").
-		Float64("elapsed.s", shared.ToFixed(time.Since(t0).Seconds(), 2)).
+		Str("elapsed", time.Since(t0).String()).
 		Str("path", req.URL.Path).
 		Send()
 
