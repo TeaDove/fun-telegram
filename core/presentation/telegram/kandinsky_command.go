@@ -6,6 +6,8 @@ import (
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"strconv"
 	"time"
 
@@ -241,24 +243,41 @@ func (r *Presentation) kandkinskyPaginateImagesCommandHandler(
 	album := make([]message.MultiMediaOption, 0, 10)
 	fileUploader := uploader.NewUploader(ctx.Raw)
 
-	for id, image := range images {
-		file, err := fileUploader.FromBytes(ctx, "kandinsky-image.png", image.ImgContent)
+	if len(images) == 1 {
+		file, err := fileUploader.FromBytes(ctx, "kandinsky-image.png", images[0].ImgContent)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
+		title := cases.Title(language.Make(images[0].KandinskyInput.Prompt)).
+			String(images[0].KandinskyInput.Prompt)
+
 		album = append(album, message.UploadedPhoto(
 			file,
-			styling.Plain(fmt.Sprintf("%d) %s", id, image.KandinskyInput.Prompt)),
+			styling.Plain(title),
 		))
+	} else {
+		for id, image := range images {
+			file, err := fileUploader.FromBytes(ctx, "kandinsky-image.png", image.ImgContent)
+			if err != nil {
+				return errors.WithStack(err)
+			}
 
-		// TODO send cached in TG image, if ref is not expired
-		// album = append(album,
-		//	message.Photo(
-		//		&image.TgInputPhoto,
-		//		styling.Plain(fmt.Sprintf("%d) %s", id, image.KandinskyInput.Prompt)),
-		//	),
-		//)
+			title := cases.Title(language.Make(image.KandinskyInput.Prompt)).String(image.KandinskyInput.Prompt)
+
+			// TODO send cached in TG image, if ref is not expired
+			// album = append(album,
+			//	message.Photo(
+			//		&image.TgInputPhoto,
+			//		styling.Plain(fmt.Sprintf("%d) %s", id, title)),
+			//	),
+			//)
+
+			album = append(album, message.UploadedPhoto(
+				file,
+				styling.Plain(fmt.Sprintf("%d) %s", id, title)),
+			))
+		}
 	}
 
 	_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Album(

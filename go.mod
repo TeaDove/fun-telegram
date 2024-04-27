@@ -27,6 +27,7 @@ require (
 	github.com/xitongsys/parquet-go-source v0.0.0-20240122235623-d6294584ab18
 	go.mongodb.org/mongo-driver v1.13.1
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
+	golang.org/x/text v0.14.0
 	golang.org/x/time v0.5.0
 )
 
@@ -78,7 +79,6 @@ require (
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.25.7-0.20240204074919-46816ad31dde // indirect
