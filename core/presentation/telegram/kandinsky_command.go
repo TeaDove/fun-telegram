@@ -239,14 +239,26 @@ func (r *Presentation) kandkinskyPaginateImagesCommandHandler(
 	}
 
 	album := make([]message.MultiMediaOption, 0, 10)
+	fileUploader := uploader.NewUploader(ctx.Raw)
 
 	for id, image := range images {
-		album = append(album,
-			message.Photo(
-				&image.TgInputPhoto,
-				styling.Plain(fmt.Sprintf("%d) %s", id, image.KandinskyInput.Prompt)),
-			),
-		)
+		file, err := fileUploader.FromBytes(ctx, "kandinsky-image.png", image.ImgContent)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		album = append(album, message.UploadedPhoto(
+			file,
+			styling.Plain(fmt.Sprintf("%d) %s", id, image.KandinskyInput.Prompt)),
+		))
+
+		// TODO send cached in TG image, if ref is not expired
+		// album = append(album,
+		//	message.Photo(
+		//		&image.TgInputPhoto,
+		//		styling.Plain(fmt.Sprintf("%d) %s", id, image.KandinskyInput.Prompt)),
+		//	),
+		//)
 	}
 
 	_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Album(
