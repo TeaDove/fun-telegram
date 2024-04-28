@@ -282,7 +282,7 @@ func (r *Supplier) WaitGeneration(
 		return nil, errors.WithStack(err)
 	}
 
-	ctx = zerolog.Ctx(ctx).With().Str("kandinsky_id", id.String()).Logger().WithContext(ctx)
+	ctx = zerolog.Ctx(ctx).With().Str("kandinsky_img_id", id.String()).Logger().WithContext(ctx)
 
 	time.Sleep(delayFirstTerm)
 
@@ -292,6 +292,40 @@ func (r *Supplier) WaitGeneration(
 	}
 
 	return img, nil
+}
+
+func (r *Supplier) WaitGenerations(
+	ctx context.Context,
+	input *RequestGenerationInput,
+	count int,
+) ([][]byte, error) {
+	ids := make([]uuid.UUID, 0, count)
+
+	for range count {
+		id, err := r.RequestGeneration(ctx, input)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to request generation")
+		}
+
+		ids = append(ids, id)
+	}
+
+	imgs := make([][]byte, 0, count)
+
+	time.Sleep(delayFirstTerm)
+
+	for _, id := range ids {
+		ctx = zerolog.Ctx(ctx).With().Str("kandinsky_img_id", id.String()).Logger().WithContext(ctx)
+
+		img, err := r.WaitGet(ctx, id)
+		if err != nil {
+			continue
+		}
+
+		imgs = append(imgs, img)
+	}
+
+	return imgs, nil
 }
 
 func (r *Supplier) Ping(ctx context.Context) error {

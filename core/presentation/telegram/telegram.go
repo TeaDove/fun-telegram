@@ -195,8 +195,13 @@ func MustNewTelegramPresentation(
 		"kandinsky": {
 			executor:    presentation.kandkinskyCommandHandler,
 			description: resource.CommandKandinskyDescription,
-			flags:       []optFlag{FlagKandinskyNegativePrompt, FlagKandinskyStyle, FlagPageStyle},
-			example:     "--style=ANIME girl in space, sticker, realism, cute_mood, bold colors, disney",
+			flags: []optFlag{
+				FlagKandinskyNegativePrompt,
+				FlagKandinskyStyle,
+				FlagKandinskyPageStyle,
+				FlagKandinskyCountStyle,
+			},
+			example: "-c=3 --style=ANIME girl in space, sticker, realism, cute_mood, bold colors, disney",
 		},
 		"regrule": {
 			executor:     presentation.regruleCommandHandler,

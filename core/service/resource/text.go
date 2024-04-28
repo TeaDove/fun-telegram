@@ -48,6 +48,7 @@ const (
 	CommandSpamReactionFlagStopDescription
 	CommandKandinskyDescription
 	CommandKandinskyFlagStyleDescription
+	CommandKandinskyFlagCountDescription
 	CommandKandinskyFlagPageDescription
 	CommandKandinskyFlagNegativePromptDescription
 	CommandLocationDescription
@@ -295,6 +296,10 @@ var localizer = map[Code]map[Locale]string{
 	CommandKandinskyFlagPageDescription: {
 		Ru: "если выставлено, будет покажет уже сгенерированные картинки в этом чате и задаст пагинацию через этот флаг",
 		En: "if presented, will show already generated images in this chat and paginate over this flag",
+	},
+	CommandKandinskyFlagCountDescription: {
+		Ru: "кол-во изображений, которые надо сгенерировать",
+		En: "amount of images to generate",
 	},
 	CommandKandinskyFlagNegativePromptDescription: {
 		Ru: "добавить негативный промпт",

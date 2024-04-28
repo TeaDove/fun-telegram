@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
+	"github.com/gotd/td/tg"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/uploader"
-	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/service/resource"
@@ -37,12 +37,51 @@ var (
 		Short:       "s",
 		Description: resource.CommandKandinskyFlagStyleDescription,
 	}
-	FlagPageStyle = optFlag{
+	FlagKandinskyPageStyle = optFlag{
 		Long:        "page",
 		Short:       "p",
-		Description: resource.CommandKandinskyFlagStyleDescription,
+		Description: resource.CommandKandinskyFlagPageDescription,
+	}
+	FlagKandinskyCountStyle = optFlag{
+		Long:        "count",
+		Short:       "c",
+		Description: resource.CommandKandinskyFlagCountDescription,
 	}
 )
+
+func (r *Presentation) uploadKandinskyImage(
+	ctx *ext.Context,
+	tgPhoto *tg.Photo,
+	tgMsg *tg.Message,
+	kandinskyInput *kandinsky_supplier.RequestGenerationInput,
+	img []byte,
+	tgChatId int64,
+) bool {
+	err := r.analiticsService.KandinskyImageInsert(
+		ctx,
+		&mongo_repository.KandinskyImageDenormalized{
+			TgInputPhoto: tg.InputPhoto{
+				ID:            tgPhoto.ID,
+				AccessHash:    tgPhoto.AccessHash,
+				FileReference: tgPhoto.FileReference,
+			},
+			KandinskyInput: *kandinskyInput,
+			ImgContent:     img,
+			Message: mongo_repository.Message{
+				TgChatID: tgChatId,
+				TgId:     tgMsg.ID,
+				TgUserId: ctx.Self.ID,
+				Text:     tgMsg.Message,
+			},
+		},
+	)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.insert.image").Send()
+		return false
+	}
+
+	return true
+}
 
 // kandkinskyCommandHandler
 // nolint: cyclop
@@ -60,7 +99,7 @@ func (r *Presentation) kandkinskyCommandHandler(
 		return nil
 	}
 
-	if pageStr, ok := input.Ops[FlagPageStyle.Long]; ok {
+	if pageStr, ok := input.Ops[FlagKandinskyPageStyle.Long]; ok {
 		return r.kandkinskyPaginateImagesCommandHandler(ctx, update, pageStr)
 	}
 
@@ -84,6 +123,28 @@ func (r *Presentation) kandkinskyCommandHandler(
 		kandinskyInput.Style = defaultStyle
 	}
 
+	count := 1
+
+	if countFlag, ok := input.Ops[FlagKandinskyCountStyle.Long]; ok {
+		countV, err := strconv.Atoi(countFlag)
+		if err != nil {
+			_, err = ctx.Reply(
+				update,
+				fmt.Sprintf("Err: failed to parse count flag: %s", err.Error()),
+				nil,
+			)
+			if err != nil {
+				return errors.Wrap(err, "failed to reply")
+			}
+
+			return nil
+		}
+
+		if countV > 1 {
+			count = countV
+		}
+	}
+
 	requestedUser := update.EffectiveUser()
 
 	imageAnnotation := fmt.Sprintf(
@@ -96,7 +157,7 @@ func (r *Presentation) kandkinskyCommandHandler(
 		imageAnnotation += fmt.Sprintf("Style: %s\n", kandinskyInput.Style)
 	}
 
-	msg, err := ctx.Reply(
+	waitMsg, err := ctx.Reply(
 		update,
 		imageAnnotation,
 		nil,
@@ -107,83 +168,103 @@ func (r *Presentation) kandkinskyCommandHandler(
 
 	t0 := time.Now()
 
-	img, err := r.kandinskySupplier.WaitGeneration(ctx, &kandinskyInput)
+	imgs, err := r.kandinskySupplier.WaitGenerations(ctx, &kandinskyInput, count)
 	if err != nil {
-		switch {
-		case errors.Is(err, kandinsky_supplier.ErrImageWasCensored):
-			_, err := ctx.Reply(update, "Err: image was censored", nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			return nil
-		case errors.Is(err, kandinsky_supplier.ErrImageCreationFailed):
-			_, err := ctx.Reply(update, fmt.Sprintf("Err: %s", err.Error()), nil)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			return nil
-		}
-
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to generate images")
 	}
 
-	unbasedImg, err := base64.StdEncoding.DecodeString(string(img))
-	if err != nil {
-		return errors.WithStack(err)
+	if len(imgs) == 0 {
+		_, err := ctx.Reply(update, "Err: all images were censored or failed", nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to reply")
+		}
+	}
+
+	unbasedImgs := make([][]byte, 0, count)
+
+	for _, img := range imgs {
+		unbasedImg, err := base64.StdEncoding.DecodeString(string(img))
+		if err != nil {
+			return errors.Wrap(err, "failed to decode image")
+		}
+
+		unbasedImgs = append(unbasedImgs, unbasedImg)
 	}
 
 	imgUploader := uploader.NewUploader(ctx.Raw)
 
-	f, err := imgUploader.FromBytes(ctx, "image.jpeg", unbasedImg)
-	if err != nil {
-		return errors.WithStack(err)
+	album := make([]message.MultiMediaOption, 0, count)
+	imageAnnotation += fmt.Sprintf("Generated in %s\n", time.Since(t0).String())
+
+	for _, img := range unbasedImgs {
+		file, err := imgUploader.FromBytes(ctx, "kandinsky-image.png", img)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		album = append(album, message.UploadedPhoto(
+			file,
+			styling.Plain(imageAnnotation),
+		))
 	}
 
-	imageAnnotation += fmt.Sprintf("Created in %s\n", time.Since(t0).String())
-
-	imgMsg, err := ctx.SendMedia(update.EffectiveChat().GetID(), &tg.MessagesSendMediaRequest{
-		Media: &tg.InputMediaUploadedPhoto{
-			File: f,
-		},
-		ReplyTo: &tg.InputReplyToMessage{ReplyToMsgID: update.EffectiveMessage.ID},
-		Message: imageAnnotation,
-	})
+	albumResponse, err := ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Album(
+		ctx,
+		album[0],
+		album[1:]...,
+	)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to send album")
 	}
 
-	tgImage, ok := imgMsg.Media.(*tg.MessageMediaPhoto)
+	updates, ok := albumResponse.(*tg.Updates)
 	if !ok {
-		return errors.New("imgMsg.Media has wrong type")
+		return errors.New("albumResponse has wrong type")
 	}
 
-	tgPhoto, ok := tgImage.Photo.(*tg.Photo)
-	if !ok {
-		return errors.New("tgImage.Photo has wrong type")
+	idx := 0
+
+	for _, msgUpdate := range updates.Updates {
+		var msg tg.MessageClass
+
+		if newMsg, ok := msgUpdate.(*tg.UpdateNewMessage); ok {
+			msg = newMsg.Message
+		} else {
+			if newChanMsg, ok := msgUpdate.(*tg.UpdateNewChannelMessage); ok {
+				msg = newChanMsg.Message
+			} else {
+				continue
+			}
+		}
+
+		tgMsg, ok := msg.(*tg.Message)
+		if !ok {
+			continue
+		}
+
+		tgImage, ok := tgMsg.Media.(*tg.MessageMediaPhoto)
+		if !ok {
+			continue
+		}
+
+		tgPhoto, ok := tgImage.Photo.(*tg.Photo)
+		if !ok {
+			continue
+		}
+
+		r.uploadKandinskyImage(
+			ctx,
+			tgPhoto,
+			tgMsg,
+			&kandinskyInput,
+			unbasedImgs[idx],
+			update.EffectiveChat().GetID(),
+		)
+
+		idx++
 	}
 
-	err = r.analiticsService.KandinskyImageInsert(ctx, &mongo_repository.KandinskyImageDenormalized{
-		TgInputPhoto: tg.InputPhoto{
-			ID:            tgPhoto.ID,
-			AccessHash:    tgPhoto.AccessHash,
-			FileReference: tgPhoto.FileReference,
-		},
-		KandinskyInput: kandinskyInput,
-		ImgContent:     unbasedImg,
-		Message: mongo_repository.Message{
-			TgChatID: update.EffectiveChat().GetID(),
-			TgId:     imgMsg.ID,
-			TgUserId: ctx.Self.ID,
-			Text:     imgMsg.Text,
-		},
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to insert image")
-	}
-
-	err = ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{msg.ID})
+	err = ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{waitMsg.ID})
 	if err != nil {
 		zerolog.Ctx(ctx.Context).
 			Error().
@@ -238,6 +319,8 @@ func (r *Presentation) kandkinskyPaginateImagesCommandHandler(
 		if err != nil {
 			return errors.Wrap(err, "failed to reply")
 		}
+
+		return nil
 	}
 
 	album := make([]message.MultiMediaOption, 0, 10)
