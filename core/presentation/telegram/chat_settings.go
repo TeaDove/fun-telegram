@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/bsm/redislock"
 	"strconv"
 	"strings"
 	"time"
@@ -152,6 +153,24 @@ func (r *Presentation) chatCommandHandler(
 	input *input,
 ) (err error) {
 	chatId := update.EffectiveChat().GetID()
+
+	lock, err := r.redisRepository.Locker.Obtain(
+		ctx,
+		fmt.Sprintf("chat-setting-locker::%d", chatId),
+		2*time.Second,
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to obtain lock for chat")
+	}
+
+	defer func(lock *redislock.Lock, ctx context.Context) {
+		err := lock.Release(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Warn().Str("status", "failed.to.release.lock").Send()
+		}
+	}(lock, ctx)
+
 	msgText := make([]styling.StyledTextOption, 0, 5)
 
 	enable, ok := input.Ops[FlagChatEnabled.Long]

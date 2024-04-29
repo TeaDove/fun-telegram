@@ -6,6 +6,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.18.0
 	github.com/aaaton/golem/v4 v4.0.1
 	github.com/aaaton/golem/v4/dicts/ru v0.0.0-20221121100719-34023a0c192d
+	github.com/bsm/redislock v0.9.4
 	github.com/caarlos0/env/v7 v7.1.0
 	github.com/celestix/gotgproto v1.0.0-beta17
 	github.com/deckarep/golang-set/v2 v2.6.0
