@@ -33,6 +33,26 @@ func (r *Repository) MemberUpsert(ctx context.Context, member *Member) error {
 	return nil
 }
 
+func (r *Repository) SetAllMembersAsLeft(
+	ctx context.Context,
+	tgChatId int64,
+	notUpdatedBefore time.Time,
+) error {
+	_, err := r.memberCollection.UpdateMany(
+		ctx,
+		bson.M{"tg_chat_id": tgChatId, "updated_at": bson.M{operator.Lte: notUpdatedBefore}},
+		bson.M{"$set": bson.M{
+			"status":     Left,
+			"updated_at": time.Now().UTC(),
+		}},
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to set members as left")
+	}
+
+	return nil
+}
+
 func (r *Repository) GetUsersInChat(ctx context.Context, chatId int64) (UsersInChat, error) {
 	usersInChat := make(UsersInChat, 0, 100)
 

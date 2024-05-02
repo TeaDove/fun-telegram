@@ -119,6 +119,11 @@ func (r *Presentation) updateMembers(
 		return nil, errors.Wrap(err, "failed to upsert chat in mongo repository")
 	}
 
+	err = r.mongoRepository.SetAllMembersAsLeft(ctx, effectiveChat.GetID(), t0.Add(-time.Hour))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to set all members as left")
+	}
+
 	zerolog.Ctx(ctx).
 		Info().
 		Str("status", "members.uploaded").

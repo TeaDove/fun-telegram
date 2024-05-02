@@ -2,10 +2,6 @@ package telegram
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-	"unicode"
-
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/peers"
@@ -13,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
+	"strconv"
+	"strings"
 )
 
 func filterNonNewMessages(update *ext.Update) bool {
@@ -131,15 +129,6 @@ func GetNameFromPeerUser(user *peers.User) string {
 	return GetNameFromTgUser(&tgUser)
 }
 
-func trimUnprintable(v string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsPrint(r) {
-			return r
-		}
-		return -1
-	}, v)
-}
-
 func GetNameFromTgUser(user *tg.User) string {
 	var result string
 
@@ -153,9 +142,9 @@ func GetNameFromTgUser(user *tg.User) string {
 		}
 	}
 
-	result = shared.ReplaceNonAsciiWithSpace(result)
+	result = strings.TrimSpace(shared.ReplaceNonAsciiWithSpace(result))
 
-	if strings.TrimSpace(result) == "" {
+	if result == "" {
 		username, ok := user.GetUsername()
 		if ok {
 			result = username

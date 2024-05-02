@@ -70,13 +70,13 @@ func (r *Presentation) uploadMembers(
 ) {
 	defer wg.Done()
 
-	_, err := r.getOrUpdateMembers(ctx, chat)
+	_, err := r.updateMembers(ctx, chat)
 	if err != nil {
 		zerolog.Ctx(ctx).
 			Error().
 			Stack().
 			Err(errors.WithStack(err)).
-			Str("status", "failed.to.get.members").
+			Str("status", "failed.to.update.members").
 			Send()
 		return
 	}
