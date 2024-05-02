@@ -183,7 +183,7 @@ func (r *Service) analiseUserChat(
 		return AnaliseReport{}, nil
 	}
 
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.TgChatId)
+	usersInChat, err := r.mongoRepository.GetUsersInChatOnlyActive(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(
 			err,
@@ -236,7 +236,7 @@ func (r *Service) analiseWholeChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (AnaliseReport, error) {
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, input.TgChatId)
+	usersInChat, err := r.mongoRepository.GetUsersInChatOnlyActive(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(
 			err,

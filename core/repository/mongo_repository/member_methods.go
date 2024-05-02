@@ -49,7 +49,40 @@ func (r *Repository) GetUsersInChat(ctx context.Context, chatId int64) (UsersInC
 				"tg_username": "$user.tg_username",
 				"tg_name":     "$user.tg_name",
 				"is_bot":      "$user.is_bot",
-				// "tg_chat_id":  1,
+			},
+		},
+	)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return usersInChat, nil
+}
+
+func (r *Repository) GetUsersInChatOnlyActive(
+	ctx context.Context,
+	chatId int64,
+) (UsersInChat, error) {
+	usersInChat := make(UsersInChat, 0, 100)
+
+	err := r.memberCollection.SimpleAggregateWithCtx(
+		ctx,
+		&usersInChat,
+		builder.Lookup(r.userCollection.Name(), "tg_user_id", "tg_id", "user"),
+		bson.M{operator.Match: bson.M{"tg_chat_id": chatId}},
+		bson.M{operator.Unwind: "$user"},
+		bson.M{
+			operator.Project: bson.M{
+				"status":      1,
+				"tg_id":       "$user.tg_id",
+				"tg_username": "$user.tg_username",
+				"tg_name":     "$user.tg_name",
+				"is_bot":      "$user.is_bot",
+			},
+		},
+		bson.M{
+			operator.Match: bson.M{
+				"status": bson.M{operator.In: []MemberStatus{Plain, Creator, Admin}},
 			},
 		},
 	)
