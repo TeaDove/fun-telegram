@@ -78,6 +78,7 @@ func (r *Presentation) uploadMembers(
 			Err(errors.WithStack(err)).
 			Str("status", "failed.to.update.members").
 			Send()
+
 		return
 	}
 }
@@ -235,8 +236,7 @@ LastDate: %s`,
 }
 
 // uploadStatsUpload
-// nolint: gocyclo
-func (r *Presentation) uploadStatsUpload(
+func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	ctx *ext.Context,
 	update *ext.Update,
 	input *input,

@@ -22,7 +22,7 @@ services:
           memory: 100M
 
   mongodb:
-    image: mongo:7.0.4-jammy
+    image: mongo:7.0.9-jammy
     ports:
       - '27017:27017'
     environment:

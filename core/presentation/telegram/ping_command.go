@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	errors2 "github.com/celestix/gotgproto/errors"
+	tgError "github.com/celestix/gotgproto/errors"
 	"github.com/celestix/gotgproto/types"
 
 	"github.com/celestix/gotgproto/ext"
@@ -31,9 +31,10 @@ func (r *Presentation) pingCommandHandler(
 		r.protoClient.PeerStorage,
 	)
 	if err != nil {
-		if !(errors.Is(err, errors2.ErrReplyNotMessage) || errors.Is(err, errors2.ErrMessageNotExist)) {
+		if !(errors.Is(err, tgError.ErrReplyNotMessage) || errors.Is(err, tgError.ErrMessageNotExist)) {
 			return errors.Wrap(err, "failed to set reply to message")
 		}
+
 		msgToPing = update.EffectiveMessage
 	} else {
 		msgToPing = update.EffectiveMessage.ReplyToMessage

@@ -118,6 +118,7 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 					checkResults,
 					CheckResult{Name: name, Err: ctx.Err(), Elapsed: elapsed},
 				)
+
 				zerolog.Ctx(ctx).
 					Error().Stack().
 					Err(ctx.Err()).

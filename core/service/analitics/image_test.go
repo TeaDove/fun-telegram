@@ -1,9 +1,10 @@
 package analitics
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
-	"testing"
 
 	"github.com/teadove/fun_telegram/core/shared"
 )

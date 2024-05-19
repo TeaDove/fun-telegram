@@ -1,9 +1,10 @@
 package mongo_repository
 
 import (
+	"time"
+
 	"github.com/gotd/td/tg"
 	"github.com/teadove/fun_telegram/core/supplier/kandinsky_supplier"
-	"time"
 
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson/primitive"

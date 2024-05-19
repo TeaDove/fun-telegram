@@ -175,8 +175,10 @@ func (r *Presentation) regRuleFinderMessagesProcessor(ctx *ext.Context, update *
 				Str("status", "bad.regexp").
 				Str("regexp", reg).
 				Send()
+
 			continue
 		}
+
 		regexp.MatchTimeout = time.Second * 2
 
 		match, err := regexp.MatchString(update.EffectiveMessage.Text)

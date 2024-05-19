@@ -2,6 +2,7 @@ package redis_repository
 
 import (
 	"fmt"
+
 	"github.com/bsm/redislock"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"

@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/bsm/redislock"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/bsm/redislock"
 
 	"github.com/rs/zerolog"
 

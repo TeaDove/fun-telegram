@@ -89,7 +89,7 @@ services:
           memory: 100M
 
   mongodb:
-    image: mongo:7.0.4-jammy
+    image: mongo:7.0.9-jammy
     environment:
       MONGO_INITDB_DATABASE: db_main
     volumes:

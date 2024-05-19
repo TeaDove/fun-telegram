@@ -123,40 +123,6 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 	return nil
 }
 
-//func dumpSliceToCsvZip(name string, slice any) (File, error) {
-//	file := File{
-//		Name:      name,
-//		Extension: "csv.zip",
-//	}
-//
-//	sliceBytes, err := gocsv.MarshalBytes(slice)
-//	if err != nil {
-//		return File{}, errors.Wrap(err, "failed to dump to csv")
-//	}
-//
-//	buf := new(bytes.Buffer)
-//	zipWriter := zip.NewWriter(buf)
-//
-//	zipFile, err := zipWriter.Create(name + ".csv")
-//	if err != nil {
-//		return File{}, errors.Wrap(err, "failed to create zip")
-//	}
-//
-//	_, err = zipFile.Write(sliceBytes)
-//	if err != nil {
-//		return File{}, errors.Wrap(err, "failed to write bytes to zip")
-//	}
-//
-//	err = zipWriter.Close()
-//	if err != nil {
-//		return File{}, errors.Wrap(err, "failed to close zip writer")
-//	}
-//
-//	file.Content = buf.Bytes()
-//
-//	return file, nil
-//}
-
 // DumpChannels
 // nolint: cyclop
 // TODO fix self-loops

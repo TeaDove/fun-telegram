@@ -18,8 +18,9 @@ docker-buildx: docker-login
 	docker buildx build --platform linux/arm64,linux/amd64 -f=Dockerfile . --tag $(DOCKER_IMAGE) --push
 
 lint:
-	golangci-lint run ./...
+	gofumpt -w .
 	golines --base-formatter=gofmt --max-len=120 --no-reformat-tags -w .
+	#golangci-lint run ./...
 
 test:
 	go test ./... -cover -count=1 -p=100

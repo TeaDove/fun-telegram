@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/teadove/fun_telegram/core/service/analitics"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/tg"
@@ -18,8 +20,6 @@ var confLevelThreshold = 0.55
 // animeDetectionMessagesProcessor
 // Currently no working
 func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update *ext.Update) error {
-	return nil
-
 	chatSettings, err := r.getChatSettings(ctx, update.EffectiveChat().GetID())
 	if err != nil {
 		return errors.Wrap(err, "failed to get chat settings")
@@ -36,19 +36,15 @@ func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update 
 
 	mediaDocument, ok := update.EffectiveMessage.Media.(*tg.MessageMediaDocument)
 	if ok {
-		document, ok := mediaDocument.Document.(*tg.Document)
+		_, ok = mediaDocument.Document.(*tg.Document)
 		if !ok {
 			zerolog.Ctx(ctx).Debug().Str("status", "not.an.document").Send()
-			return nil
-		}
-
-		if document.DCID != r.protoClient.DC {
-			zerolog.Ctx(ctx).Debug().Str("status", "different.dc").Send()
 			return nil
 		}
 	}
 
 	var buf bytes.Buffer
+
 	_, err = ctx.DownloadMedia(
 		update.EffectiveMessage.Media,
 		ext.DownloadOutputStream{Writer: &buf},
@@ -60,6 +56,11 @@ func (r *Presentation) animeDetectionMessagesProcessor(ctx *ext.Context, update 
 
 	conf, err := r.analiticsService.AnimePrediction(ctx, buf.Bytes())
 	if err != nil {
+		if errors.Is(err, analitics.ErrNotAnImage) {
+			zerolog.Ctx(ctx).Debug().Str("status", "not.an.image").Send()
+			return nil
+		}
+
 		return errors.Wrap(err, "failed to predict anime")
 	}
 

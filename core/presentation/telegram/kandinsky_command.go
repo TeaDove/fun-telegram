@@ -3,14 +3,15 @@ package telegram
 import (
 	"encoding/base64"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/tg"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"strconv"
-	"time"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/uploader"

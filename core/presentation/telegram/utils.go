@@ -2,6 +2,9 @@ package telegram
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/peers"
@@ -9,8 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
-	"strconv"
-	"strings"
 )
 
 func filterNonNewMessages(update *ext.Update) bool {

@@ -64,6 +64,7 @@ func (r *Presentation) getUserFromFlag(
 	}
 
 	username = strings.ToLower(username)
+
 	targetUser, err := r.mongoRepository.GetUserByUsername(ctx, username)
 	if err == nil {
 		return targetUser, true, nil
@@ -202,6 +203,7 @@ func (r *Presentation) statsCommandHandler(
 
 			return nil
 		}
+
 		return errors.Wrap(err, "failed to analise chat")
 	}
 

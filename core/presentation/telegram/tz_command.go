@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-// TODO move all chat settings to one place
-
-const tzOffset int8 = 12
-
 func int8ToLoc(tz int8) *time.Location {
 	if tz == 0 {
 		return time.FixedZone("UTC", 0)

@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidwall/gjson"
+
 	"github.com/rs/zerolog"
 
 	"github.com/pkg/errors"
@@ -72,6 +74,15 @@ func (r *Supplier) sendRequest(ctx context.Context, path string, input any) ([]b
 	return resp, nil
 }
 
+type DSError struct {
+	Detail string
+	Code   int
+}
+
+func (r DSError) Error() string {
+	return fmt.Sprintf("bad status code: %d, details: %s", r.Code, r.Detail)
+}
+
 func (r *Supplier) doRequest(ctx context.Context, req *http.Request) ([]byte, error) {
 	t0 := time.Now()
 
@@ -94,7 +105,12 @@ func (r *Supplier) doRequest(ctx context.Context, req *http.Request) ([]byte, er
 		Send()
 
 	if resp.StatusCode >= 400 {
-		return nil, errors.Errorf("bad status code: %d, content: %s", resp.StatusCode, string(body))
+		dsError := DSError{
+			Detail: gjson.GetBytes(body, "detail").String(),
+			Code:   resp.StatusCode,
+		}
+
+		return nil, errors.WithStack(dsError)
 	}
 
 	return body, nil

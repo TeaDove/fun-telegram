@@ -68,31 +68,30 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 
 	if shared.AppSettings.Telegram.FloodWaiterEnabled {
 		waiter := floodwait.
-			NewWaiter().
-			WithMaxWait(time.Minute * 5).
-			WithMaxRetries(20).
-			WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
-				zerolog.Ctx(ctx).
-					Warn().
-					Str("status", "flood.waiting").
-					Str("dur", wait.Duration.String()).
-					Send()
-			})
+			NewSimpleWaiter().
+			WithMaxWait(time.Minute * 10).
+			WithMaxRetries(20)
+		// WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
+		//	zerolog.Ctx(ctx).
+		//		Warn().
+		//		Str("status", "flood.waiting").
+		//		Str("dur", wait.Duration.String()).
+		//		Send()
+		// })
+		//runMiddleware = func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
+		//	return origRun(ctx, func(ctx context.Context) error {
+		//		return waiter.Run(ctx, f)
+		//	})
+		//}
 
 		middlewares = append(middlewares, waiter)
-		runMiddleware = func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
-			return origRun(ctx, func(ctx context.Context) error {
-				return waiter.Run(ctx, f)
-			})
-		}
+
 	}
 
 	protoClient, err := gotgproto.NewClient(
 		shared.AppSettings.Telegram.AppID,
 		shared.AppSettings.Telegram.AppHash,
-		gotgproto.ClientType{
-			Phone: shared.AppSettings.Telegram.PhoneNumber,
-		},
+		gotgproto.ClientTypePhone(shared.AppSettings.Telegram.PhoneNumber),
 		&gotgproto.ClientOpts{
 			Context:          ctx,
 			InMemory:         false,

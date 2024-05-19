@@ -36,7 +36,10 @@ func (r *Presentation) getChannelRecommendations(
 
 	t0 := time.Now()
 
-	recommendations, err := r.telegramApi.ChannelsGetChannelRecommendations(ctx, &inputPeerChannel)
+	recommendations, err := r.telegramApi.ChannelsGetChannelRecommendations(ctx,
+		&tg.ChannelsGetChannelRecommendationsRequest{
+			Channel: &inputPeerChannel,
+		})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get channel recommendations")
 	}
@@ -178,6 +181,7 @@ func (r *Presentation) loadChannelMessages(ctx context.Context, chat *tg.Channel
 		Int("elem.count", elemCount).
 		Str("title", chat.Title).
 		Send()
+
 	return nil
 }
 
