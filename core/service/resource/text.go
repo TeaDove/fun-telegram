@@ -81,6 +81,7 @@ const (
 	CommandChatFlagLocaleDescription
 	CommandChatLocaleSuccess
 
+	CommandAnimeDetectDescription
 	CommandRestartDescription
 	CommandRestartRestarting
 	CommandRestartSuccess
@@ -232,6 +233,10 @@ var localizer = map[Code]map[Locale]string{
 	CommandRestartRestarting:  {Ru: "Перезагрузка...\n", En: "Restarting..."},
 	CommandRestartSuccess:     {Ru: "Перезагрузка успешна!", En: "Restart success!"},
 	CommandRestartDescription: {Ru: "перезагружает бота", En: "restarts bot"},
+	CommandAnimeDetectDescription: {
+		Ru: "проверяет, является ли отвеченный стикер/картинка аниме",
+		En: "check if replied sticker/image is anime",
+	},
 	CommandStatsFlagTZDescription: {
 		Ru: "временной офсет по UTC",
 		En: "offsets all time-based stats by timezone UTC offset",

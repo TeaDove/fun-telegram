@@ -276,6 +276,10 @@ func MustNewTelegramPresentation(
 			description:  resource.CommandRestartDescription,
 			requireOwner: true,
 		},
+		"anime-detect": {
+			executor:    presentation.animeDetectionCommandHandler,
+			description: resource.CommandRestartDescription,
+		},
 	}
 
 	protoClient.Dispatcher.AddHandler(
