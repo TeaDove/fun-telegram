@@ -53,6 +53,8 @@ const (
 	CommandKandinskyFlagNegativePromptDescription
 	CommandLocationDescription
 
+	CommandTexDescription
+
 	CommandUploadStatsDescription
 
 	CommandDumpStatsDescription
@@ -199,6 +201,10 @@ var localizer = map[Code]map[Locale]string{
 		Ru: "получить аналитическое описание данного чата",
 		En: "get stats of this chat",
 	},
+	CommandTexDescription: {
+		Ru: "скомпилировать LaTeX выражение и выдать в формате PNG",
+		En: "compile LaTeX expression and return it in PNG format",
+	},
 	CommandUploadStatsDescription: {
 		Ru: "загрузить статистику из этого чата",
 		En: "uploads stats from this chat",
@@ -234,8 +240,8 @@ var localizer = map[Code]map[Locale]string{
 	CommandRestartSuccess:     {Ru: "Перезагрузка успешна!", En: "Restart success!"},
 	CommandRestartDescription: {Ru: "перезагружает бота", En: "restarts bot"},
 	CommandAnimeDetectDescription: {
-		Ru: "проверяет, является ли отвеченный стикер/картинка аниме",
-		En: "check if replied sticker/image is anime",
+		Ru: "проверяет, является ли отвеченный стикер/картинка аниме. Используйте !chat -e=anime-detections, чтобы включить автоматическую проверку на аниме",
+		En: "check if replied sticker/image is anime. To toggle auto anime detection: !chat -e=anime-detections",
 	},
 	CommandStatsFlagTZDescription: {
 		Ru: "временной офсет по UTC",

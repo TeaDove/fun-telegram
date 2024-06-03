@@ -169,5 +169,5 @@ dmypy.json
 .terragrunt-cache
 .terraform
 
-/core/service/analitics/.test-*
+**/.test-*
 /fun_telegram

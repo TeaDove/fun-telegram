@@ -73,7 +73,6 @@ func (r *Presentation) regruleCommandHandler(
 	}
 
 	if regToDelete, ok := input.Ops[FlagRegRuleDelete.Long]; ok {
-		println(regToDelete)
 		err := r.redisRepository.DelRegRules(ctx, update.EffectiveChat().GetID(), regToDelete)
 		if err != nil {
 			return errors.Wrap(err, "failed to delete")

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/service/tex"
+
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/glebarez/sqlite"
 
@@ -49,6 +51,7 @@ type Presentation struct {
 	resourceService   *resource.Service
 	analiticsService  *analitics.Service
 	jobService        *job.Service
+	texService        *tex.Service
 }
 
 func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
@@ -278,7 +281,12 @@ func MustNewTelegramPresentation(
 		},
 		"anime-detect": {
 			executor:    presentation.animeDetectionCommandHandler,
-			description: resource.CommandRestartDescription,
+			description: resource.CommandAnimeDetectDescription,
+		},
+		"tex": {
+			executor:    presentation.texCommandHandler,
+			description: resource.CommandTexDescription,
+			example:     "Найс! $f(x) = \\frac{\\sqrt{x +20}}{2\\pi} +\\hbar \\sum y\\partial y$",
 		},
 	}
 
