@@ -2,8 +2,9 @@ package telegram
 
 import (
 	"context"
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"time"
+
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/teadove/fun_telegram/core/service/tex"
 

@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+
 	"github.com/teadove/fun_telegram/core/infrastructure/pg"
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
@@ -67,7 +68,13 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init pg repository"))
 	}
 
-	analiticsService, err := analitics.New(mongoRepository, chRepository, dsSupplier, resourceService, dbRepository)
+	analiticsService, err := analitics.New(
+		mongoRepository,
+		chRepository,
+		dsSupplier,
+		resourceService,
+		dbRepository,
+	)
 	shared.Check(ctx, err)
 
 	protoClient, err := telegram.NewProtoClient(ctx)

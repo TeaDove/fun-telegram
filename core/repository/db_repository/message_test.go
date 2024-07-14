@@ -1,12 +1,13 @@
 package db_repository
 
 import (
+	"math/rand/v2"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/fun_telegram/core/infrastructure/pg"
 	"github.com/teadove/fun_telegram/core/shared"
-	"math/rand/v2"
-	"testing"
 )
 
 func generateMessage() Message {

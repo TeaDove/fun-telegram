@@ -2,11 +2,12 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
-	"gorm.io/gorm"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"gorm.io/gorm"
 
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"

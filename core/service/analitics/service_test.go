@@ -3,13 +3,14 @@ package analitics
 import (
 	"bytes"
 	"fmt"
-	"github.com/teadove/fun_telegram/core/infrastructure/pg"
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"image"
 	"image/jpeg"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/teadove/fun_telegram/core/infrastructure/pg"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/teadove/fun_telegram/core/service/resource"
 

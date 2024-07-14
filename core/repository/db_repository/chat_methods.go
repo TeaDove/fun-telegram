@@ -2,6 +2,7 @@ package db_repository
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"gorm.io/gorm/clause"
 )
@@ -13,7 +14,6 @@ func (r *Repository) ChatUpsert(ctx context.Context, row *Chat) error {
 			DoUpdates: clause.AssignmentColumns([]string{"tg_chat_id", "title"}),
 		}).
 		Create(&row).Error
-
 	if err != nil {
 		return errors.Wrap(err, "failed to upsert chat")
 	}

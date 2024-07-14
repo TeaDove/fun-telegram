@@ -2,6 +2,7 @@ package db_repository
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +35,6 @@ func (r *Repository) MessageCountByChatId(
 		Where("tg_chat_id = ?", tgChatId).
 		Count(&count).
 		Error
-
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to count message")
 	}
@@ -54,7 +54,6 @@ func (r *Repository) MessageCountByChatIdAndUserId(
 		Where("tg_chat_id = ? AND tg_user_id = ?", tgChatId, tgUserId).
 		Count(&count).
 		Error
-
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to count message")
 	}
@@ -123,7 +122,11 @@ func (r *Repository) MessageGetLastByChatId(ctx context.Context, tgChatId int64)
 	return message, nil
 }
 
-func (r *Repository) MessageGetLastByChatIdAndUserId(ctx context.Context, tgChatId int64, tgUserId int64) (Message, error) {
+func (r *Repository) MessageGetLastByChatIdAndUserId(
+	ctx context.Context,
+	tgChatId int64,
+	tgUserId int64,
+) (Message, error) {
 	var message Message
 
 	err := r.db.

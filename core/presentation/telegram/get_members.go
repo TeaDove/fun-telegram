@@ -2,9 +2,10 @@ package telegram
 
 import (
 	"context"
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"strings"
 	"time"
+
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/peers/members"

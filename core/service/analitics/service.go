@@ -5,10 +5,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"slices"
 	"sync"
 	"time"
+
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/teadove/fun_telegram/core/service/resource"
 
@@ -41,7 +42,6 @@ func New(
 	resourceService *resource.Service,
 	dbRepository *db_repository.Repository,
 ) (*Service, error) {
-
 	r := Service{
 		mongoRepository: mongoRepository,
 		chRepository:    chRepository,

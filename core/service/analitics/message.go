@@ -2,10 +2,11 @@ package analitics
 
 import (
 	"context"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"gorm.io/gorm"
-	"strings"
 )
 
 func (r *Service) MessageInsert(ctx context.Context, message *Message) error {

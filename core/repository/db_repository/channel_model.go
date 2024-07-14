@@ -15,8 +15,8 @@ type Channel struct {
 
 	ParticipantCount   int64       `sql:"participant_count"   parquet:"name=participant_count, type=INT64"`
 	RecommendationsIds []int64     `sql:"recommendations_ids"`
-	IsLeaf             bool        `sql:"is_leaf" parquet:"name=is_leaf, type=BOOLEAN"`
-	TgAbout            null.String `sql:"tg_about" parquet:"name=tg_about, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	IsLeaf             bool        `sql:"is_leaf"             parquet:"name=is_leaf, type=BOOLEAN"`
+	TgAbout            null.String `sql:"tg_about"            parquet:"name=tg_about, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
 type Channels []Channel

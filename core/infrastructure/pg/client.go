@@ -1,10 +1,11 @@
 package pg
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"time"
 )
 
 func NewClientFromSettings() (*gorm.DB, error) {
@@ -21,7 +22,7 @@ func NewClientFromSettings() (*gorm.DB, error) {
 			return time.Now().In(ti)
 		},
 
-		//Logger: logger.Default.LogMode(logger.Info),
+		// Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to database")
