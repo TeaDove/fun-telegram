@@ -3,16 +3,17 @@ package db_repository
 type Chat struct {
 	WithId
 	WithCreatedAt
+	WithUpdatedAt
 
-	TgId  int64 `bson:"tg_chat_id"`
-	Title string
+	TgId  int64  `sql:"tg_id" gorm:"index:,unique"`
+	Title string `            gorm:"index"`
 }
 
 type UserInChat struct {
-	TgId       int64  `sql:"tg_id"`
-	TgUsername string `sql:"tg_username"`
-	TgName     string `sql:"tg_name"`
-	IsBot      bool   `sql:"is_bot"`
+	TgId       int64
+	TgUsername string
+	TgName     string
+	IsBot      bool
 	Status     MemberStatus
 }
 

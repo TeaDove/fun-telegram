@@ -9,5 +9,17 @@ type WithId struct {
 }
 
 type WithCreatedAt struct {
-	CreatedAt time.Time
+	CreatedAt time.Time `gorm:"index"`
+}
+
+type WithCreatedInDBAt struct {
+	CreatedInDBAt time.Time `gorm:"index"`
+}
+
+type WithUpdatedAt struct {
+	UpdatedAt time.Time `gorm:"index"`
+}
+
+type WithUpdatedInDBAt struct {
+	UpdatedInDBAt time.Time `gorm:"index"`
 }

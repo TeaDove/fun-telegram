@@ -17,7 +17,6 @@ import (
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/shared"
 )
@@ -52,9 +51,6 @@ func getService(t *testing.T) *Service {
 	mongoRepository, err := mongo_repository.New()
 	require.NoError(t, err)
 
-	chRepository, err := ch_repository.New(ctx)
-	require.NoError(t, err)
-
 	dsSupplier, err := ds_supplier.New(ctx)
 	require.NoError(t, err)
 
@@ -67,7 +63,7 @@ func getService(t *testing.T) *Service {
 	dbRepository, err := db_repository.NewRepository(ctx, db)
 	require.NoError(t, err)
 
-	r, err := New(mongoRepository, chRepository, dsSupplier, resourceService, dbRepository)
+	r, err := New(mongoRepository, dsSupplier, resourceService, dbRepository)
 	require.NoError(t, err)
 
 	return r

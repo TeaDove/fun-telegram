@@ -58,7 +58,7 @@ func (r *Presentation) updateMembers(
 		}
 		usersInChat = append(usersInChat, userInChat)
 
-		err := r.mongoRepository.UserUpsert(ctx, &mongo_repository.User{
+		err := r.dbRepository.UserUpsert(ctx, &mongo_repository.User{
 			TgId:       userInChat.TgId,
 			TgUsername: userInChat.TgUsername,
 			TgName:     userInChat.TgName,
@@ -114,8 +114,10 @@ func (r *Presentation) updateMembers(
 	}
 
 	err := r.dbRepository.ChatUpsert(ctx, &db_repository.Chat{
-		TgId:  effectiveChat.GetID(),
-		Title: chatTitle,
+		WithCreatedAt: db_repository.WithCreatedAt{CreatedAt: time.Now().UTC()},
+		WithUpdatedAt: db_repository.WithUpdatedAt{UpdatedAt: time.Now().UTC()},
+		TgId:          effectiveChat.GetID(),
+		Title:         chatTitle,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to upsert chat in mongo repository")
@@ -142,7 +144,7 @@ func (r *Presentation) getOrUpdateMembers(
 ) (mongo_repository.UsersInChat, error) {
 	needUpload := false
 
-	chat, err := r.dbRepository.ChatGet(ctx, effectiveChat.GetID())
+	chat, err := r.dbRepository.ChatSelectById(ctx, effectiveChat.GetID())
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.Wrap(err, "failed to get chat from repository")

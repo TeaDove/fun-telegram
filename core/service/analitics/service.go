@@ -20,14 +20,12 @@ import (
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 type Service struct {
 	dbRepository    *db_repository.Repository
 	mongoRepository *mongo_repository.Repository
-	chRepository    *ch_repository.Repository
 	dsSupplier      *ds_supplier.Supplier
 	resourceService *resource.Service
 
@@ -37,14 +35,12 @@ type Service struct {
 
 func New(
 	mongoRepository *mongo_repository.Repository,
-	chRepository *ch_repository.Repository,
 	dsSupplier *ds_supplier.Supplier,
 	resourceService *resource.Service,
 	dbRepository *db_repository.Repository,
 ) (*Service, error) {
 	r := Service{
 		mongoRepository: mongoRepository,
-		chRepository:    chRepository,
 		dsSupplier:      dsSupplier,
 		resourceService: resourceService,
 		dbRepository:    dbRepository,
@@ -184,7 +180,11 @@ func (r *Service) analiseUserChat(
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
 
-	usersInChat, err := r.mongoRepository.GetUsersInChatOnlyActive(ctx, input.TgChatId)
+	usersInChat, err := r.dbRepository.UsersSelectByStatusInChat(
+		ctx,
+		input.TgChatId,
+		db_repository.MemberStatusesActive,
+	)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(
 			err,
@@ -237,7 +237,11 @@ func (r *Service) analiseWholeChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (AnaliseReport, error) {
-	usersInChat, err := r.mongoRepository.GetUsersInChatOnlyActive(ctx, input.TgChatId)
+	usersInChat, err := r.dbRepository.UsersSelectByStatusInChat(
+		ctx,
+		input.TgChatId,
+		db_repository.MemberStatusesActive,
+	)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(
 			err,

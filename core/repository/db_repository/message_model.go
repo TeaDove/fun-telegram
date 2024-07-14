@@ -10,15 +10,16 @@ type Message struct {
 	WithId
 	WithCreatedAt
 
-	TgChatID        int64  `sql:"tg_chat_id"`
-	TgId            int64  `sql:"tg_id"`
-	TgUserId        int64  `sql:"tg_user_id"`
+	TgChatID int64 `sql:"tg_chat_id" gorm:"index:tg_chat_id_tg_id_idx,unique"`
+	TgId     int64 `sql:"tg_id"      gorm:"index:tg_chat_id_tg_id_idx,unique"`
+
+	TgUserId        int64  `sql:"tg_user_id"        gorm:"index"`
 	Text            string `sql:"text"`
 	WordsCount      uint64 `sql:"words_count"`
 	ToxicWordsCount uint64 `sql:"toxic_words_count"`
 
-	ReplyToTgMsgID  null.Int64 `sql:"reply_to_tg_msg_id"`
-	ReplyToTgUserID null.Int64 `sql:"reply_to_tg_user_id"`
+	ReplyToTgMsgID  null.Int64 `sql:"reply_to_tg_msg_id"  gorm:"index"`
+	ReplyToTgUserID null.Int64 `sql:"reply_to_tg_user_id" gorm:"index"`
 }
 
 func (r *Message) ToParquet() MessageParquet {

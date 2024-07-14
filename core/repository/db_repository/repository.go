@@ -34,8 +34,7 @@ func (r *Repository) Migrate(ctx context.Context) error {
 		AutoMigrate(
 			&Message{},
 			&Member{},
-			// TODO fix Channel
-			//&Channel{},
+			&Channel{},
 			&ChannelEdge{},
 			&Chat{},
 			&User{},

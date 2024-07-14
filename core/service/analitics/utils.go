@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/teadove/fun_telegram/core/shared"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type nameGetter struct {
-	idToUser     map[int64]mongo_repository.UserInChat
+	idToUser     map[int64]db_repository.UserInChat
 	anonymize    bool
 	idToAnonName map[int64]string
 }
@@ -47,10 +47,10 @@ func (r *nameGetter) getNameAndUsername(userId int64) string {
 }
 
 func (r *Service) getNameGetter(
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 	anonymize bool,
 ) nameGetter {
-	idToUser := make(map[int64]mongo_repository.UserInChat, len(usersInChat))
+	idToUser := make(map[int64]db_repository.UserInChat, len(usersInChat))
 
 	for _, user := range usersInChat {
 		idToUser[user.TgId] = user

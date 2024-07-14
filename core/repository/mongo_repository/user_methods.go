@@ -2,7 +2,6 @@ package mongo_repository
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,39 +31,40 @@ func (r *Repository) UserUpsert(ctx context.Context, user *User) error {
 	return nil
 }
 
-func (r *Repository) GetUsersById(ctx context.Context, usersId []int64) ([]User, error) {
-	users := make([]User, 0, len(usersId))
+//func (r *Repository) GetUsersById(ctx context.Context, usersId []int64) ([]User, error) {
+//	users := make([]User, 0, len(usersId))
+//
+//	err := r.userCollection.SimpleFindWithCtx(ctx, &users, bson.M{"tg_id": bson.M{"$in": usersId}})
+//	if err != nil {
+//		return nil, errors.WithStack(err)
+//	}
+//
+//	return users, nil
+//}
 
-	err := r.userCollection.SimpleFindWithCtx(ctx, &users, bson.M{"tg_id": bson.M{"$in": usersId}})
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+//
+//func (r *Repository) GetUserById(ctx context.Context, userId int64) (User, error) {
+//	var user User
+//
+//	err := r.userCollection.FirstWithCtx(ctx, bson.M{"tg_id": userId}, &user)
+//	if err != nil {
+//		return User{}, errors.WithStack(err)
+//	}
+//
+//	return user, nil
+//}
 
-	return users, nil
-}
-
-func (r *Repository) GetUserById(ctx context.Context, userId int64) (User, error) {
-	var user User
-
-	err := r.userCollection.FirstWithCtx(ctx, bson.M{"tg_id": userId}, &user)
-	if err != nil {
-		return User{}, errors.WithStack(err)
-	}
-
-	return user, nil
-}
-
-func (r *Repository) GetUserByUsername(ctx context.Context, username string) (User, error) {
-	var user User
-
-	err := r.userCollection.FirstWithCtx(
-		ctx,
-		bson.M{"tg_username": strings.ToLower(username)},
-		&user,
-	)
-	if err != nil {
-		return User{}, errors.WithStack(err)
-	}
-
-	return user, nil
-}
+//func (r *Repository) GetUserByUsername(ctx context.Context, username string) (User, error) {
+//	var user User
+//
+//	err := r.userCollection.FirstWithCtx(
+//		ctx,
+//		bson.M{"tg_username": strings.ToLower(username)},
+//		&user,
+//	)
+//	if err != nil {
+//		return User{}, errors.WithStack(err)
+//	}
+//
+//	return user, nil
+//}

@@ -9,7 +9,6 @@ import (
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"gorm.io/gorm"
 
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -46,7 +45,7 @@ func (r *Presentation) getUserFromFlag(
 
 	targetUserId, err := strconv.ParseInt(username, 10, 64)
 	if err == nil {
-		targetUser, err := r.dbRepository.UserGetById(ctx, targetUserId)
+		targetUser, err := r.dbRepository.UserSelectById(ctx, targetUserId)
 		if err == nil {
 			return targetUser, true, nil
 		}
@@ -68,7 +67,7 @@ func (r *Presentation) getUserFromFlag(
 
 	username = strings.ToLower(username)
 
-	targetUser, err := r.mongoRepository.GetUserByUsername(ctx, username)
+	targetUser, err := r.dbRepository.UserSelectByUsername(ctx, username)
 	if err == nil {
 		return targetUser, true, nil
 	}
@@ -81,11 +80,11 @@ func (r *Presentation) getUserFromFlag(
 			fmt.Sprintf("Err: user not found by username: %s", username),
 		)
 		if err != nil {
-			return mongo_repository.User{}, false, errors.Wrap(err, "failed to reply")
+			return db_repository.User{}, false, errors.Wrap(err, "failed to reply")
 		}
 	}
 
-	return mongo_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
+	return db_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 }
 
 func (r *Presentation) statsChannelCommandHandler(

@@ -208,8 +208,8 @@ func (r *Repository) MessageGroupByTimeAndChatId(
 	tgChatId int64,
 	precision time.Duration,
 	tz int8,
-) ([]MessageGroupByTimeOutput, error) {
-	var output []MessageGroupByTimeOutput
+) ([]MessagesGroupByTimeByWeekdayOutput, error) {
+	var output []MessagesGroupByTimeByWeekdayOutput
 	precisionSeconds := int(precision.Seconds())
 
 	err := r.db.WithContext(ctx).Raw(`
@@ -234,8 +234,8 @@ func (r *Repository) MessageGroupByTimeAndChatIdAndUserId(
 	tgUserId int64,
 	precision time.Duration,
 	tz int8,
-) ([]MessageGroupByTimeOutput, error) {
-	var output []MessageGroupByTimeOutput
+) ([]MessagesGroupByTimeByWeekdayOutput, error) {
+	var output []MessagesGroupByTimeByWeekdayOutput
 	precisionSeconds := int(precision.Seconds())
 
 	err := r.db.WithContext(ctx).Raw(`
@@ -331,7 +331,7 @@ select am.tg_user_id as tg_user_id, count(1) as count
 	return output, nil
 }
 
-func (r *Repository) MessageGetByChatIds(
+func (r *Repository) MessageSelectByChatIds(
 	ctx context.Context,
 	tgChatIds []int64,
 ) ([]Message, error) {

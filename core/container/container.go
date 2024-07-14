@@ -80,11 +80,10 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	protoClient, err := telegram.NewProtoClient(ctx)
 	shared.Check(ctx, err)
 
-	jobService, err := job.New(ctx, dbRepository, chRepository, map[string]job.ServiceChecker{
-		"MongoDB":    {Checker: dbRepository.Ping, ForFrequent: true},
+	jobService, err := job.New(ctx, map[string]job.ServiceChecker{
 		"Telegram":   {Checker: protoClient.Ping, ForFrequent: true},
 		"Redis":      {Checker: persistentStorage.Ping, ForFrequent: true},
-		"ClickHouse": {Checker: chRepository.Ping, ForFrequent: true},
+		"Postgres":   {Checker: dbRepository.Ping, ForFrequent: true},
 		"Kandinsky":  {Checker: kandinskySupplier.Ping},
 		"IpLocator":  {Checker: locator.Ping},
 		"DSSupplier": {Checker: dsSupplier.Ping},
@@ -97,10 +96,11 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		persistentStorage,
 		kandinskySupplier,
 		&locator,
-		dbRepository,
+		mongoRepository,
 		analiticsService,
 		jobService,
 		resourceService,
+		dbRepository,
 	)
 
 	container := Container{telegramPresentation, jobService}

@@ -4,11 +4,12 @@ import (
 	"context"
 	"sync"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 func (r *Service) getChatterBoxes(
@@ -18,7 +19,7 @@ func (r *Service) getChatterBoxes(
 	input *AnaliseChatInput,
 	getter nameGetter,
 	asc bool,
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 ) {
 	defer wg.Done()
 	output := statsReport{
@@ -240,7 +241,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 	getter nameGetter,
 ) {
 	defer wg.Done()
@@ -310,7 +311,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 	getter nameGetter,
 ) {
 	defer wg.Done()
