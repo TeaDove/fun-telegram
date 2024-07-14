@@ -112,7 +112,7 @@ func (r *Service) dumpChannelsEdgeParquet(channels ch_repository.ChannelsEdges) 
 }
 
 func (r *Service) dumpMessagesParquet(ctx context.Context, tgChatIds []int64) (File, error) {
-	channels, err := r.chRepository.MessagesGetByChatIds(ctx, tgChatIds)
+	channels, err := r.dbRepository.MessageGetByChatIds(ctx, tgChatIds)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to select items")
 	}

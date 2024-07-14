@@ -3,6 +3,9 @@ package pg
 import (
 	"time"
 
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
+
 	"github.com/pkg/errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -21,8 +24,11 @@ func NewClientFromSettings() (*gorm.DB, error) {
 			ti, _ := time.LoadLocation("utc")
 			return time.Now().In(ti)
 		},
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
 
-		// Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to database")

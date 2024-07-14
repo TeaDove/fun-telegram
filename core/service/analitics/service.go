@@ -166,7 +166,7 @@ func (r *Service) analiseUserChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (AnaliseReport, error) {
-	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, input.TgChatId, input.TgUserId)
+	count, err := r.dbRepository.MessageCountByChatIdAndUserId(ctx, input.TgChatId, input.TgUserId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
@@ -175,17 +175,13 @@ func (r *Service) analiseUserChat(
 		return AnaliseReport{}, errors.WithStack(ErrNoMessagesFound)
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(
+	lastMessage, err := r.dbRepository.MessageGetLastByChatIdAndUserId(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
 	)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
-	}
-
-	if count == 0 {
-		return AnaliseReport{}, nil
 	}
 
 	usersInChat, err := r.mongoRepository.GetUsersInChatOnlyActive(ctx, input.TgChatId)

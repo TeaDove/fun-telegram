@@ -430,11 +430,6 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
 
-	err = r.analiticsService.MessageSetReplyToUserId(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.Wrap(err, "failed to set reply to user id")
-	}
-
 	_, err = ctx.EditMessage(barChatId, &tg.MessagesEditMessageRequest{
 		Peer: barPeer,
 		ID:   barMessageId,

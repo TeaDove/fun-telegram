@@ -46,11 +46,11 @@ func (r *Service) getChatterBoxes(
 		output.repostImage.Name = "ChatterBoxes"
 	}
 
-	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserIdAsc(
+	userToCountArray, err := r.dbRepository.MessageGroupByChatIdAndUserId(
 		ctx,
 		input.TgChatId,
-		limit,
 		usersInChat.ToIds(),
+		limit,
 		asc,
 	)
 	if err != nil {
@@ -106,7 +106,7 @@ func (r *Service) getMessageFindRepliedBy(
 		},
 	}
 
-	interlocutors, err := r.chRepository.MessageFindRepliedBy(
+	interlocutors, err := r.dbRepository.MessageFindRepliedBy(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
@@ -178,7 +178,7 @@ func (r *Service) getMessageFindRepliesTo(
 		},
 	}
 
-	interlocutors, err := r.chRepository.MessageFindRepliesTo(
+	interlocutors, err := r.dbRepository.MessageFindRepliesTo(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
@@ -253,7 +253,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
 
 	for _, user := range usersInChat {
-		replies, err := r.chRepository.MessageFindRepliesTo(
+		replies, err := r.dbRepository.MessageFindRepliesTo(
 			ctx,
 			input.TgChatId,
 			user.TgId,
@@ -323,7 +323,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
 
 	for _, user := range usersInChat {
-		replies, err := r.chRepository.MessageFindRepliesTo(
+		replies, err := r.dbRepository.MessageFindRepliesTo(
 			ctx,
 			input.TgChatId,
 			user.TgId,
