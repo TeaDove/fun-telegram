@@ -33,11 +33,12 @@ func (r *Service) getMostToxicUsers(
 		},
 	}
 
-	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(
+	userToCountArray, err := r.dbRepository.MessageGroupByChatIdAndUserId(
 		ctx,
 		input.TgChatId,
-		maxUsers,
 		usersInChat.ToIds(),
+		maxUsers,
+		true,
 	)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to get GroupedCountGetByChatIdByUserId")

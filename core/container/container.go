@@ -2,6 +2,8 @@ package container
 
 import (
 	"context"
+	"github.com/teadove/fun_telegram/core/infrastructure/pg"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
@@ -43,7 +45,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	locator := ip_locator.Supplier{}
 
-	dbRepository, err := mongo_repository.New()
+	mongoRepository, err := mongo_repository.New()
 	shared.Check(ctx, err)
 
 	chRepository, err := ch_repository.New(ctx)
@@ -55,7 +57,17 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	resourceService, err := resource.New(ctx)
 	shared.Check(ctx, err)
 
-	analiticsService, err := analitics.New(dbRepository, chRepository, dsSupplier, resourceService)
+	db, err := pg.NewClientFromSettings()
+	if err != nil {
+		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init pg client"))
+	}
+
+	dbRepository, err := db_repository.NewRepository(ctx, db)
+	if err != nil {
+		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init pg repository"))
+	}
+
+	analiticsService, err := analitics.New(mongoRepository, chRepository, dsSupplier, resourceService, dbRepository)
 	shared.Check(ctx, err)
 
 	protoClient, err := telegram.NewProtoClient(ctx)

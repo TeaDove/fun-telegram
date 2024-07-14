@@ -3,6 +3,8 @@ package analitics
 import (
 	"bytes"
 	"fmt"
+	"github.com/teadove/fun_telegram/core/infrastructure/pg"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"image"
 	"image/jpeg"
 	"os"
@@ -46,7 +48,7 @@ func draw(t *testing.T, reportImages []File) {
 
 func getService(t *testing.T) *Service {
 	ctx := shared.GetCtx()
-	dbRepository, err := mongo_repository.New()
+	mongoRepository, err := mongo_repository.New()
 	require.NoError(t, err)
 
 	chRepository, err := ch_repository.New(ctx)
@@ -58,7 +60,13 @@ func getService(t *testing.T) *Service {
 	resourceService, err := resource.New(ctx)
 	require.NoError(t, err)
 
-	r, err := New(dbRepository, chRepository, dsSupplier, resourceService)
+	db, err := pg.NewClientFromSettings()
+	require.NoError(t, err)
+
+	dbRepository, err := db_repository.NewRepository(ctx, db)
+	require.NoError(t, err)
+
+	r, err := New(mongoRepository, chRepository, dsSupplier, resourceService, dbRepository)
 	require.NoError(t, err)
 
 	return r

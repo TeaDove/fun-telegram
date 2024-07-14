@@ -2,6 +2,8 @@ package telegram
 
 import (
 	"fmt"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"gorm.io/gorm"
 	"strconv"
 	"strings"
 	"time"
@@ -35,20 +37,20 @@ func (r *Presentation) getUserFromFlag(
 	ctx *ext.Context,
 	update *ext.Update,
 	input *input,
-) (mongo_repository.User, bool, error) {
+) (db_repository.User, bool, error) {
 	username, usernameFlagOk := input.Ops[FlagStatsUsername.Long]
 	if !usernameFlagOk || len(username) == 0 {
-		return mongo_repository.User{}, false, nil
+		return db_repository.User{}, false, nil
 	}
 
 	targetUserId, err := strconv.ParseInt(username, 10, 64)
 	if err == nil {
-		targetUser, err := r.mongoRepository.GetUserById(ctx, targetUserId)
+		targetUser, err := r.dbRepository.UserGetById(ctx, targetUserId)
 		if err == nil {
 			return targetUser, true, nil
 		}
 
-		if errors.Is(err, mongo.ErrNoDocuments) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = r.replyIfNotSilent(
 				ctx,
 				update,
@@ -56,11 +58,11 @@ func (r *Presentation) getUserFromFlag(
 				fmt.Sprintf("Err: user not found by id: %d", targetUserId),
 			)
 			if err != nil {
-				return mongo_repository.User{}, false, errors.Wrap(err, "failed to reply")
+				return db_repository.User{}, false, errors.Wrap(err, "failed to reply")
 			}
 		}
 
-		return mongo_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
+		return db_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 	}
 
 	username = strings.ToLower(username)

@@ -1,7 +1,6 @@
 package shared
 
 import (
-	"context"
 	"time"
 
 	"github.com/pkg/errors"
@@ -50,11 +49,12 @@ type Settings struct {
 func mustNewSettings() Settings {
 	var settings Settings
 
-	ctx := context.Background()
 	_ = godotenv.Load(defaultEnvFile)
 
 	err := env.Parse(&settings, env.Options{Prefix: defaultEnvPrefix})
-	Check(ctx, errors.Wrap(err, "failed to env parse"))
+	if err != nil {
+		panic(errors.Wrap(err, "failed to env parse"))
+	}
 
 	return settings
 }

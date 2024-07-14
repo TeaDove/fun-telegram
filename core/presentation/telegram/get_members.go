@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"strings"
 	"time"
 
@@ -111,7 +112,7 @@ func (r *Presentation) updateMembers(
 		return nil, errors.WithStack(ErrNotChatOrChannel)
 	}
 
-	err := r.mongoRepository.ChatUpsert(ctx, &mongo_repository.Chat{
+	err := r.dbRepository.ChatUpsert(ctx, &db_repository.Chat{
 		TgId:  effectiveChat.GetID(),
 		Title: chatTitle,
 	})
@@ -140,7 +141,7 @@ func (r *Presentation) getOrUpdateMembers(
 ) (mongo_repository.UsersInChat, error) {
 	needUpload := false
 
-	chat, err := r.mongoRepository.GetChat(ctx, effectiveChat.GetID())
+	chat, err := r.dbRepository.ChatGet(ctx, effectiveChat.GetID())
 	if err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.Wrap(err, "failed to get chat from repository")

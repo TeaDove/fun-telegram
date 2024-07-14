@@ -125,11 +125,6 @@ func (r *Service) DeleteOldMessages(ctx context.Context) (DeleteOldMessagesOutpu
 		return DeleteOldMessagesOutput{}, nil
 	}
 
-	_, err = r.mongoRepository.DeleteMessagesOldWithCount(ctx, int64(countToDelete))
-	if err != nil {
-		return DeleteOldMessagesOutput{}, errors.WithStack(err)
-	}
-
 	newStats, err := r.mongoRepository.StatsForMessages(ctx)
 	if err != nil {
 		return DeleteOldMessagesOutput{}, errors.WithStack(err)

@@ -2,7 +2,7 @@ version: '3.1'
 
 services:
   redis:
-    image: redis:7.2-alpine
+    image: redis:7.2.4-alpine
     restart: always
     command: redis-server --save 20 1 --loglevel warning
     volumes:
@@ -21,17 +21,20 @@ services:
           cpus: '0.50'
           memory: 100M
 
-  mongodb:
-    image: mongo:7.0.9-jammy
+  postgres:
+    image: postgres:16.3-bookworm
     ports:
-      - '27017:27017'
+      - "5432:5432"
     environment:
-      MONGO_INITDB_DATABASE: db_main
+      POSTGRES_USER: "main"
+      POSTGRES_PASSWORD: "main"
+      POSTGRES_DB: "main"
     volumes:
-      - "./data/mongo:/data/db"
-      - './extra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro'
+      - ./data/pg:/var/lib/postgresql/data
+    labels:
+      - "autoheal=true"
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: ["CMD", "pg_isready", "-d", "main"]
       interval: 2m
       timeout: 20s
       retries: 3
@@ -40,23 +43,4 @@ services:
       resources:
         limits:
           cpus: '0.50'
-          memory: 500M
-
-  clickhouse:
-    image: clickhouse/clickhouse-server:23.12
-    ports:
-      - "9000:9000"
-      - "8123:8123"
-    volumes:
-      - "./data/ch:/var/lib/clickhouse"
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1
-      interval: 2m
-      timeout: 20s
-      retries: 3
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 2048M
+          memory: 2000M

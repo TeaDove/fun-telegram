@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"slices"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ import (
 )
 
 type Service struct {
+	dbRepository    *db_repository.Repository
 	mongoRepository *mongo_repository.Repository
 	chRepository    *ch_repository.Repository
 	dsSupplier      *ds_supplier.Supplier
@@ -37,12 +39,15 @@ func New(
 	chRepository *ch_repository.Repository,
 	dsSupplier *ds_supplier.Supplier,
 	resourceService *resource.Service,
+	dbRepository *db_repository.Repository,
 ) (*Service, error) {
+
 	r := Service{
 		mongoRepository: mongoRepository,
 		chRepository:    chRepository,
 		dsSupplier:      dsSupplier,
 		resourceService: resourceService,
+		dbRepository:    dbRepository,
 	}
 
 	exp, err := regexp2.Compile(
@@ -244,12 +249,12 @@ func (r *Service) analiseWholeChat(
 		)
 	}
 
-	count, err := r.chRepository.CountGetByChatId(ctx, input.TgChatId)
+	count, err := r.dbRepository.MessageCountByChatId(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatId(ctx, input.TgChatId)
+	lastMessage, err := r.dbRepository.MessageGetLastByChatId(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}

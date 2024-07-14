@@ -2,15 +2,17 @@ package analitics
 
 import (
 	"context"
-	"strings"
-
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"gorm.io/gorm"
+	"strings"
 )
 
 func (r *Service) MessageInsert(ctx context.Context, message *Message) error {
-	chMessage := &ch_repository.Message{
-		CreatedAt:     message.CreatedAt,
+	chMessage := &db_repository.Message{
+		Model: gorm.Model{
+			CreatedAt: message.CreatedAt,
+		},
 		TgChatID:      message.TgChatID,
 		TgUserId:      message.TgUserId,
 		Text:          message.Text,
@@ -20,14 +22,20 @@ func (r *Service) MessageInsert(ctx context.Context, message *Message) error {
 	}
 	words := strings.Fields(message.Text)
 
-	for _, word := range words {
-		word, ok := r.filterAndLemma(word)
+	var (
+		ok   bool
+		word string
+		err  error
+	)
+
+	for _, word = range words {
+		word, ok = r.filterAndLemma(word)
 		if !ok {
 			continue
 		}
 		chMessage.WordsCount++
 
-		ok, err := r.IsToxic(word)
+		ok, err = r.IsToxic(word)
 		if err != nil {
 			return errors.Wrap(err, "failed to check if word is toxic")
 		}
@@ -37,7 +45,7 @@ func (r *Service) MessageInsert(ctx context.Context, message *Message) error {
 		}
 	}
 
-	err := r.chRepository.MessageInsert(ctx, chMessage)
+	err = r.dbRepository.MessageInsert(ctx, chMessage)
 	if err != nil {
 		return errors.Wrap(err, "failed to insert message in ch repository")
 	}
@@ -54,8 +62,8 @@ func (r *Service) MessageSetReplyToUserId(ctx context.Context, chatId int64) err
 	return nil
 }
 
-func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (int64, error) {
-	count, err := r.mongoRepository.DeleteMessagesByChat(ctx, chatId)
+func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (uint64, error) {
+	count, err := r.dbRepository.MessagesDeleteByChat(ctx, chatId)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to delete messages from mongo repository")
 	}
@@ -78,7 +86,7 @@ func (r *Service) DeleteAllMessages(ctx context.Context) (int64, error) {
 }
 
 func (r *Service) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {
-	message, err := r.chRepository.GetLastMessageByChatId(ctx, chatId)
+	message, err := r.dbRepository.MessageGetLastByChatId(ctx, chatId)
 	if err != nil {
 		return Message{}, errors.Wrap(err, "failed to get last message")
 	}

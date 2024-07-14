@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"time"
 
 	"github.com/teadove/fun_telegram/core/service/tex"
@@ -48,6 +49,7 @@ type Presentation struct {
 	ipLocator         *ip_locator.Supplier
 	redisRepository   *redis_repository.Repository
 	mongoRepository   *mongo_repository.Repository
+	dbRepository      *db_repository.Repository
 	resourceService   *resource.Service
 	analiticsService  *analitics.Service
 	jobService        *job.Service
@@ -121,10 +123,11 @@ func MustNewTelegramPresentation(
 	redisRepository *redis_repository.Repository,
 	kandinskySupplier *kandinsky_supplier.Supplier,
 	ipLocator *ip_locator.Supplier,
-	dbRepository *mongo_repository.Repository,
+	mongoRepository *mongo_repository.Repository,
 	analiticsService *analitics.Service,
 	jobService *job.Service,
 	resourceService *resource.Service,
+	dbRepository *db_repository.Repository,
 ) *Presentation {
 	api := protoClient.API()
 
@@ -135,10 +138,11 @@ func MustNewTelegramPresentation(
 		telegramManager:   peers.Options{}.Build(api),
 		kandinskySupplier: kandinskySupplier,
 		ipLocator:         ipLocator,
-		mongoRepository:   dbRepository,
+		mongoRepository:   mongoRepository,
 		analiticsService:  analiticsService,
 		jobService:        jobService,
 		resourceService:   resourceService,
+		dbRepository:      dbRepository,
 	}
 
 	protoClient.Dispatcher.AddHandler(
