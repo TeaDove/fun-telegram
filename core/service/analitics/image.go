@@ -3,15 +3,16 @@ package analitics
 import (
 	"context"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 func (r *Service) KandinskyImageInsert(
 	ctx context.Context,
-	input *mongo_repository.KandinskyImageDenormalized,
+	input *db_repository.KandinskyImageDenormalized,
 ) error {
-	err := r.mongoRepository.KandinskyImageInsert(ctx, input)
+	err := r.dbRepository.KandinskyImageInsert(ctx, input)
 	if err != nil {
 		return errors.Wrap(err, "failed to insert image")
 	}
@@ -21,9 +22,9 @@ func (r *Service) KandinskyImageInsert(
 
 func (r *Service) KandinskyImagePaginate(
 	ctx context.Context,
-	input *mongo_repository.KandinskyImagePaginateInput,
-) ([]mongo_repository.KandinskyImageDenormalized, error) {
-	res, err := r.mongoRepository.KandinskyImagePaginate(ctx, input)
+	input *db_repository.KandinskyImagePaginateInput,
+) ([]db_repository.KandinskyImageDenormalized, error) {
+	res, err := r.dbRepository.KandinskyImagePaginate(ctx, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to paginate in mongodb")
 	}

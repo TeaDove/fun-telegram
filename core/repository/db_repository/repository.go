@@ -41,6 +41,8 @@ func (r *Repository) Migrate(ctx context.Context) error {
 			&RestartMessage{},
 			&PingMessage{},
 			&Image{},
+			&KandinskyImage{},
+			&TgImage{},
 		)
 	if err != nil {
 		return errors.Wrap(err, "failed to migrate database")

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	tgError "github.com/celestix/gotgproto/errors"
 	"github.com/celestix/gotgproto/types"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 // TODO: fix nolint
@@ -40,20 +41,13 @@ func (r *Presentation) pingCommandHandler(
 		msgToPing = update.EffectiveMessage.ReplyToMessage
 	}
 
-	userId, err := GetSenderId(msgToPing)
-	if err != nil {
-		return errors.Wrap(err, "failed to get sender id")
-	}
-
-	err = r.mongoRepository.PingMessageCreate(
+	err = r.dbRepository.PingMessageCreate(
 		ctx,
-		&mongo_repository.Message{
-			TgChatID: update.EffectiveChat().GetID(),
-			TgUserId: userId,
-			Text:     msgToPing.Text,
-			TgId:     msgToPing.ID,
+		&db_repository.PingMessage{
+			MessageTgChatID: update.EffectiveChat().GetID(),
+			MessageTgId:     msgToPing.ID,
+			DeleteAt:        time.Now().UTC().Add(deletePinAfter),
 		},
-		time.Now().UTC().Add(deletePinAfter),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to create ping message")
@@ -76,7 +70,7 @@ func (r *Presentation) pingCommandHandler(
 }
 
 func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
-	messages, err := r.mongoRepository.PingMessageGetAndDeleteForDeletion(ctx)
+	messages, err := r.dbRepository.PingMessageGet(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get ping messages")
 	}
@@ -94,11 +88,11 @@ func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
 	for _, message := range messages {
 		log := zerolog.Ctx(ctx).
 			With().
-			Int("msg_id", message.TgId).
-			Int64("chat_id", message.TgChatID).
+			Int("msg_id", message.MessageTgId).
+			Int64("chat_id", message.MessageTgChatID).
 			Logger()
 
-		inputPeer := r.protoClient.PeerStorage.GetInputPeerById(message.TgChatID)
+		inputPeer := r.protoClient.PeerStorage.GetInputPeerById(message.MessageTgChatID)
 		if inputPeer == nil {
 			log.Warn().Str("status", "failed.to.get.peer").Send()
 			continue
@@ -111,7 +105,7 @@ func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
 				Unpin:     true,
 				PmOneside: true,
 				Peer:      inputPeer,
-				ID:        message.TgId,
+				ID:        message.MessageTgId,
 			},
 		)
 		if err != nil {
@@ -120,6 +114,11 @@ func (r *Presentation) deleteOldPingMessages(ctx context.Context) error {
 		}
 
 		log.Info().Str("status", "ping.message.unpinned").Send()
+	}
+
+	err = r.dbRepository.PingMessageDelete(ctx, messages)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete ping messages")
 	}
 
 	return nil

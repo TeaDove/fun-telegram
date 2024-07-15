@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/gotd/td/telegram/query"
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/guregu/null/v5"
@@ -18,7 +20,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 )
 
 const (
@@ -96,7 +97,7 @@ func (r *Presentation) loadChannelMessage(
 		TgChatID:  chat.ID,
 		TgUserId:  chat.ID,
 		Text:      msg.Message,
-		TgId:      int64(msg.ID),
+		TgId:      msg.ID,
 	}
 
 	if msg.ReplyTo != nil {
@@ -189,22 +190,17 @@ func (r *Presentation) uploadChannelsToRepository(
 	ctx context.Context,
 	channels <-chan Channel,
 ) error {
-	channelsSlice := make([]ch_repository.Channel, 0, channelsDumpBatch)
+	channelsSlice := make([]db_repository.Channel, 0, channelsDumpBatch)
 
 	for channel := range channels {
-		var tgAbout *string
-		if channel.TgAbout.Valid {
-			tgAbout = &channel.TgAbout.String
-		}
-
-		channelsSlice = append(channelsSlice, ch_repository.Channel{
+		channelsSlice = append(channelsSlice, db_repository.Channel{
 			TgId:               channel.TgId,
 			TgTitle:            channel.TgTitle,
 			TgUsername:         channel.TgUsername,
 			ParticipantCount:   channel.ParticipantCount,
 			RecommendationsIds: channel.RecommendationsIds,
 			IsLeaf:             channel.IsLeaf,
-			TgAbout:            tgAbout,
+			TgAbout:            channel.TgAbout,
 		})
 
 		if len(channelsSlice) >= channelsDumpBatch {
@@ -213,7 +209,7 @@ func (r *Presentation) uploadChannelsToRepository(
 				return errors.Wrap(err, "failed to to batch insert")
 			}
 
-			channelsSlice = make([]ch_repository.Channel, 0, channelsDumpBatch)
+			channelsSlice = make([]db_repository.Channel, 0, channelsDumpBatch)
 		}
 	}
 

@@ -52,6 +52,28 @@ join member m on u.tg_id = m.tg_user_id
 	return usersInChat, nil
 }
 
+func (r *Repository) UsersSelectInChat(
+	ctx context.Context,
+	tgChatId int64,
+) (UsersInChat, error) {
+	var usersInChat UsersInChat
+
+	err := r.db.WithContext(ctx).
+		Raw(`
+select u.tg_id, u.tg_username, u.tg_name, u.is_bot, m.status 
+	from "user" u 
+join member m on u.tg_id = m.tg_user_id
+	where m.tg_chat_id = ?
+`, tgChatId).
+		Scan(&usersInChat).
+		Error
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get users")
+	}
+
+	return usersInChat, nil
+}
+
 func (r *Repository) UserUpsert(ctx context.Context, user *User) error {
 	user.UpdatedInDBAt = time.Now().UTC()
 
@@ -68,24 +90,41 @@ func (r *Repository) UserUpsert(ctx context.Context, user *User) error {
 	}
 
 	return nil
+}
 
-	//user.UpdatedAt = time.Now().UTC()
-	//
-	//filter := bson.M{"tg_id": user.TgId}
-	//update := bson.M{"$set": bson.M{
-	//	"tg_id":       user.TgId,
-	//	"tg_username": user.TgUsername,
-	//	"tg_name":     user.TgName,
-	//	"updated_at":  user.UpdatedAt,
-	//	"created_at":  user.CreatedAt,
-	//	"is_bot":      user.IsBot,
-	//}}
-	//opts := options.Update().SetUpsert(true)
-	//
-	//_, err := r.userCollection.UpdateOne(ctx, filter, update, opts)
-	//if err != nil {
-	//	return errors.WithStack(err)
-	//}
+func (r *Repository) MemberUpsert(ctx context.Context, member *Member) error {
+	member.CreatedInDBAt = time.Now().UTC()
+	member.UpdatedInDBAt = time.Now().UTC()
+
+	err := r.db.WithContext(ctx).Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{{Name: "tg_user_id"}, {Name: "tg_chat_id"}},
+			DoUpdates: clause.AssignmentColumns(
+				[]string{"status", "updated_in_db_at"},
+			),
+		}).
+		Create(&member).Error
+	if err != nil {
+		return errors.Wrap(err, "failed to upsert member")
+	}
+
+	return nil
+}
+
+func (r *Repository) MemberSetAsLeftBeforeTime(
+	ctx context.Context,
+	tgChatId int64,
+	notUpdatedBefore time.Time,
+) error {
+	err := r.db.
+		WithContext(ctx).
+		Update("status = ?", Left).
+		Where("tg_chat_id = ? AND update_at < ?", tgChatId, notUpdatedBefore).
+		Model(&Member{}).
+		Error
+	if err != nil {
+		return errors.Wrap(err, "failed to set member as left before time")
+	}
 
 	return nil
 }

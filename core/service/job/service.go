@@ -4,18 +4,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/go-co-op/gocron"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/schemas"
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Service struct {
-	mongoRepository *mongo_repository.Repository
-	chRepository    *ch_repository.Repository
+	dbRepository *db_repository.Repository
 
 	checkers map[string]ServiceChecker
 }

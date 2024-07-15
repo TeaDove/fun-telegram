@@ -60,15 +60,6 @@ func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (uin
 	return count, nil
 }
 
-func (r *Service) DeleteAllMessages(ctx context.Context) (int64, error) {
-	count, err := r.mongoRepository.DeleteAllMessages(ctx)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed to delete messages")
-	}
-
-	return count, nil
-}
-
 func (r *Service) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {
 	message, err := r.dbRepository.MessageGetLastByChatId(ctx, chatId)
 	if err != nil {

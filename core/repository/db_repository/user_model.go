@@ -31,9 +31,10 @@ var MemberStatusesActive = []MemberStatus{Plain, Creator, Admin}
 
 type Member struct {
 	WithId
-	WithCreatedAt
+	WithCreatedInDBAt
+	WithUpdatedInDBAt
 
-	TgUserId uint64 `sql:"tg_user_id"`
-	TgChatId uint64 `sql:"tg_chat_id"`
+	TgUserId int64 `sql:"tg_user_id" gorm:"index:tg_user_id_tg_chat_id_idx,unique"`
+	TgChatId int64 `sql:"tg_chat_id" gorm:"index:tg_user_id_tg_chat_id_idx,unique"`
 	Status   MemberStatus
 }

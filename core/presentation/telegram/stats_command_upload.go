@@ -108,7 +108,7 @@ func (r *Presentation) uploadMessageToRepository(
 			TgChatID:  update.EffectiveChat().GetID(),
 			TgUserId:  msgFrom.UserID,
 			Text:      msg.Message,
-			TgId:      int64(msg.ID),
+			TgId:      msg.ID,
 		}
 
 		if msg.ReplyTo != nil {

@@ -11,7 +11,7 @@ type Message struct {
 	WithCreatedAt
 
 	TgChatID int64 `sql:"tg_chat_id" gorm:"index:tg_chat_id_tg_id_idx,unique"`
-	TgId     int64 `sql:"tg_id"      gorm:"index:tg_chat_id_tg_id_idx,unique"`
+	TgId     int   `sql:"tg_id"      gorm:"index:tg_chat_id_tg_id_idx,unique"`
 
 	TgUserId        int64  `sql:"tg_user_id"        gorm:"index"`
 	Text            string `sql:"text"`
@@ -26,7 +26,7 @@ func (r *Message) ToParquet() MessageParquet {
 	message := MessageParquet{
 		CreatedAt:       r.CreatedAt.UnixNano() / int64(time.Millisecond),
 		TgChatID:        r.TgChatID,
-		TgId:            r.TgId,
+		TgId:            int64(r.TgId),
 		TgUserId:        r.TgUserId,
 		Text:            r.Text,
 		WordsCount:      int64(r.WordsCount),
@@ -62,14 +62,17 @@ type RestartMessage struct {
 	WithId
 	WithCreatedAt
 
-	MessageId uint `sql:"message_id"`
+	MessageTgChatID int64 `sql:"message_tg_chat_id" gorm:"index:tg_chat_id_tg_id_idx,unique"`
+	MessageTgId     int   `sql:"message_tg_id"      gorm:"index:tg_chat_id_tg_id_idx,unique"`
 }
 
 type PingMessage struct {
 	WithId
 	WithCreatedAt
 
-	MessageId uint `sql:"message_id"`
+	MessageTgChatID int64     `sql:"message_tg_chat_id" gorm:"index:tg_chat_id_tg_id_idx,unique"`
+	MessageTgId     int       `sql:"message_tg_id"      gorm:"index:tg_chat_id_tg_id_idx,unique"`
+	DeleteAt        time.Time `sql:"delete_at"          gorm:"index"`
 }
 
 type MessageGroupByChatIdAndUserIdOutput struct {

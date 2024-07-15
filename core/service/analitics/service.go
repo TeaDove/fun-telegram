@@ -20,12 +20,10 @@ import (
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 type Service struct {
 	dbRepository    *db_repository.Repository
-	mongoRepository *mongo_repository.Repository
 	dsSupplier      *ds_supplier.Supplier
 	resourceService *resource.Service
 
@@ -34,13 +32,11 @@ type Service struct {
 }
 
 func New(
-	mongoRepository *mongo_repository.Repository,
 	dsSupplier *ds_supplier.Supplier,
 	resourceService *resource.Service,
 	dbRepository *db_repository.Repository,
 ) (*Service, error) {
 	r := Service{
-		mongoRepository: mongoRepository,
 		dsSupplier:      dsSupplier,
 		resourceService: resourceService,
 		dbRepository:    dbRepository,
@@ -326,7 +322,7 @@ func (r *Service) AnaliseChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (report AnaliseReport, err error) {
-	zerolog.Ctx(ctx).Info().Str("status", "compiling.stats.begin").Interface("input", input).Send()
+	zerolog.Ctx(ctx).Info().Interface("input", input).Msg("compiling.stats.begin")
 
 	if input.TgUserId != 0 {
 		report, err = r.analiseUserChat(ctx, input)

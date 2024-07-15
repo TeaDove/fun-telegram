@@ -11,8 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/presentation/telegram"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"github.com/teadove/fun_telegram/core/service/job"
@@ -46,12 +44,6 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	locator := ip_locator.Supplier{}
 
-	mongoRepository, err := mongo_repository.New()
-	shared.Check(ctx, err)
-
-	chRepository, err := ch_repository.New(ctx)
-	shared.Check(ctx, err)
-
 	dsSupplier, err := ds_supplier.New(ctx)
 	shared.Check(ctx, err)
 
@@ -69,8 +61,6 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	}
 
 	analiticsService, err := analitics.New(
-		mongoRepository,
-		chRepository,
 		dsSupplier,
 		resourceService,
 		dbRepository,
@@ -96,7 +86,6 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		persistentStorage,
 		kandinskySupplier,
 		&locator,
-		mongoRepository,
 		analiticsService,
 		jobService,
 		resourceService,

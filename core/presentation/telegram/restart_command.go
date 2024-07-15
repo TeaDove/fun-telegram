@@ -4,11 +4,12 @@ import (
 	"context"
 	"os"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
@@ -32,11 +33,9 @@ func (r *Presentation) restartCommandHandler(
 
 	zerolog.Ctx(ctx).Warn().Str("status", "reload.begin").Send()
 
-	err = r.mongoRepository.RestartMessageCreate(ctx, &mongo_repository.Message{
-		TgChatID: ctx.Self.ID,
-		TgUserId: ctx.Self.ID,
-		Text:     reloadMessage.Text,
-		TgId:     reloadMessage.ID,
+	err = r.dbRepository.RestartMessageInsert(ctx, &db_repository.RestartMessage{
+		MessageTgChatID: ctx.Self.ID,
+		MessageTgId:     reloadMessage.ID,
 	})
 	if err != nil {
 		return errors.WithStack(err)
@@ -48,9 +47,9 @@ func (r *Presentation) restartCommandHandler(
 }
 
 func (r *Presentation) updateRestartMessages(ctx context.Context) error {
-	messages, err := r.mongoRepository.RestartMessageGetAndDelete(ctx)
+	messages, err := r.dbRepository.RestartMessageGet(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "failed to get messages")
 	}
 
 	if len(messages) == 0 {
@@ -65,9 +64,9 @@ func (r *Presentation) updateRestartMessages(ctx context.Context) error {
 	for _, message := range messages {
 		tgCtx := r.protoClient.CreateContext()
 
-		_, err = tgCtx.EditMessage(message.TgChatID, &tg.MessagesEditMessageRequest{
+		_, err = tgCtx.EditMessage(message.MessageTgChatID, &tg.MessagesEditMessageRequest{
 			Peer: r.protoClient.Self.AsInputPeer(),
-			ID:   message.TgId,
+			ID:   message.MessageTgId,
 			Message: r.resourceService.Localize(
 				ctx,
 				resource.CommandRestartSuccess,
@@ -77,6 +76,11 @@ func (r *Presentation) updateRestartMessages(ctx context.Context) error {
 		if err != nil {
 			return errors.WithStack(err)
 		}
+	}
+
+	err = r.dbRepository.RestartMessageDelete(ctx, messages)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete restart messages")
 	}
 
 	return nil

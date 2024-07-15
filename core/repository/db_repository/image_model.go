@@ -16,7 +16,7 @@ type TgImage struct {
 	WithId
 	WithCreatedAt
 
-	TgInputPhoto tg.InputPhoto `sql:"tg_input_photo"`
+	TgInputPhoto tg.InputPhoto `sql:"tg_input_photo" gorm:"embedded"`
 
 	MessageId uint `sql:"message_id"`
 	ImageId   uint `sql:"image_id"`
@@ -26,8 +26,21 @@ type KandinskyImage struct {
 	WithId
 	WithCreatedAt
 
-	Input kandinsky_supplier.RequestGenerationInput `sql:"input"`
+	Input kandinsky_supplier.RequestGenerationInput `sql:"input" gorm:"embedded"`
 
 	TgImageId uint `sql:"tg_image_id"`
 	ImageId   uint `sql:"image_id"`
+}
+
+type KandinskyImageDenormalized struct {
+	TgInputPhoto   tg.InputPhoto
+	KandinskyInput kandinsky_supplier.RequestGenerationInput
+	ImgContent     []byte
+	Message        Message
+}
+
+type KandinskyImagePaginateInput struct {
+	TgChatId int64
+	Page     int
+	PageSize int
 }

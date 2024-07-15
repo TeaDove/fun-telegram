@@ -11,45 +11,44 @@ import (
 	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var ErrNotChatOrChannel = errors.New("is not chat or channel")
 
-func tgStatusToRepositoryStatus(status members.Status) mongo_repository.MemberStatus {
+func tgStatusToRepositoryStatus(status members.Status) db_repository.MemberStatus {
 	switch status {
 	case members.Left:
-		return mongo_repository.Left
+		return db_repository.Left
 	case members.Plain:
-		return mongo_repository.Plain
+		return db_repository.Plain
 	case members.Creator:
-		return mongo_repository.Creator
+		return db_repository.Creator
 	case members.Admin:
-		return mongo_repository.Admin
+		return db_repository.Admin
 	case members.Banned:
-		return mongo_repository.Banned
+		return db_repository.Banned
 	default:
-		return mongo_repository.Unknown
+		return db_repository.Unknown
 	}
 }
 
 func (r *Presentation) updateMembers(
 	ctx context.Context,
 	effectiveChat types.EffectiveChat,
-) (mongo_repository.UsersInChat, error) {
+) (db_repository.UsersInChat, error) {
 	t0 := time.Now()
 
 	zerolog.Ctx(ctx).Info().Str("status", "members.uploading").Send()
 
-	usersInChat := make(mongo_repository.UsersInChat, 0, 50)
+	usersInChat := make(db_repository.UsersInChat, 0, 50)
 
 	compileSlice := func(chatMember members.Member) error {
 		user := chatMember.User()
 		_, isBot := user.ToBot()
 		username, _ := user.Username()
 
-		userInChat := mongo_repository.UserInChat{
+		userInChat := db_repository.UserInChat{
 			TgId:       user.ID(),
 			TgUsername: strings.ToLower(username),
 			TgName:     GetNameFromPeerUser(&user),
@@ -58,7 +57,7 @@ func (r *Presentation) updateMembers(
 		}
 		usersInChat = append(usersInChat, userInChat)
 
-		err := r.dbRepository.UserUpsert(ctx, &mongo_repository.User{
+		err := r.dbRepository.UserUpsert(ctx, &db_repository.User{
 			TgId:       userInChat.TgId,
 			TgUsername: userInChat.TgUsername,
 			TgName:     userInChat.TgName,
@@ -68,7 +67,7 @@ func (r *Presentation) updateMembers(
 			return errors.Wrap(err, "failed to upsert user")
 		}
 
-		err = r.mongoRepository.MemberUpsert(ctx, &mongo_repository.Member{
+		err = r.dbRepository.MemberUpsert(ctx, &db_repository.Member{
 			TgUserId: userInChat.TgId,
 			TgChatId: effectiveChat.GetID(),
 			Status:   userInChat.Status,
@@ -79,9 +78,8 @@ func (r *Presentation) updateMembers(
 
 		zerolog.Ctx(ctx).
 			Debug().
-			Str("status", "member.uploaded").
 			Interface("user", userInChat).
-			Send()
+			Msg("member.uploaded")
 
 		return nil
 	}
@@ -123,7 +121,7 @@ func (r *Presentation) updateMembers(
 		return nil, errors.Wrap(err, "failed to upsert chat in mongo repository")
 	}
 
-	err = r.mongoRepository.SetAllMembersAsLeft(ctx, effectiveChat.GetID(), t0.Add(-time.Hour))
+	err = r.dbRepository.MemberSetAsLeftBeforeTime(ctx, effectiveChat.GetID(), t0.Add(-time.Hour))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to set all members as left")
 	}
@@ -141,7 +139,7 @@ func (r *Presentation) updateMembers(
 func (r *Presentation) getOrUpdateMembers(
 	ctx context.Context,
 	effectiveChat types.EffectiveChat,
-) (mongo_repository.UsersInChat, error) {
+) (db_repository.UsersInChat, error) {
 	needUpload := false
 
 	chat, err := r.dbRepository.ChatSelectById(ctx, effectiveChat.GetID())
@@ -162,7 +160,7 @@ func (r *Presentation) getOrUpdateMembers(
 		return usersInChat, nil
 	}
 
-	usersInChat, err := r.mongoRepository.GetUsersInChat(ctx, effectiveChat.GetID())
+	usersInChat, err := r.dbRepository.UsersSelectInChat(ctx, effectiveChat.GetID())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get users by chat id")
 	}
