@@ -126,10 +126,11 @@ func (r *AnaliseReport) appendFromChan(
 
 		if statsReportValue.err != nil {
 			zerolog.Ctx(ctx).
-				Error().Stack().Err(statsReportValue.err).
-				Str("status", "failed.to.compile.statistics").
+				Error().
+				Stack().
+				Err(statsReportValue.err).
 				Dict("report", report).
-				Send()
+				Msg("failed.to.compile.statistics")
 
 			continue
 		}
@@ -148,9 +149,8 @@ func (r *AnaliseReport) appendFromChan(
 
 		zerolog.Ctx(ctx).
 			Info().
-			Str("status", "analitics.image.compiled").
 			Dict("report", report).
-			Send()
+			Msg("analitics.image.compiled")
 	}
 }
 

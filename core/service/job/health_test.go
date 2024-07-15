@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/shared"
 
 	"github.com/pkg/errors"
@@ -15,10 +14,8 @@ import (
 
 func getService(t *testing.T) *Service {
 	ctx := shared.GetModuleCtx("test")
-	repository, err := mongo_repository.New()
-	require.NoError(t, err)
 
-	r, err := New(ctx, repository, nil, nil)
+	r, err := New(ctx, nil)
 	require.NoError(t, err)
 
 	return r

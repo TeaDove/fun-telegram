@@ -15,7 +15,7 @@ import (
 func generateMessage() Message {
 	return Message{
 		TgChatID: rand.Int64N(100000),
-		TgId:     rand.Int64N(100000),
+		TgId:     rand.IntN(100000),
 		TgUserId: rand.Int64N(100000),
 		Text:     shared.RandomString(),
 	}
@@ -107,7 +107,7 @@ func TestIntegration_DbRepository_MessageInsert_Ok(t *testing.T) {
 	message = generateMessage()
 	message.TgChatID = chatId
 	message.TgUserId = userId
-	message.ReplyToTgMsgID = null.IntFrom(msgId)
+	message.ReplyToTgMsgID = null.IntFrom(int64(msgId))
 	message.ToxicWordsCount = 3
 	message.WordsCount = 5
 	err = dbRepository.MessageInsert(ctx, &message)

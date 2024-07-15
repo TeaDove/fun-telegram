@@ -39,7 +39,9 @@ func (r *Presentation) updateMembers(
 ) (db_repository.UsersInChat, error) {
 	t0 := time.Now()
 
-	zerolog.Ctx(ctx).Info().Str("status", "members.uploading").Send()
+	zerolog.Ctx(ctx).
+		Info().
+		Msg("members.uploading")
 
 	usersInChat := make(db_repository.UsersInChat, 0, 50)
 
@@ -128,10 +130,9 @@ func (r *Presentation) updateMembers(
 
 	zerolog.Ctx(ctx).
 		Info().
-		Str("status", "members.uploaded").
 		Str("elapsed", time.Since(t0).String()).
 		Int("count", len(usersInChat)).
-		Send()
+		Msg("members.uploaded")
 
 	return usersInChat, nil
 }

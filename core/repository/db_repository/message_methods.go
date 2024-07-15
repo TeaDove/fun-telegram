@@ -359,3 +359,44 @@ func (r *Repository) MessageSelectByChatIds(
 
 	return output, nil
 }
+
+func (r *Repository) MessageSelectByChatIdAndUserIdWithWordsCount(
+	ctx context.Context,
+	tgChatId int64,
+	tgUserId int64,
+	atLeastWordCount int,
+	limit int,
+) ([]Message, error) {
+	var output []Message
+	err := r.db.
+		WithContext(ctx).
+		Where("tg_chat_id = ? and tg_user_id = ? and words_count >= ?", tgChatId, tgUserId, atLeastWordCount).
+		Limit(limit).
+		Find(&output).
+		Error
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find messages")
+	}
+
+	return output, nil
+}
+
+func (r *Repository) MessageSelectByChatIdWithWordsCount(
+	ctx context.Context,
+	tgChatId int64,
+	atLeastWordCount int,
+	limit int,
+) ([]Message, error) {
+	var output []Message
+	err := r.db.
+		WithContext(ctx).
+		Where("tg_chat_id = ? and words_count >= ?", tgChatId, atLeastWordCount).
+		Limit(limit).
+		Find(&output).
+		Error
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find messages")
+	}
+
+	return output, nil
+}

@@ -346,10 +346,9 @@ func MustNewTelegramPresentation(
 	presentation.setFeatures()
 
 	zerolog.Ctx(ctx).Info().
-		Str("status", "telegram.presentation.created").
 		Dur("retry.interval", presentation.protoClient.RetryInterval).
 		Int("retry.count", presentation.protoClient.MaxRetries).
-		Send()
+		Msg("telegram.presentation.created")
 
 	return &presentation
 }
