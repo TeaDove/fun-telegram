@@ -10,8 +10,8 @@ import (
 func (r *Repository) ChatUpsert(ctx context.Context, row *Chat) error {
 	err := r.db.WithContext(ctx).Clauses(
 		clause.OnConflict{
-			Columns:   []clause.Column{{Name: "tg_chat_id"}},
-			DoUpdates: clause.AssignmentColumns([]string{"tg_chat_id", "title", "updated_at"}),
+			Columns:   []clause.Column{{Name: "tg_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"tg_id", "title", "updated_at"}),
 		}).
 		Create(&row).Error
 	if err != nil {

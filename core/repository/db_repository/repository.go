@@ -53,16 +53,14 @@ func (r *Repository) Migrate(ctx context.Context) error {
 }
 
 func (r *Repository) Ping(ctx context.Context) error {
-	var row struct {
-		v int
-	}
+	var v int64
 
-	err := r.db.WithContext(ctx).Raw("select 1").Scan(&row).Error
+	err := r.db.WithContext(ctx).Raw("select 1").Scan(&v).Error
 	if err != nil {
 		return errors.Wrap(err, "failed to ping database")
 	}
 
-	if row.v == 0 {
+	if v == 0 {
 		return errors.New("non one response")
 	}
 

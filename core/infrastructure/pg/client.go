@@ -28,7 +28,7 @@ func NewClientFromSettings() (*gorm.DB, error) {
 			SingularTable: true,
 		},
 
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect to database")

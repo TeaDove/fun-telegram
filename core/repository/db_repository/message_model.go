@@ -87,9 +87,9 @@ type MessageGroupByTimeOutput struct {
 }
 
 type MessagesGroupByTimeByWeekdayOutput struct {
-	IsWeekend  bool      `ch:"is_weekend"`
-	CreatedAt  time.Time `ch:"created_at"`
-	WordsCount uint64    `ch:"words_count"`
+	IsWeekend  bool      `sql:"is_weekend"`
+	CreatedAt  time.Time `sql:"created_at"`
+	WordsCount uint64    `sql:"words_count"`
 }
 
 type MessageGroupByInterlocutorsOutput struct {

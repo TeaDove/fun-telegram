@@ -19,7 +19,7 @@ func (r *Repository) PingMessageCreate(ctx context.Context, message *PingMessage
 func (r *Repository) PingMessageGet(ctx context.Context) ([]PingMessage, error) {
 	var messages []PingMessage
 
-	err := r.db.WithContext(ctx).Find(&messages).Where("delete_at <= ?", time.Now().UTC()).Error
+	err := r.db.WithContext(ctx).Where("delete_at <= ?", time.Now().UTC()).Find(&messages).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to ping message get")
 	}

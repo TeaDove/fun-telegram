@@ -118,9 +118,9 @@ func (r *Repository) MemberSetAsLeftBeforeTime(
 ) error {
 	err := r.db.
 		WithContext(ctx).
-		Update("status = ?", Left).
-		Where("tg_chat_id = ? AND update_at < ?", tgChatId, notUpdatedBefore).
 		Model(&Member{}).
+		Where("tg_chat_id = ? AND updated_in_db_at < ?", tgChatId, notUpdatedBefore).
+		Update("status", Left).
 		Error
 	if err != nil {
 		return errors.Wrap(err, "failed to set member as left before time")

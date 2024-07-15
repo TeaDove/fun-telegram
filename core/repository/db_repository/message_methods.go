@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"gorm.io/gorm/clause"
+
 	"gorm.io/gorm"
 
 	"github.com/pkg/errors"
@@ -31,7 +33,13 @@ func (r *Repository) messageSetReplyToUserId(
 
 func (r *Repository) MessageInsert(ctx context.Context, input *Message) error {
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err := tx.Create(input).WithContext(ctx).Error
+		err := tx.WithContext(ctx).Clauses(
+			clause.OnConflict{
+				Columns: []clause.Column{{Name: "tg_chat_id"}, {Name: "tg_id"}},
+				DoUpdates: clause.AssignmentColumns(
+					[]string{"text", "words_count", "toxic_words_count"},
+				),
+			}).Create(input).Error
 		if err != nil {
 			return errors.Wrap(err, "failed to insert message")
 		}
@@ -145,11 +153,11 @@ func (r *Repository) MessageGetLastByChatId(ctx context.Context, tgChatId int64)
 
 	err := r.db.
 		WithContext(ctx).
-		Model(message).
+		Find(&message).
 		Where("tg_chat_id = ?", tgChatId).
 		Order("created_at desc").
 		Limit(1).
-		Find(&message).Error
+		Error
 	if err != nil {
 		return Message{}, errors.Wrap(err, "failed to get message")
 	}
@@ -166,11 +174,11 @@ func (r *Repository) MessageGetLastByChatIdAndUserId(
 
 	err := r.db.
 		WithContext(ctx).
-		Model(message).
 		Where("tg_chat_id = ? and tg_user_id = ?", tgChatId, tgUserId).
 		Order("created_at desc").
 		Limit(1).
-		Find(&message).Error
+		Find(&message).
+		Error
 	if err != nil {
 		return Message{}, errors.Wrap(err, "failed to get message")
 	}
@@ -195,7 +203,9 @@ from message m
 where tg_chat_id = ?
 group by 1
 order by 1 desc
-`, precisionSeconds, precisionSeconds, tgChatId).Scan(&output).Error
+`, precisionSeconds, precisionSeconds, tgChatId).
+		Scan(&output).
+		Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to group by messages")
 	}
@@ -214,13 +224,15 @@ func (r *Repository) MessageGroupByTimeAndChatId(
 
 	err := r.db.WithContext(ctx).Raw(`
 select case when extract(isodow from m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
-		   to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) :: time as "created_at",
+		   date '1970-01-01' + to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) :: time as "created_at",
 		   sum(m.words_count) as words_count
 		from message m
 			where tg_chat_id = ?
 		group by 1, 2
 		order by 1 desc;
-`, tz, precisionSeconds, precisionSeconds, tgChatId).Scan(output).Error
+`, tz, precisionSeconds, precisionSeconds, tgChatId).
+		Scan(&output).
+		Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to group by messages")
 	}
@@ -240,13 +252,15 @@ func (r *Repository) MessageGroupByTimeAndChatIdAndUserId(
 
 	err := r.db.WithContext(ctx).Raw(`
 select case when extract(isodow from m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
-		   to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) :: time as "created_at",
+		   date '1970-01-01' + to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) :: time as "created_at",
 		   sum(m.words_count) as words_count
 		from message m
 			where tg_chat_id = ? and tg_user_id = ?
 		group by 1, 2
 		order by 1 desc;
-`, tz, precisionSeconds, precisionSeconds, tgChatId, tgUserId).Scan(output).Error
+`, tz, precisionSeconds, precisionSeconds, tgChatId, tgUserId).
+		Scan(&output).
+		Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to group by messages")
 	}
@@ -272,7 +286,9 @@ from message m
 where tg_chat_id = ? and tg_user_id = ?
 group by 1
 order by 1 desc
-`, precisionSeconds, precisionSeconds, tgChatId, tgUserId).Scan(&output).Error
+`, precisionSeconds, precisionSeconds, tgChatId, tgUserId).
+		Scan(&output).
+		Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to group by messages")
 	}
