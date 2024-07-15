@@ -9,7 +9,7 @@ services:
       fun_storage__mongo_db_url: "mongodb://mongodb:27017"
       fun_storage__clickhouse_url: "clickhouse:9000"
       fun_ds_supplier_url: "http://ds:8000"
-    image: ghcr.io/teadove/fun-telegram:v1.11.63
+    image: ghcr.io/teadove/fun-telegram:v1.11.64
     volumes:
       - ".mtproto:/.mtproto"
       - ".env:/.env"
@@ -41,7 +41,7 @@ services:
     environment:
       _UVICORN__HOST: "0.0.0.0"
       _UVICORN__PORT: 8000
-      _UVICORN__WORKERS: 2
+      _UVICORN__WORKERS: 1
     volumes: []
     healthcheck:
       test: curl -f http://127.0.0.1:8000/health || exit 1
@@ -89,35 +89,18 @@ services:
           cpus: '0.50'
           memory: 100M
 
-  mongodb:
-    image: mongo:7.0.9-jammy
+  postgres:
+    image: postgres:16.3-bookworm
     environment:
-      MONGO_INITDB_DATABASE: db_main
+      POSTGRES_USER: "main"
+      POSTGRES_PASSWORD: "main"
+      POSTGRES_DB: "main"
     volumes:
-      - "./data/mongo:/data/db"
-      - './extra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro'
+      - ./data/pg:/var/lib/postgresql/data
     labels:
       - "autoheal=true"
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 2m
-      timeout: 20s
-      retries: 3
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 500M
-
-  clickhouse:
-    image: clickhouse/clickhouse-server:23.12
-    volumes:
-      - "./data/ch:/var/lib/clickhouse"
-    labels:
-      - "autoheal=true"
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1
+      test: ["CMD", "pg_isready", "-d", "main"]
       interval: 2m
       timeout: 20s
       retries: 3
