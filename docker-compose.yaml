@@ -16,9 +16,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      clickhouse:
+      postgres:
         condition: service_healthy
       ds:
         condition: service_healthy
