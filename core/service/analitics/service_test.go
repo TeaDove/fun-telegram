@@ -9,13 +9,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/teadove/fun_telegram/core/infrastructure/pg"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/teadove/fun_telegram/core/service/resource"
 
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
@@ -46,11 +47,6 @@ func draw(t *testing.T, reportImages []File) {
 
 func getService(t *testing.T) *Service {
 	ctx := shared.GetCtx()
-	dbRepository, err := mongo_repository.New()
-	require.NoError(t, err)
-
-	chRepository, err := ch_repository.New(ctx)
-	require.NoError(t, err)
 
 	dsSupplier, err := ds_supplier.New(ctx)
 	require.NoError(t, err)
@@ -58,7 +54,13 @@ func getService(t *testing.T) *Service {
 	resourceService, err := resource.New(ctx)
 	require.NoError(t, err)
 
-	r, err := New(dbRepository, chRepository, dsSupplier, resourceService)
+	db, err := pg.NewClientFromSettings()
+	require.NoError(t, err)
+
+	dbRepository, err := db_repository.NewRepository(ctx, db)
+	require.NoError(t, err)
+
+	r, err := New(dsSupplier, resourceService, dbRepository)
 	require.NoError(t, err)
 
 	return r
@@ -86,7 +88,7 @@ func TestIntegration_AnaliticsService_AnaliseChatForUser_Ok(t *testing.T) {
 	ctx := shared.GetModuleCtx("tests")
 
 	report, err := r.AnaliseChat(ctx, &AnaliseChatInput{
-		TgChatId: 1701683862,
+		TgChatId: 1178533048,
 		Tz:       3,
 		TgUserId: 418878871,
 		Locale:   resource.En,

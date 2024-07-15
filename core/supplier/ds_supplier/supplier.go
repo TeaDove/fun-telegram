@@ -99,10 +99,9 @@ func (r *Supplier) doRequest(ctx context.Context, req *http.Request) ([]byte, er
 	shared.CloseOrLog(ctx, resp.Body)
 
 	zerolog.Ctx(ctx).Debug().
-		Str("status", "ds.request.done").
 		Str("elapsed", time.Since(t0).String()).
 		Str("path", req.URL.Path).
-		Send()
+		Msg("ds.request.done")
 
 	if resp.StatusCode >= 400 {
 		dsError := DSError{

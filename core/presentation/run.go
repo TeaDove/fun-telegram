@@ -21,6 +21,7 @@ func captureInterrupt(ctx context.Context) {
 				Info().
 				Str("signal", sig.String()).
 				Msg("captured exit signal, exiting...")
+
 			pprof.StopCPUProfile()
 			os.Exit(0)
 		}
@@ -30,7 +31,7 @@ func captureInterrupt(ctx context.Context) {
 func Run() {
 	ctx := shared.GetCtx()
 	captureInterrupt(ctx)
-	zerolog.Ctx(ctx).Info().Str("status", "app.starting").Send()
+	zerolog.Ctx(ctx).Info().Msg("app.starting")
 
 	combatContainer := container.MustNewCombatContainer(ctx)
 	go healthServer(combatContainer.JobService)
@@ -41,7 +42,7 @@ func Run() {
 		}
 	}()
 
-	zerolog.Ctx(ctx).Info().Str("status", "app.started").Send()
+	zerolog.Ctx(ctx).Info().Msg("app.started")
 
 	err := combatContainer.Presentation.Run()
 	shared.Check(ctx, err)

@@ -1,6 +1,7 @@
 package analitics
 
 import (
+	"regexp"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -191,4 +192,10 @@ func (r *Service) filterAndLemma(word string) (string, bool) {
 	}
 
 	return word, true
+}
+
+var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Zа-яА-Я0-9 ]+`)
+
+func removeNonAlphanumeric(str string) string {
+	return nonAlphanumericRegex.ReplaceAllString(str, "")
 }

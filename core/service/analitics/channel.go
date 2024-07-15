@@ -5,19 +5,20 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 )
 
-func (r *Service) ChannelInsert(ctx context.Context, channel *ch_repository.Channel) error {
-	channel.UploadedAt = time.Now().UTC()
+func (r *Service) ChannelInsert(ctx context.Context, channel *db_repository.Channel) error {
+	channel.CreatedInDBAt = time.Now().UTC()
 
-	err := r.chRepository.ChannelInsert(ctx, channel)
+	err := r.dbRepository.ChannelInsert(ctx, channel)
 	if err != nil {
 		return errors.Wrap(err, "failed to insert channel")
 	}
@@ -31,10 +32,10 @@ func (r *Service) ChannelInsert(ctx context.Context, channel *ch_repository.Chan
 	return nil
 }
 
-func (r *Service) ChannelSelect(ctx context.Context, id int64) (ch_repository.Channel, error) {
-	channel, err := r.chRepository.ChannelSelectById(ctx, id)
+func (r *Service) ChannelSelect(ctx context.Context, id int64) (db_repository.Channel, error) {
+	channel, err := r.dbRepository.ChannelSelectById(ctx, id)
 	if err != nil {
-		return ch_repository.Channel{}, errors.Wrap(err, "failed to select channel")
+		return db_repository.Channel{}, errors.Wrap(err, "failed to select channel")
 	}
 
 	return channel, nil
@@ -44,13 +45,13 @@ var channelDataTtl = time.Hour * 24 * 60
 
 func (r *Service) channelEdgeBatchInsert(
 	ctx context.Context,
-	channels ch_repository.Channels,
+	channels db_repository.Channels,
 ) error {
-	edges := make([]ch_repository.ChannelEdge, 0, len(channels)*2)
+	edges := make([]db_repository.ChannelEdge, 0, len(channels)*2)
 
 	for _, channelIn := range channels {
 		for idx, channelOut := range channelIn.RecommendationsIds {
-			edges = append(edges, ch_repository.ChannelEdge{
+			edges = append(edges, db_repository.ChannelEdge{
 				TgIdIn:  channelIn.TgId,
 				TgIdOut: channelOut,
 				Order:   int64(idx),
@@ -58,7 +59,7 @@ func (r *Service) channelEdgeBatchInsert(
 		}
 	}
 
-	err := r.chRepository.ChannelEdgeBatchInsert(ctx, edges)
+	err := r.dbRepository.ChannelEdgeBatchInsert(ctx, edges)
 	if err != nil {
 		return errors.Wrap(err, "failed to batch insert channel edges")
 	}
@@ -69,13 +70,13 @@ func (r *Service) channelEdgeBatchInsert(
 // ChannelBatchInsert
 // nolint: cyclop
 // TODO fix cyclop
-func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_repository.Channel) error {
+func (r *Service) ChannelBatchInsert(ctx context.Context, channels []db_repository.Channel) error {
 	channelIds := make([]int64, len(channels))
 	for idx, channel := range channels {
 		channelIds[idx] = channel.TgId
 	}
 
-	oldChannels, err := r.chRepository.ChannelSelectByIds(ctx, channelIds)
+	oldChannels, err := r.dbRepository.ChannelSelectByIds(ctx, channelIds)
 	if err != nil {
 		return errors.Wrap(err, "failed to select channels")
 	}
@@ -84,17 +85,17 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 
 	leafsCount := 0
 	alreadyProcessed := 0
-	newChannels := make([]ch_repository.Channel, 0, len(channels))
+	newChannels := make([]db_repository.Channel, 0, len(channels))
 
 	for _, channel := range channels {
 		oldChannel, ok := oldChannelsMap[channel.TgId]
-		if ok && time.Since(oldChannel.UploadedAt) < channelDataTtl && !oldChannel.IsLeaf &&
+		if ok && time.Since(oldChannel.CreatedInDBAt) < channelDataTtl && !oldChannel.IsLeaf &&
 			channel.IsLeaf {
 			alreadyProcessed++
 			continue
 		}
 
-		channel.UploadedAt = time.Now().UTC()
+		channel.CreatedInDBAt = time.Now().UTC()
 		if channel.RecommendationsIds == nil {
 			leafsCount++
 		}
@@ -102,7 +103,7 @@ func (r *Service) ChannelBatchInsert(ctx context.Context, channels []ch_reposito
 		newChannels = append(newChannels, channel)
 	}
 
-	err = r.chRepository.ChannelBatchInsert(ctx, newChannels)
+	err = r.dbRepository.ChannelBatchInsert(ctx, newChannels)
 	if err != nil {
 		return errors.Wrap(err, "failed to insert channels")
 	}
@@ -136,16 +137,16 @@ func (r *Service) DumpChannels(
 
 	var (
 		err          error
-		channelEdges ch_repository.ChannelsEdges
+		channelEdges db_repository.ChannelsEdges
 	)
 
 	if username != "" {
-		channelEdges, err = r.chRepository.ChannelEdgesSelectDFS(ctx, username, depth, maxOrder)
+		channelEdges, err = r.dbRepository.ChannelEdgesSelectDFS(ctx, username, depth, maxOrder)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to dsf channel edges")
 		}
 	} else {
-		channelEdges, err = r.chRepository.ChannelEdgesSelect(ctx, maxOrder)
+		channelEdges, err = r.dbRepository.ChannelEdgesSelect(ctx, maxOrder)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to dsf channel edges")
 		}
@@ -214,12 +215,12 @@ type AnaliseChannelInput struct {
 }
 
 func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput) (File, error) {
-	rootChannel, err := r.chRepository.ChannelSelectByUsername(ctx, input.TgUsername)
+	rootChannel, err := r.dbRepository.ChannelSelectByUsername(ctx, input.TgUsername)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to select channel by username")
 	}
 
-	channelEdges, err := r.chRepository.ChannelEdgesSelectDFS(
+	channelEdges, err := r.dbRepository.ChannelEdgesSelectDFS(
 		ctx,
 		input.TgUsername,
 		input.Depth,
@@ -233,7 +234,7 @@ func (r *Service) AnaliseChannel(ctx context.Context, input *AnaliseChannelInput
 		return File{}, errors.New("no channel edges found")
 	}
 
-	channels, err := r.chRepository.ChannelSelectByIds(ctx, channelEdges.ToIds())
+	channels, err := r.dbRepository.ChannelSelectByIds(ctx, channelEdges.ToIds())
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to select channel")
 	}

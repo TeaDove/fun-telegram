@@ -4,10 +4,11 @@ import (
 	"context"
 	"strings"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 )
 
@@ -57,8 +58,8 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 		return false, errors.New("user not found in members")
 	}
 
-	return userMember.Status == mongo_repository.Admin ||
-		userMember.Status == mongo_repository.Creator, nil
+	return userMember.Status == db_repository.Admin ||
+		userMember.Status == db_repository.Creator, nil
 }
 
 func (r *Presentation) checkFromOwner(ctx *ext.Context, update *ext.Update) (ok bool) {

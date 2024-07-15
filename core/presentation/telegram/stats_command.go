@@ -6,7 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"gorm.io/gorm"
+
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -35,20 +37,20 @@ func (r *Presentation) getUserFromFlag(
 	ctx *ext.Context,
 	update *ext.Update,
 	input *input,
-) (mongo_repository.User, bool, error) {
+) (db_repository.User, bool, error) {
 	username, usernameFlagOk := input.Ops[FlagStatsUsername.Long]
 	if !usernameFlagOk || len(username) == 0 {
-		return mongo_repository.User{}, false, nil
+		return db_repository.User{}, false, nil
 	}
 
 	targetUserId, err := strconv.ParseInt(username, 10, 64)
 	if err == nil {
-		targetUser, err := r.mongoRepository.GetUserById(ctx, targetUserId)
+		targetUser, err := r.dbRepository.UserSelectById(ctx, targetUserId)
 		if err == nil {
 			return targetUser, true, nil
 		}
 
-		if errors.Is(err, mongo.ErrNoDocuments) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = r.replyIfNotSilent(
 				ctx,
 				update,
@@ -56,16 +58,16 @@ func (r *Presentation) getUserFromFlag(
 				fmt.Sprintf("Err: user not found by id: %d", targetUserId),
 			)
 			if err != nil {
-				return mongo_repository.User{}, false, errors.Wrap(err, "failed to reply")
+				return db_repository.User{}, false, errors.Wrap(err, "failed to reply")
 			}
 		}
 
-		return mongo_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
+		return db_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 	}
 
 	username = strings.ToLower(username)
 
-	targetUser, err := r.mongoRepository.GetUserByUsername(ctx, username)
+	targetUser, err := r.dbRepository.UserSelectByUsername(ctx, username)
 	if err == nil {
 		return targetUser, true, nil
 	}
@@ -78,11 +80,11 @@ func (r *Presentation) getUserFromFlag(
 			fmt.Sprintf("Err: user not found by username: %s", username),
 		)
 		if err != nil {
-			return mongo_repository.User{}, false, errors.Wrap(err, "failed to reply")
+			return db_repository.User{}, false, errors.Wrap(err, "failed to reply")
 		}
 	}
 
-	return mongo_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
+	return db_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 }
 
 func (r *Presentation) statsChannelCommandHandler(

@@ -4,8 +4,9 @@ import (
 	"context"
 	"io"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
 	"github.com/xitongsys/parquet-go-source/mem"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/source"
@@ -51,7 +52,7 @@ func pwWriteSlice(pw *writer.ParquetWriter, slice []any) error {
 }
 
 func (r *Service) dumpChannelsParquet(ctx context.Context, tgChatIds []int64) (File, error) {
-	channels, err := r.chRepository.ChannelSelectByIds(ctx, tgChatIds)
+	channels, err := r.dbRepository.ChannelSelectByIds(ctx, tgChatIds)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to select channel")
 	}
@@ -65,7 +66,7 @@ func (r *Service) dumpChannelsParquet(ctx context.Context, tgChatIds []int64) (F
 
 	fw, err := getMemFileWrite(&file)
 
-	pw, err := writer.NewParquetWriter(fw, new(ch_repository.Channel), 4)
+	pw, err := writer.NewParquetWriter(fw, new(db_repository.Channel), 4)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to create parquet writer")
 	}
@@ -83,7 +84,7 @@ func (r *Service) dumpChannelsParquet(ctx context.Context, tgChatIds []int64) (F
 	return file, nil
 }
 
-func (r *Service) dumpChannelsEdgeParquet(channels ch_repository.ChannelsEdges) (File, error) {
+func (r *Service) dumpChannelsEdgeParquet(channels db_repository.ChannelsEdges) (File, error) {
 	slice := make([]any, 0, len(channels))
 	for _, v := range channels {
 		slice = append(slice, v)
@@ -93,7 +94,7 @@ func (r *Service) dumpChannelsEdgeParquet(channels ch_repository.ChannelsEdges) 
 
 	fw, err := getMemFileWrite(&file)
 
-	pw, err := writer.NewParquetWriter(fw, new(ch_repository.ChannelEdge), 4)
+	pw, err := writer.NewParquetWriter(fw, new(db_repository.ChannelEdge), 4)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to create parquet writer")
 	}
@@ -112,7 +113,7 @@ func (r *Service) dumpChannelsEdgeParquet(channels ch_repository.ChannelsEdges) 
 }
 
 func (r *Service) dumpMessagesParquet(ctx context.Context, tgChatIds []int64) (File, error) {
-	channels, err := r.chRepository.MessagesGetByChatIds(ctx, tgChatIds)
+	channels, err := r.dbRepository.MessageSelectByChatIds(ctx, tgChatIds)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to select items")
 	}
@@ -126,7 +127,7 @@ func (r *Service) dumpMessagesParquet(ctx context.Context, tgChatIds []int64) (F
 
 	fw, err := getMemFileWrite(&file)
 
-	pw, err := writer.NewParquetWriter(fw, new(ch_repository.MessageParquet), 4)
+	pw, err := writer.NewParquetWriter(fw, new(db_repository.MessageParquet), 4)
 	if err != nil {
 		return File{}, errors.Wrap(err, "failed to create parquet writer")
 	}

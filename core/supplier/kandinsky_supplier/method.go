@@ -61,7 +61,7 @@ func (r *Supplier) getModels(ctx context.Context) (int, error) {
 
 	for _, v := range gjson.ParseBytes(respBytes).Array() {
 		model := int(v.Get("id").Int())
-		zerolog.Ctx(ctx).Info().Str("status", "kandinsky.model.got").Int("model_id", model).Send()
+		zerolog.Ctx(ctx).Info().Int("model_id", model).Msg("kandinsky.model.got")
 
 		return model, nil
 	}

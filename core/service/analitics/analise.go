@@ -4,11 +4,12 @@ import (
 	"context"
 	"sync"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 func (r *Service) getChatterBoxes(
@@ -18,7 +19,7 @@ func (r *Service) getChatterBoxes(
 	input *AnaliseChatInput,
 	getter nameGetter,
 	asc bool,
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 ) {
 	defer wg.Done()
 	output := statsReport{
@@ -46,11 +47,11 @@ func (r *Service) getChatterBoxes(
 		output.repostImage.Name = "ChatterBoxes"
 	}
 
-	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserIdAsc(
+	userToCountArray, err := r.dbRepository.MessageGroupByChatIdAndUserId(
 		ctx,
 		input.TgChatId,
-		limit,
 		usersInChat.ToIds(),
+		limit,
 		asc,
 	)
 	if err != nil {
@@ -106,7 +107,7 @@ func (r *Service) getMessageFindRepliedBy(
 		},
 	}
 
-	interlocutors, err := r.chRepository.MessageFindRepliedBy(
+	interlocutors, err := r.dbRepository.MessageFindRepliedBy(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
@@ -178,7 +179,7 @@ func (r *Service) getMessageFindRepliesTo(
 		},
 	}
 
-	interlocutors, err := r.chRepository.MessageFindRepliesTo(
+	interlocutors, err := r.dbRepository.MessageFindRepliesTo(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
@@ -240,7 +241,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 	getter nameGetter,
 ) {
 	defer wg.Done()
@@ -253,7 +254,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
 
 	for _, user := range usersInChat {
-		replies, err := r.chRepository.MessageFindRepliesTo(
+		replies, err := r.dbRepository.MessageFindRepliesTo(
 			ctx,
 			input.TgChatId,
 			user.TgId,
@@ -310,7 +311,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 	getter nameGetter,
 ) {
 	defer wg.Done()
@@ -323,7 +324,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
 
 	for _, user := range usersInChat {
-		replies, err := r.chRepository.MessageFindRepliesTo(
+		replies, err := r.dbRepository.MessageFindRepliesTo(
 			ctx,
 			input.TgChatId,
 			user.TgId,

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/teadove/fun_telegram/core/service/tex"
 
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
@@ -23,7 +25,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"github.com/teadove/fun_telegram/core/service/job"
@@ -47,7 +48,7 @@ type Presentation struct {
 	kandinskySupplier *kandinsky_supplier.Supplier
 	ipLocator         *ip_locator.Supplier
 	redisRepository   *redis_repository.Repository
-	mongoRepository   *mongo_repository.Repository
+	dbRepository      *db_repository.Repository
 	resourceService   *resource.Service
 	analiticsService  *analitics.Service
 	jobService        *job.Service
@@ -121,10 +122,10 @@ func MustNewTelegramPresentation(
 	redisRepository *redis_repository.Repository,
 	kandinskySupplier *kandinsky_supplier.Supplier,
 	ipLocator *ip_locator.Supplier,
-	dbRepository *mongo_repository.Repository,
 	analiticsService *analitics.Service,
 	jobService *job.Service,
 	resourceService *resource.Service,
+	dbRepository *db_repository.Repository,
 ) *Presentation {
 	api := protoClient.API()
 
@@ -135,10 +136,10 @@ func MustNewTelegramPresentation(
 		telegramManager:   peers.Options{}.Build(api),
 		kandinskySupplier: kandinskySupplier,
 		ipLocator:         ipLocator,
-		mongoRepository:   dbRepository,
 		analiticsService:  analiticsService,
 		jobService:        jobService,
 		resourceService:   resourceService,
+		dbRepository:      dbRepository,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -345,10 +346,9 @@ func MustNewTelegramPresentation(
 	presentation.setFeatures()
 
 	zerolog.Ctx(ctx).Info().
-		Str("status", "telegram.presentation.created").
 		Dur("retry.interval", presentation.protoClient.RetryInterval).
 		Int("retry.count", presentation.protoClient.MaxRetries).
-		Send()
+		Msg("telegram.presentation.created")
 
 	return &presentation
 }

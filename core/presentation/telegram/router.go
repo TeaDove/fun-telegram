@@ -142,10 +142,9 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	zerolog.Ctx(ctx.Context).
 		Info().
-		Str("status", "executing.command.begin").
 		// Interface("input", commandInput).
 		Str("command", firstWord).
-		Send()
+		Msg("executing.command.begin")
 
 	err = route.executor(ctx, update, &commandInput)
 	elapsed := time.Now().UTC().Sub(commandInput.StartedAt)
@@ -192,9 +191,8 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	zerolog.Ctx(ctx.Context).
 		Info().
-		Str("status", "executing.command.done").
 		Str("elapsed", elapsed.String()).
-		Send()
+		Msg("executing.command.done")
 
 	return nil
 }

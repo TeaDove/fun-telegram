@@ -3,13 +3,14 @@ package container
 import (
 	"context"
 
+	"github.com/teadove/fun_telegram/core/infrastructure/pg"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/presentation/telegram"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
 	"github.com/teadove/fun_telegram/core/service/job"
@@ -43,29 +44,36 @@ func MustNewCombatContainer(ctx context.Context) Container {
 
 	locator := ip_locator.Supplier{}
 
-	dbRepository, err := mongo_repository.New()
-	shared.Check(ctx, err)
-
-	chRepository, err := ch_repository.New(ctx)
-	shared.Check(ctx, err)
-
 	dsSupplier, err := ds_supplier.New(ctx)
 	shared.Check(ctx, err)
 
 	resourceService, err := resource.New(ctx)
 	shared.Check(ctx, err)
 
-	analiticsService, err := analitics.New(dbRepository, chRepository, dsSupplier, resourceService)
+	db, err := pg.NewClientFromSettings()
+	if err != nil {
+		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init pg client"))
+	}
+
+	dbRepository, err := db_repository.NewRepository(ctx, db)
+	if err != nil {
+		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init pg repository"))
+	}
+
+	analiticsService, err := analitics.New(
+		dsSupplier,
+		resourceService,
+		dbRepository,
+	)
 	shared.Check(ctx, err)
 
 	protoClient, err := telegram.NewProtoClient(ctx)
 	shared.Check(ctx, err)
 
-	jobService, err := job.New(ctx, dbRepository, chRepository, map[string]job.ServiceChecker{
-		"MongoDB":    {Checker: dbRepository.Ping, ForFrequent: true},
+	jobService, err := job.New(ctx, map[string]job.ServiceChecker{
 		"Telegram":   {Checker: protoClient.Ping, ForFrequent: true},
 		"Redis":      {Checker: persistentStorage.Ping, ForFrequent: true},
-		"ClickHouse": {Checker: chRepository.Ping, ForFrequent: true},
+		"Postgres":   {Checker: dbRepository.Ping, ForFrequent: true},
 		"Kandinsky":  {Checker: kandinskySupplier.Ping},
 		"IpLocator":  {Checker: locator.Ping},
 		"DSSupplier": {Checker: dsSupplier.Ping},
@@ -78,10 +86,10 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		persistentStorage,
 		kandinskySupplier,
 		&locator,
-		dbRepository,
 		analiticsService,
 		jobService,
 		resourceService,
+		dbRepository,
 	)
 
 	container := Container{telegramPresentation, jobService}

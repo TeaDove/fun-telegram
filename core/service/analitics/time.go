@@ -29,10 +29,10 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatId(
+	messagesGrouped, err := r.dbRepository.MessageGroupByDateAndChatId(
 		ctx,
 		input.TgChatId,
-		86400*7,
+		time.Hour*24*7,
 	)
 	if err != nil {
 		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
@@ -83,11 +83,11 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByDateByChatIdByUserId(
+	messagesGrouped, err := r.dbRepository.MessageGroupByDateAndChatIdAndUserId(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
-		86400*7,
+		time.Hour*24*7,
 	)
 	if err != nil {
 		statsReportResult.err = errors.Wrap(err, "failed to get messages from ch repository")
@@ -138,10 +138,10 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatId(
+	messagesGrouped, err := r.dbRepository.MessageGroupByTimeAndChatId(
 		ctx,
 		input.TgChatId,
-		60*30,
+		time.Minute*10,
 		input.Tz,
 	)
 	if err != nil {
@@ -213,11 +213,11 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 		},
 	}
 
-	messagesGrouped, err := r.chRepository.GetMessagesGroupedByTimeByChatIdByUserId(
+	messagesGrouped, err := r.dbRepository.MessageGroupByTimeAndChatIdAndUserId(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
-		60*30,
+		time.Minute*10,
 		input.Tz,
 	)
 	if err != nil {

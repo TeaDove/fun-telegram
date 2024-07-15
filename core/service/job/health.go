@@ -92,14 +92,14 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 				zerolog.Ctx(ctx).
 					Error().Stack().
 					Err(result.Err).
-					Str("status", "health.check.failed").
 					Str("service", result.Name).
-					Dur("elapsed", elapsed).Send()
+					Dur("elapsed", elapsed).Msg("health.check.failed")
 			} else {
 				zerolog.Ctx(ctx).
-					Debug().Str("status", "health.check.ok").
+					Debug().
 					Str("service", result.Name).
-					Dur("elapsed", elapsed).Send()
+					Dur("elapsed", elapsed).
+					Msg("health.check.ok")
 			}
 
 			result.Elapsed = elapsed

@@ -4,30 +4,27 @@ import (
 	"context"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/go-co-op/gocron"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"github.com/teadove/fun_telegram/core/schemas"
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Service struct {
-	mongoRepository *mongo_repository.Repository
-	chRepository    *ch_repository.Repository
+	dbRepository *db_repository.Repository
 
 	checkers map[string]ServiceChecker
 }
 
 func New(
 	ctx context.Context,
-	dbRepository *mongo_repository.Repository,
-	chRepository *ch_repository.Repository,
 	checkers map[string]ServiceChecker,
 ) (*Service, error) {
 	ctx = shared.AddModuleCtx(ctx, "job")
-	r := Service{mongoRepository: dbRepository, checkers: checkers, chRepository: chRepository}
+	r := Service{checkers: checkers}
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
@@ -73,19 +70,20 @@ type DeleteOldMessagesOutput struct {
 func (r *Service) Stats(ctx context.Context) (map[string]map[string]schemas.StorageStats, error) {
 	statsByDatabase := make(map[string]map[string]schemas.StorageStats, 2)
 
-	stats, err := r.mongoRepository.StatsForDatabase(ctx)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+	// TODO compile stats
+	//stats, err := r.mongoRepository.StatsForDatabase(ctx)
+	//if err != nil {
+	//	return nil, errors.WithStack(err)
+	//}
 
-	statsByDatabase["MongoDB"] = stats
+	// statsByDatabase["MongoDB"] = stats
 
-	stats, err = r.chRepository.StatsForDatabase(ctx)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+	//stats, err = r.chRepository.StatsForDatabase(ctx)
+	//if err != nil {
+	//	return nil, errors.WithStack(err)
+	//}
 
-	statsByDatabase["Clickhouse"] = stats
+	// statsByDatabase["Clickhouse"] = stats
 
 	return statsByDatabase, nil
 }
@@ -103,50 +101,47 @@ func (r *Service) deleteOldMessagesChecked(ctx context.Context) {
 }
 
 func (r *Service) DeleteOldMessages(ctx context.Context) (DeleteOldMessagesOutput, error) {
-	bytesFreed, err := r.mongoRepository.ReleaseMemory(ctx)
-	if err != nil {
-		return DeleteOldMessagesOutput{}, errors.WithStack(err)
-	}
+	// TODO delete old messages
 
-	stats, err := r.mongoRepository.StatsForMessages(ctx)
-	if err != nil {
-		return DeleteOldMessagesOutput{}, errors.WithStack(err)
-	}
+	//bytesFreed, err := r.mongoRepository.ReleaseMemory(ctx)
+	//if err != nil {
+	//	return DeleteOldMessagesOutput{}, errors.WithStack(err)
+	//}
+	//
+	//stats, err := r.mongoRepository.StatsForMessages(ctx)
+	//if err != nil {
+	//	return DeleteOldMessagesOutput{}, errors.WithStack(err)
+	//}
 
-	desiredSizeInBytes := 1024 * 1024 * shared.AppSettings.MessagesMaxSizeMB
-	if desiredSizeInBytes > stats.TotalSizeBytes {
-		return DeleteOldMessagesOutput{}, nil
-	}
+	//desiredSizeInBytes := 1024 * 1024 * shared.AppSettings.MessagesMaxSizeMB
+	//if desiredSizeInBytes > stats.TotalSizeBytes {
+	//	return DeleteOldMessagesOutput{}, nil
+	//}
+	//
+	//sizeToDelete := stats.TotalSizeBytes - desiredSizeInBytes
+	//
+	//countToDelete := sizeToDelete / stats.AvgObjWithIndexSizeBytes
+	//if countToDelete == 0 {
+	//	return DeleteOldMessagesOutput{}, nil
+	//}
+	//
+	//newStats, err := r.mongoRepository.StatsForMessages(ctx)
+	//if err != nil {
+	//	return DeleteOldMessagesOutput{}, errors.WithStack(err)
+	//}
+	//
+	//output := DeleteOldMessagesOutput{
+	//	OldCount:   stats.Count,
+	//	NewCount:   newStats.Count,
+	//	OldSize:    stats.TotalSizeBytes,
+	//	NewSize:    newStats.TotalSizeBytes,
+	//	BytesFreed: bytesFreed,
+	//}
+	//zerolog.Ctx(ctx).
+	//	Info().
+	//	Str("status", "old.messages.deleted").
+	//	Interface("output", output).
+	//	Send()
 
-	sizeToDelete := stats.TotalSizeBytes - desiredSizeInBytes
-
-	countToDelete := sizeToDelete / stats.AvgObjWithIndexSizeBytes
-	if countToDelete == 0 {
-		return DeleteOldMessagesOutput{}, nil
-	}
-
-	_, err = r.mongoRepository.DeleteMessagesOldWithCount(ctx, int64(countToDelete))
-	if err != nil {
-		return DeleteOldMessagesOutput{}, errors.WithStack(err)
-	}
-
-	newStats, err := r.mongoRepository.StatsForMessages(ctx)
-	if err != nil {
-		return DeleteOldMessagesOutput{}, errors.WithStack(err)
-	}
-
-	output := DeleteOldMessagesOutput{
-		OldCount:   stats.Count,
-		NewCount:   newStats.Count,
-		OldSize:    stats.TotalSizeBytes,
-		NewSize:    newStats.TotalSizeBytes,
-		BytesFreed: bytesFreed,
-	}
-	zerolog.Ctx(ctx).
-		Info().
-		Str("status", "old.messages.deleted").
-		Interface("output", output).
-		Send()
-
-	return output, nil
+	return DeleteOldMessagesOutput{}, nil
 }

@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/teadove/fun_telegram/core/service/resource"
 
 	"github.com/rs/zerolog"
@@ -18,13 +20,10 @@ import (
 	"github.com/aaaton/golem/v4/dicts/ru"
 	"github.com/dlclark/regexp2"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/ch_repository"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 )
 
 type Service struct {
-	mongoRepository *mongo_repository.Repository
-	chRepository    *ch_repository.Repository
+	dbRepository    *db_repository.Repository
 	dsSupplier      *ds_supplier.Supplier
 	resourceService *resource.Service
 
@@ -33,16 +32,14 @@ type Service struct {
 }
 
 func New(
-	mongoRepository *mongo_repository.Repository,
-	chRepository *ch_repository.Repository,
 	dsSupplier *ds_supplier.Supplier,
 	resourceService *resource.Service,
+	dbRepository *db_repository.Repository,
 ) (*Service, error) {
 	r := Service{
-		mongoRepository: mongoRepository,
-		chRepository:    chRepository,
 		dsSupplier:      dsSupplier,
 		resourceService: resourceService,
+		dbRepository:    dbRepository,
 	}
 
 	exp, err := regexp2.Compile(
@@ -129,10 +126,11 @@ func (r *AnaliseReport) appendFromChan(
 
 		if statsReportValue.err != nil {
 			zerolog.Ctx(ctx).
-				Error().Stack().Err(statsReportValue.err).
-				Str("status", "failed.to.compile.statistics").
+				Error().
+				Stack().
+				Err(statsReportValue.err).
 				Dict("report", report).
-				Send()
+				Msg("failed.to.compile.statistics")
 
 			continue
 		}
@@ -151,9 +149,8 @@ func (r *AnaliseReport) appendFromChan(
 
 		zerolog.Ctx(ctx).
 			Info().
-			Str("status", "analitics.image.compiled").
 			Dict("report", report).
-			Send()
+			Msg("analitics.image.compiled")
 	}
 }
 
@@ -161,7 +158,7 @@ func (r *Service) analiseUserChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (AnaliseReport, error) {
-	count, err := r.chRepository.CountGetByChatIdByUserId(ctx, input.TgChatId, input.TgUserId)
+	count, err := r.dbRepository.MessageCountByChatIdAndUserId(ctx, input.TgChatId, input.TgUserId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
@@ -170,7 +167,7 @@ func (r *Service) analiseUserChat(
 		return AnaliseReport{}, errors.WithStack(ErrNoMessagesFound)
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatIdByUserId(
+	lastMessage, err := r.dbRepository.MessageGetLastByChatIdAndUserId(
 		ctx,
 		input.TgChatId,
 		input.TgUserId,
@@ -179,11 +176,11 @@ func (r *Service) analiseUserChat(
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
 
-	if count == 0 {
-		return AnaliseReport{}, nil
-	}
-
-	usersInChat, err := r.mongoRepository.GetUsersInChatOnlyActive(ctx, input.TgChatId)
+	usersInChat, err := r.dbRepository.UsersSelectByStatusInChat(
+		ctx,
+		input.TgChatId,
+		db_repository.MemberStatusesActive,
+	)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(
 			err,
@@ -236,7 +233,11 @@ func (r *Service) analiseWholeChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (AnaliseReport, error) {
-	usersInChat, err := r.mongoRepository.GetUsersInChatOnlyActive(ctx, input.TgChatId)
+	usersInChat, err := r.dbRepository.UsersSelectByStatusInChat(
+		ctx,
+		input.TgChatId,
+		db_repository.MemberStatusesActive,
+	)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(
 			err,
@@ -244,12 +245,12 @@ func (r *Service) analiseWholeChat(
 		)
 	}
 
-	count, err := r.chRepository.CountGetByChatId(ctx, input.TgChatId)
+	count, err := r.dbRepository.MessageCountByChatId(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count from ch repository")
 	}
 
-	lastMessage, err := r.chRepository.GetLastMessageByChatId(ctx, input.TgChatId)
+	lastMessage, err := r.dbRepository.MessageGetLastByChatId(ctx, input.TgChatId)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message from ch repositry")
 	}
@@ -321,7 +322,7 @@ func (r *Service) AnaliseChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (report AnaliseReport, err error) {
-	zerolog.Ctx(ctx).Info().Str("status", "compiling.stats.begin").Interface("input", input).Send()
+	zerolog.Ctx(ctx).Info().Interface("input", input).Msg("compiling.stats.begin")
 
 	if input.TgUserId != 0 {
 		report, err = r.analiseUserChat(ctx, input)

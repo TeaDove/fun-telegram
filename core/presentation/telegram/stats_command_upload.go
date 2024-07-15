@@ -108,7 +108,7 @@ func (r *Presentation) uploadMessageToRepository(
 			TgChatID:  update.EffectiveChat().GetID(),
 			TgUserId:  msgFrom.UserID,
 			Text:      msg.Message,
-			TgId:      int64(msg.ID),
+			TgId:      msg.ID,
 		}
 
 		if msg.ReplyTo != nil {
@@ -205,7 +205,9 @@ func (r *Presentation) updateUploadStatsMessage(
 	lastDate time.Time,
 	maxCount int,
 ) {
-	zerolog.Ctx(ctx).Info().Str("status", "messages.batch.uploaded").Int("count", count).Send()
+	zerolog.Ctx(ctx).Info().
+		Int("count", count).
+		Msg("messages.batch.uploaded")
 
 	elapsed := time.Since(startedAt).Seconds()
 	remainingCount := maxCount - count
@@ -336,7 +338,10 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 		}
 	}
 
-	zerolog.Ctx(ctx).Info().Str("status", "stats.upload.begin").Int("offset", offset).Send()
+	zerolog.Ctx(ctx).
+		Info().
+		Int("offset", offset).
+		Msg("stats.upload.begin")
 	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
 	historyQuery.BatchSize(iterHistoryBatchSize)
 	historyQuery.OffsetID(offset)
@@ -423,17 +428,11 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 
 	zerolog.Ctx(ctx).
 		Info().
-		Str("status", "waiting.for.uploading.to.repository").
 		Int("count", count).
-		Send()
+		Msg("waiting.for.uploading.to.repository")
 	close(elemChan)
 	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
-
-	err = r.analiticsService.MessageSetReplyToUserId(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.Wrap(err, "failed to set reply to user id")
-	}
 
 	_, err = ctx.EditMessage(barChatId, &tg.MessagesEditMessageRequest{
 		Peer: barPeer,

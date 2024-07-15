@@ -6,10 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
+
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/tg"
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
@@ -60,7 +61,7 @@ func (r *Presentation) uploadKandinskyImage(
 ) bool {
 	err := r.analiticsService.KandinskyImageInsert(
 		ctx,
-		&mongo_repository.KandinskyImageDenormalized{
+		&db_repository.KandinskyImageDenormalized{
 			TgInputPhoto: tg.InputPhoto{
 				ID:            tgPhoto.ID,
 				AccessHash:    tgPhoto.AccessHash,
@@ -68,7 +69,7 @@ func (r *Presentation) uploadKandinskyImage(
 			},
 			KandinskyInput: *kandinskyInput,
 			ImgContent:     img,
-			Message: mongo_repository.Message{
+			Message: db_repository.Message{
 				TgChatID: tgChatId,
 				TgId:     tgMsg.ID,
 				TgUserId: ctx.Self.ID,
@@ -301,7 +302,7 @@ func (r *Presentation) kandkinskyPaginateImagesCommandHandler(
 
 	images, err := r.analiticsService.KandinskyImagePaginate(
 		ctx,
-		&mongo_repository.KandinskyImagePaginateInput{
+		&db_repository.KandinskyImagePaginateInput{
 			TgChatId: update.EffectiveChat().GetID(),
 			Page:     page,
 			PageSize: pageSize,

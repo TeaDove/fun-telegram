@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/teadove/fun_telegram/core/repository/mongo_repository"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/teadove/fun_telegram/core/service/resource"
 
@@ -20,7 +20,7 @@ func (r *Service) getMostToxicUsers(
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
 	getter nameGetter,
-	usersInChat mongo_repository.UsersInChat,
+	usersInChat db_repository.UsersInChat,
 ) {
 	defer wg.Done()
 
@@ -33,11 +33,12 @@ func (r *Service) getMostToxicUsers(
 		},
 	}
 
-	userToCountArray, err := r.chRepository.GroupedCountGetByChatIdByUserId(
+	userToCountArray, err := r.dbRepository.MessageGroupByChatIdAndUserId(
 		ctx,
 		input.TgChatId,
-		maxUsers,
 		usersInChat.ToIds(),
+		maxUsers,
+		true,
 	)
 	if err != nil {
 		output.err = errors.Wrap(err, "failed to get GroupedCountGetByChatIdByUserId")
