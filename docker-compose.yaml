@@ -54,7 +54,7 @@ services:
           memory: 1800M
     labels:
       - "autoheal=true"
-    image: ghcr.io/teadove/fun-datascience:v2.0.3
+    image: ghcr.io/teadove/fun-datascience:v2.1.0
 
   autoheal:
     restart: always
