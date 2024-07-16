@@ -371,6 +371,7 @@ func (r *Repository) MessageSelectByChatIdAndUserIdWithWordsCount(
 	err := r.db.
 		WithContext(ctx).
 		Where("tg_chat_id = ? and tg_user_id = ? and words_count >= ?", tgChatId, tgUserId, atLeastWordCount).
+		Order("created_at DESC").
 		Limit(limit).
 		Find(&output).
 		Error
@@ -391,6 +392,7 @@ func (r *Repository) MessageSelectByChatIdWithWordsCount(
 	err := r.db.
 		WithContext(ctx).
 		Where("tg_chat_id = ? and words_count >= ?", tgChatId, atLeastWordCount).
+		Order("created_at DESC").
 		Limit(limit).
 		Find(&output).
 		Error

@@ -54,6 +54,7 @@ const (
 	CommandLocationDescription
 
 	CommandTexDescription
+	CommandRedactDescription
 
 	CommandUploadStatsDescription
 
@@ -118,6 +119,8 @@ const (
 	AnaliseChartIsWeekday
 
 	AnaliseChartChannelNeighbors
+
+	Redacted
 )
 
 var localizer = map[Code]map[Locale]string{
@@ -373,4 +376,10 @@ var localizer = map[Code]map[Locale]string{
 	CommandRegRuleFlagDeleteDescription: {Ru: "удаление правила", En: "deletes rule"},
 	CommandRegRuleFlagRegexpDescription: {Ru: "регулярное выражение", En: "regexp"},
 	CommandRegRuleFlagListDescription:   {Ru: "вывести правила", En: "list rules"},
+
+	Redacted: {Ru: "[ДАННЫЕ УДАЛЕНЫ]", En: "[REDACTED]"},
+	CommandRedactDescription: {
+		Ru: "очищает все мои сообщения в чате",
+		En: "redacts all my messages in this chat",
+	},
 }

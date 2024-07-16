@@ -289,6 +289,11 @@ func MustNewTelegramPresentation(
 			description: resource.CommandTexDescription,
 			example:     "Найс! $f(x) = \\frac{\\sqrt{x +20}}{2\\pi} +\\hbar \\sum y\\partial y$",
 		},
+		"redact": {
+			executor:     presentation.redactCommandHandler,
+			description:  resource.CommandRedactDescription,
+			requireOwner: true,
+		},
 	}
 
 	protoClient.Dispatcher.AddHandler(

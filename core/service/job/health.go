@@ -136,7 +136,7 @@ func (r *Service) Check(ctx context.Context, frequent bool) CheckResults {
 }
 
 // ApiHealth
-// yes, i know, that it should be in presentation, no in service
+// yes, I know, that it should be in presentation, no in service
 func (r *Service) ApiHealth(w http.ResponseWriter, req *http.Request) {
 	ctx := shared.GetModuleCtx("health")
 	log := zerolog.Ctx(ctx).With().Str("remote.addr", req.RemoteAddr).Logger()
