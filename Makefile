@@ -37,7 +37,7 @@ infra-run:
 update:
 	git pull
 	docker-compose up -d
-	docker-compose logs -f ds core
+	docker-compose logs -f ds
 
 logs:
 	docker-compose logs -f ds core
