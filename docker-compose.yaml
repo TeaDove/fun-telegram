@@ -18,8 +18,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      ds:
-        condition: service_healthy
+#      ds:
+#        condition: service_healthy
     labels:
       - "autoheal=true"
     healthcheck:
@@ -34,27 +34,27 @@ services:
           cpus: '0.50'
           memory: 1200M
 
-  ds:
-    restart: always
-    environment:
-      _UVICORN__HOST: "0.0.0.0"
-      _UVICORN__PORT: 8000
-      _UVICORN__WORKERS: 1
-    volumes: []
-    healthcheck:
-      test: curl -f http://127.0.0.1:8000/health || exit 1
-      interval: 2m
-      timeout: 20s
-      retries: 3
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.75'
-          memory: 1800M
-    labels:
-      - "autoheal=true"
-    image: ghcr.io/teadove/fun-datascience:v2.1.0
+#  ds:
+#    restart: always
+#    environment:
+#      _UVICORN__HOST: "0.0.0.0"
+#      _UVICORN__PORT: 8000
+#      _UVICORN__WORKERS: 1
+#    volumes: []
+#    healthcheck:
+#      test: curl -f http://127.0.0.1:8000/health || exit 1
+#      interval: 2m
+#      timeout: 20s
+#      retries: 3
+#      start_period: 5s
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.75'
+#          memory: 1800M
+#    labels:
+#      - "autoheal=true"
+#    image: ghcr.io/teadove/fun-datascience:v2.1.0
 
   autoheal:
     restart: always
