@@ -27,9 +27,8 @@ type telegram struct {
 }
 
 type storage struct {
-	RedisHost     string `env:"redis_host"     envDefault:"localhost"`
-	MongoDbUrl    string `env:"mongo_db_url"   envDefault:"mongodb://localhost:27017"`
-	ClickhouseUtl string `env:"clickhouse_url" envDefault:"localhost:9000"`
+	RedisHost   string `env:"redis_host"   envDefault:"localhost"`
+	PostgresDSN string `env:"postgres_dsn" envDefault:"postgresql://main:main@localhost:5432/main"`
 }
 
 type Settings struct {

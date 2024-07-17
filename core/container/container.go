@@ -71,12 +71,12 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	shared.Check(ctx, err)
 
 	jobService, err := job.New(ctx, map[string]job.ServiceChecker{
-		"Telegram":   {Checker: protoClient.Ping, ForFrequent: true},
-		"Redis":      {Checker: persistentStorage.Ping, ForFrequent: true},
-		"Postgres":   {Checker: dbRepository.Ping, ForFrequent: true},
-		"Kandinsky":  {Checker: kandinskySupplier.Ping},
-		"IpLocator":  {Checker: locator.Ping},
-		"DSSupplier": {Checker: dsSupplier.Ping},
+		"Telegram":  {Checker: protoClient.Ping, ForFrequent: true},
+		"Redis":     {Checker: persistentStorage.Ping, ForFrequent: true},
+		"Postgres":  {Checker: dbRepository.Ping, ForFrequent: true},
+		"Kandinsky": {Checker: kandinskySupplier.Ping},
+		"IpLocator": {Checker: locator.Ping},
+		//"DSSupplier": {Checker: dsSupplier.Ping},
 	})
 	shared.Check(ctx, err)
 
