@@ -55,6 +55,7 @@ const (
 
 	CommandTexDescription
 	CommandRedactDescription
+	CommandYtDescription
 
 	CommandUploadStatsDescription
 
@@ -381,5 +382,9 @@ var localizer = map[Code]map[Locale]string{
 	CommandRedactDescription: {
 		Ru: "очищает все мои сообщения в чате",
 		En: "redacts all my messages in this chat",
+	},
+	CommandYtDescription: {
+		Ru: "скачивает и отправляет yt видео",
+		En: "download and send yt video",
 	},
 }

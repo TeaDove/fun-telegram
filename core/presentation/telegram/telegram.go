@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/supplier/yt_supplier"
+
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/teadove/fun_telegram/core/service/tex"
@@ -53,6 +55,7 @@ type Presentation struct {
 	analiticsService  *analitics.Service
 	jobService        *job.Service
 	texService        *tex.Service
+	ytSupplier        *yt_supplier.Supplier
 }
 
 func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
@@ -126,6 +129,7 @@ func MustNewTelegramPresentation(
 	jobService *job.Service,
 	resourceService *resource.Service,
 	dbRepository *db_repository.Repository,
+	ytSupplier *yt_supplier.Supplier,
 ) *Presentation {
 	api := protoClient.API()
 
@@ -140,6 +144,7 @@ func MustNewTelegramPresentation(
 		jobService:        jobService,
 		resourceService:   resourceService,
 		dbRepository:      dbRepository,
+		ytSupplier:        ytSupplier,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -288,6 +293,11 @@ func MustNewTelegramPresentation(
 			executor:    presentation.texCommandHandler,
 			description: resource.CommandTexDescription,
 			example:     "Найс! $f(x) = \\frac{\\sqrt{x +20}}{2\\pi} +\\hbar \\sum y\\partial y$",
+		},
+		"yt": {
+			executor:    presentation.ytCommandHandler,
+			description: resource.CommandYtDescription,
+			example:     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
 		},
 		"redact": {
 			executor:     presentation.redactCommandHandler,

@@ -3,6 +3,8 @@ package container
 import (
 	"context"
 
+	"github.com/teadove/fun_telegram/core/supplier/yt_supplier"
+
 	"github.com/teadove/fun_telegram/core/infrastructure/pg"
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
@@ -80,6 +82,11 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	})
 	shared.Check(ctx, err)
 
+	ytSupplier, err := yt_supplier.New(ctx)
+	if err != nil {
+		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init yt supplier"))
+	}
+
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		ctx,
 		protoClient,
@@ -90,6 +97,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		jobService,
 		resourceService,
 		dbRepository,
+		ytSupplier,
 	)
 
 	container := Container{telegramPresentation, jobService}
