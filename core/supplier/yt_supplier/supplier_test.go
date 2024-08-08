@@ -16,7 +16,8 @@ func TestIntegration_YtSupplier_GetVideo_Ok(t *testing.T) {
 	r, err := New(ctx)
 	require.NoError(t, err)
 
-	stream, err := r.GetVideo(ctx, "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+	stream, err := r.GetVideo(ctx, "https://www.youtube.com/watch?v=6TIQPDL2HSQ")
+	// stream, err := r.GetVideo(ctx, "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 	assert.NoError(t, err)
 
 	file, err := os.Create("video.mp4")
