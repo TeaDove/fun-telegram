@@ -16,6 +16,9 @@ RUN rm -rf /var/lib/apt/lists/* && apt-get update && apt-get install -y --no-ins
 RUN update-ca-certificates
 RUN rm -rf /var/lib/apt/lists/*
 
+
+COPY --from=build /usr/local/go/lib/time/zoneinfo.zip /
+ENV ZONEINFO=/zoneinfo.zip
 COPY --from=build /src/bootstrap /
 
 CMD ["/bootstrap"]
