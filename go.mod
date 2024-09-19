@@ -1,6 +1,6 @@
 module github.com/teadove/fun_telegram
 
-go 1.22.0
+go 1.23.0
 
 require (
 	github.com/aaaton/golem/v4 v4.0.1
