@@ -3,22 +3,21 @@ package telegram
 import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/rs/zerolog"
+	"github.com/teadove/teasutils/utils/logger_utils"
 )
 
 func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error {
 	chatName := GetChatName(update.EffectiveChat())
 
-	dict_ := zerolog.Dict().Str("chat", chatName)
+	ctx.Context = logger_utils.AddLoggerToCtx(ctx.Context)
+	ctx.Context = logger_utils.WithValue(ctx.Context, "chat_name", chatName)
 	if update.EffectiveUser() != nil {
-		dict_ = dict_.Str("username", update.EffectiveUser().Username)
+		ctx.Context = logger_utils.WithValue(
+			ctx.Context,
+			"username",
+			update.EffectiveUser().Username,
+		)
 	}
-
-	ctx.Context = zerolog.Ctx(ctx).
-		With().
-		Dict("tg", dict_).
-		Ctx(ctx.Context).
-		Logger().
-		WithContext(ctx.Context)
 
 	return nil
 }

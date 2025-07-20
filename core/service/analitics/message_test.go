@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/teadove/teasutils/utils/random_utils"
+	"github.com/teadove/teasutils/utils/test_utils"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func generateMessage() Message {
@@ -16,7 +18,7 @@ func generateMessage() Message {
 		TgChatID:  rand.Int64N(100000),
 		TgId:      rand.IntN(100000),
 		TgUserId:  rand.Int64N(100000),
-		Text:      shared.RandomString(),
+		Text:      random_utils.Text(),
 	}
 }
 
@@ -24,7 +26,7 @@ func TestIntegration_AnaliticsService_InsertNewMessage_Ok(t *testing.T) {
 	r := getService(t)
 	message := generateMessage()
 
-	err := r.MessageInsert(shared.GetCtx(), &message)
+	err := r.MessageInsert(test_utils.GetLoggedContext(), &message)
 	assert.NoError(t, err)
 }
 
@@ -38,7 +40,7 @@ func TestIntegration_AnaliticsService_InsertManyMessage_Ok(t *testing.T) {
 			defer wg.Done()
 			message := generateMessage()
 
-			err := r.MessageInsert(shared.GetCtx(), &message)
+			err := r.MessageInsert(test_utils.GetLoggedContext(), &message)
 			assert.NoError(t, err)
 		}()
 	}

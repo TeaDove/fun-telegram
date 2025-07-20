@@ -78,44 +78,6 @@ func (r *Repository) Delete(ctx context.Context, k string) error {
 	return nil
 }
 
-// Toggle
-// Return true, if toggle WAS true
-func (r *Repository) Toggle(ctx context.Context, k string) (bool, error) {
-	ok, err := r.GetToggle(ctx, k)
-	if err != nil {
-		return false, errors.WithStack(err)
-	}
-
-	if ok {
-		err = r.Delete(ctx, k)
-		if err != nil {
-			return false, errors.WithStack(err)
-		}
-
-		return true, nil
-	}
-
-	err = r.Save(ctx, k, emptyBytes)
-	if err != nil {
-		return false, errors.WithStack(err)
-	}
-
-	return false, nil
-}
-
-func (r *Repository) GetToggle(ctx context.Context, k string) (bool, error) {
-	_, err := r.Load(ctx, k)
-	if err != nil {
-		if !errors.Is(err, ErrKeyNotFound) {
-			return false, errors.WithStack(err)
-		}
-
-		return false, nil
-	}
-
-	return true, nil
-}
-
 func (r *Repository) Ping(ctx context.Context) error {
 	return r.rbs.Ping(ctx).Err()
 }

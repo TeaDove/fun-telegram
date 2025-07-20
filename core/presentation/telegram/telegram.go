@@ -6,8 +6,6 @@ import (
 
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
-	"github.com/teadove/fun_telegram/core/service/tex"
-
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/glebarez/sqlite"
 
@@ -27,17 +25,12 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/service/job"
 	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
-	"github.com/teadove/fun_telegram/core/supplier/ip_locator"
-	"github.com/teadove/fun_telegram/core/supplier/kandinsky_supplier"
 	"golang.org/x/time/rate"
 )
 
 type Presentation struct {
-	// Unused, but may be usefully later
-	//  telegramClient  *telegram.Client
 	telegramApi     *tg.Client
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
@@ -45,14 +38,10 @@ type Presentation struct {
 	router   map[string]messageProcessor
 	features map[string]bool
 
-	kandinskySupplier *kandinsky_supplier.Supplier
-	ipLocator         *ip_locator.Supplier
-	redisRepository   *redis_repository.Repository
-	dbRepository      *db_repository.Repository
-	resourceService   *resource.Service
-	analiticsService  *analitics.Service
-	jobService        *job.Service
-	texService        *tex.Service
+	redisRepository  *redis_repository.Repository
+	dbRepository     *db_repository.Repository
+	resourceService  *resource.Service
+	analiticsService *analitics.Service
 }
 
 func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
@@ -75,18 +64,6 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			NewSimpleWaiter().
 			WithMaxWait(time.Minute * 10).
 			WithMaxRetries(20)
-		// WithCallback(func(ctx context.Context, wait floodwait.FloodWait) {
-		//	zerolog.Ctx(ctx).
-		//		Warn().
-		//		Str("status", "flood.waiting").
-		//		Str("dur", wait.Duration.String()).
-		//		Send()
-		// })
-		//runMiddleware = func(origRun func(ctx context.Context, f func(ctx context.Context) error) (err error), ctx context.Context, f func(ctx context.Context) (err error)) (err error) {
-		//	return origRun(ctx, func(ctx context.Context) error {
-		//		return waiter.Run(ctx, f)
-		//	})
-		//}
 
 		middlewares = append(middlewares, waiter)
 
@@ -120,26 +97,20 @@ func MustNewTelegramPresentation(
 	ctx context.Context,
 	protoClient *gotgproto.Client,
 	redisRepository *redis_repository.Repository,
-	kandinskySupplier *kandinsky_supplier.Supplier,
-	ipLocator *ip_locator.Supplier,
 	analiticsService *analitics.Service,
-	jobService *job.Service,
 	resourceService *resource.Service,
 	dbRepository *db_repository.Repository,
 ) *Presentation {
 	api := protoClient.API()
 
 	presentation := Presentation{
-		redisRepository:   redisRepository,
-		protoClient:       protoClient,
-		telegramApi:       api,
-		telegramManager:   peers.Options{}.Build(api),
-		kandinskySupplier: kandinskySupplier,
-		ipLocator:         ipLocator,
-		analiticsService:  analiticsService,
-		jobService:        jobService,
-		resourceService:   resourceService,
-		dbRepository:      dbRepository,
+		redisRepository:  redisRepository,
+		protoClient:      protoClient,
+		telegramApi:      api,
+		telegramManager:  peers.Options{}.Build(api),
+		analiticsService: analiticsService,
+		resourceService:  resourceService,
+		dbRepository:     dbRepository,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -166,61 +137,19 @@ func MustNewTelegramPresentation(
 	)
 
 	presentation.router = map[string]messageProcessor{
-		"echo": {
-			executor:    presentation.echoCommandHandler,
-			description: resource.CommandEchoDescription,
-			flags:       []optFlag{},
-			example:     "Hello World!",
-		},
 		"help": {
 			executor:    presentation.helpCommandHandler,
-			description: resource.CommandHelpDescription,
+			description: "get this message",
 			flags:       []optFlag{},
 		},
 		"get_me": {
 			executor:    presentation.getMeCommandHandler,
-			description: resource.CommandGetMeHelpDescription,
-			flags:       []optFlag{},
-		},
-		"ping": {
-			executor:          presentation.pingCommandHandler,
-			description:       resource.CommandPingDescription,
-			flags:             []optFlag{},
-			requireAdmin:      true,
-			disabledByDefault: true,
-		},
-		"spam_reaction": {
-			executor:          presentation.spamReactionCommandHandler,
-			description:       resource.CommandSpamReactionDescription,
-			flags:             []optFlag{FlagSpamReactionStop},
-			disabledByDefault: true,
-		},
-		"kandinsky": {
-			executor:    presentation.kandkinskyCommandHandler,
-			description: resource.CommandKandinskyDescription,
-			flags: []optFlag{
-				FlagKandinskyNegativePrompt,
-				FlagKandinskyStyle,
-				FlagKandinskyPageStyle,
-				FlagKandinskyCountStyle,
-			},
-			example: "-c=3 --style=ANIME girl in space, sticker, realism, cute_mood, bold colors, disney",
-		},
-		"regrule": {
-			executor:     presentation.regruleCommandHandler,
-			description:  resource.CommandRegRuleDescription,
-			flags:        []optFlag{FlagRegRuleRegexp, FlagRegRuleDelete, FlagRegRuleList},
-			example:      "—regexp=\"^\\w+$\" ПРИВЕТ ЧЕ КАК",
-			requireAdmin: true,
-		},
-		"location": {
-			executor:    presentation.locationCommandHandler,
-			description: resource.CommandLocationDescription,
+			description: "get id, username of requested user and group",
 			flags:       []optFlag{},
 		},
 		"stats": {
 			executor:    presentation.statsCommandHandler,
-			description: resource.CommandStatsDescription,
+			description: "get stats of this chat",
 			flags: []optFlag{
 				FlagStatsUsername,
 				FlagStatsChannelName,
@@ -232,7 +161,7 @@ func MustNewTelegramPresentation(
 		},
 		"upload_stats": {
 			executor:    presentation.uploadStatsCommandHandler,
-			description: resource.CommandUploadStatsDescription,
+			description: "uploads stats from this chat",
 			flags: []optFlag{
 				FlagUploadStatsRemove,
 				FlagUploadStatsCount,
@@ -247,7 +176,7 @@ func MustNewTelegramPresentation(
 		},
 		"dump_stats": {
 			executor:     presentation.statsDumpCommandHandler,
-			description:  resource.CommandUploadStatsDescription,
+			description:  "uploads stats from this chat",
 			requireOwner: true,
 			flags: []optFlag{
 				FlagStatsChannelName,
@@ -257,68 +186,19 @@ func MustNewTelegramPresentation(
 		},
 		"ban": {
 			executor:    presentation.banCommandHandler,
-			description: resource.CommandBanDescription,
+			description: "bans or unbans user from using this bot globally",
 		},
-		"health": {
-			executor:    presentation.healthCommandHandler,
-			description: resource.CommandHealthDescription,
-		},
-		"infra_stats": {
-			executor:     presentation.infraStatsCommandHandler,
-			description:  resource.CommandInfraStatsDescription,
-			requireOwner: true,
-		},
-		"chat": {
-			executor:     presentation.chatCommandHandler,
-			description:  resource.CommandChatDescription,
-			requireAdmin: true,
-			flags:        []optFlag{FlagChatTz, FlagChatLocale, FlagChatEnabled},
-			example:      "-e -l=ru -t=3",
-		},
+
 		"restart": {
 			executor:     presentation.restartCommandHandler,
-			description:  resource.CommandRestartDescription,
+			description:  "restarts bot",
 			requireOwner: true,
-		},
-		"anime-detect": {
-			executor:    presentation.animeDetectionCommandHandler,
-			description: resource.CommandAnimeDetectDescription,
-		},
-		"tex": {
-			executor:    presentation.texCommandHandler,
-			description: resource.CommandTexDescription,
-			example:     "Найс! $f(x) = \\frac{\\sqrt{x +20}}{2\\pi} +\\hbar \\sum y\\partial y$",
 		},
 	}
 
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
-			Callback:      presentation.spamReactionMessageHandler,
-			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessagesNotFromUser,
-			Outgoing:      true,
-		},
-	)
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
-			Callback:      presentation.regRuleFinderMessagesProcessor,
-			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessagesNotFromUser,
-			Outgoing:      true,
-		},
-	)
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
-			Callback:      presentation.animeDetectionMessagesProcessor,
-			Outgoing:      true,
-			Filters:       filters.Message.Media,
-			UpdateFilters: filterNonNewMessagesNotFromUser,
-		},
-	)
-
 	dp, ok := protoClient.Dispatcher.(*dispatcher.NativeDispatcher)
 	if !ok {
-		shared.FancyPanic(ctx, errors.New("can only work with NativeDispatcher"))
+		panic("telegram dispatcher is not native")
 	}
 
 	dp.Error = presentation.errorHandler
@@ -335,31 +215,12 @@ func MustNewTelegramPresentation(
 	}
 
 	scheduler := gocron.NewScheduler(time.UTC)
-
-	_, err = scheduler.
-		Every(1*time.Minute).
-		Do(shared.CheckOfLog(presentation.deleteOldPingMessages), ctx)
-	shared.Check(ctx, err)
-
 	scheduler.StartAsync()
 
-	presentation.setFeatures()
-
 	zerolog.Ctx(ctx).Info().
-		Dur("retry.interval", presentation.protoClient.RetryInterval).
-		Int("retry.count", presentation.protoClient.MaxRetries).
 		Msg("telegram.presentation.created")
 
 	return &presentation
-}
-
-func (r *Presentation) setFeatures() {
-	r.features = make(map[string]bool, len(r.router))
-	for commandName, command := range r.router {
-		r.features[commandName] = !command.disabledByDefault
-	}
-
-	r.features[animeDetectionFeatureName] = false
 }
 
 func (r *Presentation) errorHandler(
@@ -368,11 +229,9 @@ func (r *Presentation) errorHandler(
 	errorString string,
 ) error {
 	zerolog.Ctx(ctx).Error().
-		Stack().
 		Err(errors.New(errorString)).
-		Str("status", "error.while.processing.update").
-		Interface("update", update).
-		Send()
+		Interface("u", update).
+		Msg("error.while.processing.update")
 
 	return nil
 }
@@ -382,11 +241,11 @@ func (r *Presentation) panicHandler(
 	update *ext.Update,
 	errorString string,
 ) {
-	zerolog.Ctx(ctx.Context).Error().
-		Str("status", "panic.while.processing.update").
+	zerolog.Ctx(ctx.Context).
+		Error().
+		Err(errors.New(errorString)).
 		Interface("update", update).
-		Send()
-	println(errorString)
+		Msg("panic.while.processing.update")
 }
 
 func (r *Presentation) Run() error {

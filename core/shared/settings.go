@@ -33,9 +33,10 @@ type storage struct {
 }
 
 type Settings struct {
-	Telegram telegram `envPrefix:"telegram__"`
-	Storage  storage  `envPrefix:"storage__"`
-	LogLevel string   `                       env:"log_level" envDefault:"debug"`
+	Telegram   telegram `envPrefix:"telegram__"`
+	Storage    storage  `envPrefix:"storage__"`
+	LogLevel   string   `                       env:"log_level"   envDefault:"debug"`
+	SQLiteFile string   `                       env:"SQLITE_FILE" envDefault:"./data/db.sqlite"`
 
 	MessagesMaxSizeMB int `env:"messages_max_size_mb" envDefault:"100"`
 

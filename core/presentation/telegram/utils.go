@@ -84,29 +84,6 @@ func (r *Presentation) replyIfNotSilentLocalizedf(
 	return nil
 }
 
-func GetChatFromEffectiveChat(effectiveChat types.EffectiveChat) (int64, tg.InputPeerClass) {
-	switch t := effectiveChat.(type) {
-	case *types.Chat, *types.User, *types.Channel:
-		return t.GetID(), t.GetInputPeer()
-	default:
-		return 0, &tg.InputPeerEmpty{}
-	}
-}
-
-func GetSenderId(m *types.Message) (int64, error) {
-	peer, ok := m.GetFromID()
-	if !ok {
-		peer = m.PeerID
-	}
-
-	switch t := peer.(type) {
-	case *tg.PeerUser:
-		return t.UserID, nil
-	default:
-		return 0, errors.New("invalid peer")
-	}
-}
-
 func GetNameFromPeerUser(user *peers.User) string {
 	tgUser := tg.User{}
 

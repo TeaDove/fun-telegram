@@ -187,7 +187,7 @@ func (r *Presentation) chatCommandHandler(
 		} else {
 			_, ok = r.features[enable]
 			if !ok {
-				err = r.replyIfNotSilentLocalized(ctx, update, input, resource.ErrCommandNotFound)
+				err = r.replyIfNotSilent(ctx, update, input, "Err: command not found")
 				if err != nil {
 					return errors.Wrap(err, "failed to reply with silence")
 				}
@@ -196,7 +196,7 @@ func (r *Presentation) chatCommandHandler(
 			}
 
 			if enable == "chat" {
-				err = r.replyIfNotSilentLocalized(ctx, update, input, resource.ErrNiceTry)
+				err = r.replyIfNotSilent(ctx, update, input, "Err: nice try")
 				if err != nil {
 					return errors.Wrap(err, "failed to reply with silence")
 				}
@@ -257,12 +257,7 @@ func (r *Presentation) chatCommandHandler(
 				ctx,
 				update,
 				input,
-				r.resourceService.Localizef(
-					ctx,
-					resource.ErrUnprocessableEntity,
-					input.ChatSettings.Locale,
-					err,
-				),
+				fmt.Sprintf("Err: Unprocessable entity: %e", err),
 			)
 			if err != nil {
 				return errors.Wrap(err, "failed to reply if not silent")
@@ -276,10 +271,8 @@ func (r *Presentation) chatCommandHandler(
 				ctx,
 				update,
 				input,
-				r.resourceService.Localizef(
-					ctx,
-					resource.ErrUnprocessableEntity,
-					input.ChatSettings.Locale,
+				fmt.Sprintf(
+					"Err: Unprocessable entity: %e",
 					errors.New("tz should be from -12 to 12"),
 				),
 			)

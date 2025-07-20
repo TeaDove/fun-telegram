@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/repository/redis_repository"
-	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 func compileBanPath(username string) string {
@@ -20,7 +19,7 @@ func compileBanPath(username string) string {
 func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, input *input) error {
 	usernameToBanLower := strings.ToLower(input.Text)
 	if usernameToBanLower == "" {
-		err := r.replyIfNotSilentLocalized(ctx, update, input, resource.ErrUsernameRequired)
+		err := r.replyIfNotSilent(ctx, update, input, "Err: Username required")
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -37,11 +36,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return nil
 		}
 
-		_, err := ctx.Reply(
-			update,
-			r.resourceService.Localize(ctx, resource.ErrNiceTry, input.ChatSettings.Locale),
-			nil,
-		)
+		_, err := ctx.Reply(update, "Err: nice try", nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -53,25 +48,15 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 			return errors.WithStack(err)
 		}
 
-		_, err = ctx.Reply(
-			update,
-			r.resourceService.Localizef(
-				ctx,
-				resource.CommandBanUserBanned,
-				input.ChatSettings.Locale,
-				usernameToBanLower,
-			),
-			nil,
-		)
+		_, err = ctx.Reply(update, fmt.Sprintf("%s was banned", usernameToBanLower), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		zerolog.Ctx(ctx).
 			Info().
-			Str("status", "user.banned").
 			Str("username", usernameToBanLower).
-			Send()
+			Msg("user.banned")
 
 		return nil
 	}
@@ -79,11 +64,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 	if update.EffectiveUser().GetID() != ctx.Self.ID {
 		_, err := ctx.Reply(
 			update,
-			r.resourceService.Localize(
-				ctx,
-				resource.ErrInsufficientPrivilegesOwner,
-				input.ChatSettings.Locale,
-			),
+			"Err: insufficient privilege: owner rights required",
 			nil,
 		)
 		if err != nil {
@@ -105,12 +86,7 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 			_, err = ctx.Reply(
 				update,
-				r.resourceService.Localizef(
-					ctx,
-					resource.CommandBanUserBanned,
-					input.ChatSettings.Locale,
-					usernameToBanLower,
-				),
+				fmt.Sprintf("%s was banned", usernameToBanLower),
 				nil,
 			)
 			if err != nil {
@@ -119,25 +95,26 @@ func (r *Presentation) banCommandHandler(ctx *ext.Context, update *ext.Update, i
 
 			zerolog.Ctx(ctx).
 				Info().
-				Str("status", "user.banned").
 				Str("username", usernameToBanLower).
-				Send()
-		} else {
-			return errors.WithStack(err)
-		}
-	} else {
-		err = r.redisRepository.Delete(ctx, username)
-		if err != nil {
-			return errors.WithStack(err)
+				Msg("user.banned")
+			return nil
+
 		}
 
-		_, err = ctx.Reply(update, r.resourceService.Localizef(ctx, resource.CommandBanUserUnbanned, input.ChatSettings.Locale, usernameToBanLower), nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		zerolog.Ctx(ctx).Info().Str("status", "user.unbanned").Str("username", usernameToBanLower).Send()
+		return errors.WithStack(err)
 	}
+
+	err = r.redisRepository.Delete(ctx, username)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	_, err = ctx.Reply(update, fmt.Sprintf("%s was unbanned", usernameToBanLower), nil)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	zerolog.Ctx(ctx).Info().Str("username", usernameToBanLower).Msg("user.unbanned")
 
 	return nil
 }

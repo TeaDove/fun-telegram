@@ -3,9 +3,11 @@ package redis_repository
 import (
 	"testing"
 
+	"github.com/teadove/teasutils/utils/random_utils"
+	"github.com/teadove/teasutils/utils/test_utils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type User struct {
@@ -17,28 +19,28 @@ type User struct {
 func TestIntegration_RedisStorage_HSet_Ok(t *testing.T) {
 	t.Parallel()
 
-	ctx := shared.GetCtx()
+	ctx := test_utils.GetLoggedContext()
 	storage := getStorage()
-	hkey := shared.RandomString()
+	hkey := random_utils.Text()
 
 	err := storage.HSet(ctx, hkey, "age", 20)
 	assert.NoError(t, err)
 
-	err = storage.HSet(ctx, hkey, "name", shared.RandomString())
+	err = storage.HSet(ctx, hkey, "name", random_utils.Text())
 	assert.NoError(t, err)
 }
 
 func TestIntegration_RedisStorage_HGetAll_Ok(t *testing.T) {
 	t.Parallel()
 
-	ctx := shared.GetCtx()
+	ctx := test_utils.GetLoggedContext()
 	storage := getStorage()
-	hkey := shared.RandomString()
+	hkey := random_utils.Text()
 
 	err := storage.HSet(ctx, hkey, "age", 20)
 	require.NoError(t, err)
 
-	name := shared.RandomString()
+	name := random_utils.Text()
 	err = storage.HSet(ctx, hkey, "name", name)
 	require.NoError(t, err)
 
@@ -59,19 +61,19 @@ func getStorage() *Repository {
 
 func TestIntegration_RedisStorage_Save_Ok(t *testing.T) {
 	t.Parallel()
-	ctx := shared.GetCtx()
+	ctx := test_utils.GetLoggedContext()
 	storage := getStorage()
 
-	err := storage.Save(ctx, shared.RandomString(), []byte(shared.RandomString()))
+	err := storage.Save(ctx, random_utils.Text(), []byte(random_utils.Text()))
 	assert.NoError(t, err)
 }
 
 func TestIntegration_RedisStorage_Load_Ok(t *testing.T) {
 	t.Parallel()
-	ctx := shared.GetCtx()
+	ctx := test_utils.GetLoggedContext()
 	storage := getStorage()
 
-	k, v := shared.RandomString(), []byte(shared.RandomString())
+	k, v := random_utils.Text(), []byte(random_utils.Text())
 
 	err := storage.Save(ctx, k, v)
 	assert.NoError(t, err)
@@ -84,10 +86,10 @@ func TestIntegration_RedisStorage_Load_Ok(t *testing.T) {
 
 func TestIntegration_RedisStorage_Toggle_Ok(t *testing.T) {
 	t.Parallel()
-	ctx := shared.GetCtx()
+	ctx := test_utils.GetLoggedContext()
 	storage := getStorage()
 
-	k := shared.RandomString()
+	k := random_utils.Text()
 
 	ok, err := storage.GetToggle(ctx, k)
 	assert.NoError(t, err)
@@ -112,10 +114,10 @@ func TestIntegration_RedisStorage_Toggle_Ok(t *testing.T) {
 
 func TestIntegration_RedisStorage_HGetAll_NotFound(t *testing.T) {
 	t.Parallel()
-	ctx := shared.GetCtx()
+	ctx := test_utils.GetLoggedContext()
 	storage := getStorage()
 
-	k := shared.RandomString()
+	k := random_utils.Text()
 
 	var user struct{}
 

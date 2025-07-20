@@ -8,7 +8,6 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"golang.org/x/exp/maps"
 )
 
@@ -20,7 +19,7 @@ func (r *Presentation) compileHelpMessage(
 	helpMessage = append(
 		helpMessage,
 		styling.Plain(
-			r.resourceService.Localize(ctx, resource.CommandHelpBegin, input.ChatSettings.Locale),
+			"Bot created by @TeaDove\nSource code: https://github.com/TeaDove/fun-telegram\nAvailable commands:\n\n",
 		),
 	)
 
@@ -33,9 +32,7 @@ func (r *Presentation) compileHelpMessage(
 			helpMessage,
 			styling.Plain(
 				fmt.Sprintf(
-					"/%s - %s\n",
-					commandName,
-					r.resourceService.Localize(ctx, command.description, input.ChatSettings.Locale),
+					"/%s - %s\n", commandName, command.description,
 				),
 			),
 		)
@@ -61,13 +58,7 @@ func (r *Presentation) compileHelpMessage(
 		if command.requireAdmin {
 			helpMessage = append(
 				helpMessage,
-				styling.Bold(
-					r.resourceService.Localize(
-						ctx,
-						resource.AdminRequires,
-						input.ChatSettings.Locale,
-					),
-				),
+				styling.Bold("requires admin rights"),
 				styling.Plain("\n"),
 			)
 		}
@@ -75,13 +66,7 @@ func (r *Presentation) compileHelpMessage(
 		if command.requireOwner {
 			helpMessage = append(
 				helpMessage,
-				styling.Bold(
-					r.resourceService.Localize(
-						ctx,
-						resource.OwnerRequires,
-						input.ChatSettings.Locale,
-					),
-				),
+				styling.Bold("requires owner rights"),
 				styling.Plain("\n"),
 			)
 		}
@@ -89,10 +74,7 @@ func (r *Presentation) compileHelpMessage(
 		if command.example != "" {
 			helpMessage = append(
 				helpMessage,
-				styling.Plain(
-					r.resourceService.Localize(ctx, resource.Example, input.ChatSettings.Locale),
-				),
-				styling.Plain(": "),
+				styling.Plain("Example: "),
 				styling.Code(
 					fmt.Sprintf("!%s %s\n",
 						commandName,
@@ -104,13 +86,7 @@ func (r *Presentation) compileHelpMessage(
 		if !r.checkFeatureEnabled(&input.ChatSettings, commandName) {
 			helpMessage = append(
 				helpMessage,
-				styling.Bold(
-					r.resourceService.Localize(
-						ctx,
-						resource.CommandHelpDisabled,
-						input.ChatSettings.Locale,
-					),
-				),
+				styling.Bold("Disabled"),
 				styling.Plain("\n"),
 			)
 		}

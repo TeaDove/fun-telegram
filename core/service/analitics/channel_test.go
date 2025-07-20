@@ -5,10 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/teadove/teasutils/utils/test_utils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/teadove/fun_telegram/core/service/resource"
-	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func saveFile(t *testing.T, file *File) {
@@ -23,7 +24,7 @@ func saveFile(t *testing.T, file *File) {
 
 func TestIntegration_AnaliticsService_DumpChannels_Ok(t *testing.T) {
 	r := getService(t)
-	ctx := shared.GetModuleCtx("tests")
+	ctx := test_utils.GetLoggedContext()
 
 	files, err := r.DumpChannels(ctx, "CITeam", 10, 10)
 	assert.NoError(t, err)
@@ -36,7 +37,7 @@ func TestIntegration_AnaliticsService_DumpChannels_Ok(t *testing.T) {
 
 func TestIntegration_AnaliticsService_AnaliseChannel_Ok(t *testing.T) {
 	r := getService(t)
-	ctx := shared.GetModuleCtx("tests")
+	ctx := test_utils.GetLoggedContext()
 
 	file, err := r.AnaliseChannel(ctx, &AnaliseChannelInput{
 		TgUsername: "truexanewsua",

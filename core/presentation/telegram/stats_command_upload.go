@@ -323,12 +323,11 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	if flaggedOffset, ok := input.Ops[FlagUploadStatsOffset.Long]; ok {
 		offset, err = strconv.Atoi(flaggedOffset)
 		if err != nil {
-			err = r.replyIfNotSilentLocalizedf(
+			err = r.replyIfNotSilent(
 				ctx,
 				update,
 				input,
-				resource.ErrUnprocessableEntity,
-				err.Error(),
+				fmt.Sprintf("Err: Unprocessable entity: %e", err),
 			)
 			if err != nil {
 				return errors.WithStack(err)
@@ -362,16 +361,16 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	var lastDate time.Time
 
 	for {
-		zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
+		zerolog.Ctx(ctx).Trace().Int("offset", offset).Msg("new.iteration")
 		ok := historyIter.Next(ctx)
 		if ok {
-			zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
+			zerolog.Ctx(ctx).Trace().Msg("elem.got")
 
 			elem := historyIter.Value()
 			offset = elem.Msg.GetID()
 			msg, ok := elem.Msg.(*tg.Message)
 			if !ok {
-				zerolog.Ctx(ctx).Trace().Str("status", "not.an.message").Send()
+				zerolog.Ctx(ctx).Trace().Msg("not.an.message")
 				continue
 			}
 
@@ -397,21 +396,21 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 			}
 
 			if !lastDate.After(queryTill) {
-				zerolog.Ctx(ctx).Info().Str("status", "last.in.period.message.found").Send()
+				zerolog.Ctx(ctx).Info().Msg("last.in.period.message.found")
 				break
 			}
 
 			if time.Since(startedAt) > maxElapsed {
-				zerolog.Ctx(ctx).Info().Str("status", "iterating.too.long").Send()
+				zerolog.Ctx(ctx).Info().Msg("iterating.too.long")
 				break
 			}
 
 			if count > maxCount {
-				zerolog.Ctx(ctx).Info().Str("status", "iterating.too.much").Send()
+				zerolog.Ctx(ctx).Info().Msg("iterating.too.much")
 				break
 			}
 
-			zerolog.Ctx(ctx).Trace().Str("status", "elem.processed").Send()
+			zerolog.Ctx(ctx).Trace().Msg("elem.processed")
 
 			continue
 		}
@@ -459,10 +458,6 @@ func (r *Presentation) uploadStatsCommandHandler(
 	update *ext.Update,
 	input *input,
 ) error {
-	if channel, ok := input.Ops[FlagStatsChannelName.Long]; ok {
-		return r.uploadChannelStatsMessages(ctx, update, input, channel)
-	}
-
 	if _, ok := input.Ops[FlagUploadStatsRemove.Long]; ok {
 		return r.uploadStatsDeleteMessages(ctx, update, input)
 	}

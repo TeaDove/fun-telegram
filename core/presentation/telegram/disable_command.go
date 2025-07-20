@@ -46,12 +46,9 @@ func (r *Presentation) checkFromAdmin(ctx *ext.Context, update *ext.Update) (ok 
 		go func() {
 			_, err = r.updateMembers(ctx, update.EffectiveChat())
 			if err != nil {
-				zerolog.Ctx(ctx).
-					Error().
-					Stack().
-					Err(err).
-					Str("status", "failed.to.update.members").
-					Send()
+				zerolog.Ctx(ctx).Error().
+					Stack().Err(err).
+					Msg("failed.to.update.members")
 			}
 		}()
 

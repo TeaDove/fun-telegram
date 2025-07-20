@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"github.com/teadove/teasutils/utils/random_utils"
 
-	"github.com/teadove/fun_telegram/core/shared"
+	"github.com/teadove/fun_telegram/core/repository/db_repository"
 )
 
 type nameGetter struct {
@@ -62,7 +62,7 @@ func (r *Service) getNameGetter(
 		getter.idToAnonName = make(map[int64]string, len(usersInChat))
 
 		for _, user := range usersInChat {
-			getter.idToAnonName[user.TgId] = shared.RandomStringWithLength(6)
+			getter.idToAnonName[user.TgId] = random_utils.TextWithLen(6)
 		}
 	}
 

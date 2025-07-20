@@ -4,12 +4,14 @@ import (
 	"math/rand/v2"
 	"testing"
 
+	"github.com/glebarez/sqlite"
 	"github.com/guregu/null/v5"
+	"github.com/teadove/teasutils/utils/random_utils"
+	"github.com/teadove/teasutils/utils/test_utils"
+	"gorm.io/gorm"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/teadove/fun_telegram/core/infrastructure/pg"
-	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func generateMessage() Message {
@@ -17,14 +19,20 @@ func generateMessage() Message {
 		TgChatID: rand.Int64N(100000),
 		TgId:     rand.IntN(100000),
 		TgUserId: rand.Int64N(100000),
-		Text:     shared.RandomString(),
+		Text:     random_utils.Text(),
 	}
 }
 
-func TestIntegration_DbRepository_MessageCountByChatIdAndUserId_Ok(t *testing.T) {
-	ctx := shared.GetCtx()
-	db, err := pg.NewClientFromSettings()
+func getDB(t *testing.T) *gorm.DB {
+	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
 	require.NoError(t, err)
+
+	return db
+}
+
+func TestIntegration_DbRepository_MessageCountByChatIdAndUserId_Ok(t *testing.T) {
+	ctx := test_utils.GetLoggedContext()
+	db := getDB(t)
 
 	dbRepository, err := NewRepository(ctx, db)
 	require.NoError(t, err)
@@ -50,9 +58,8 @@ func TestIntegration_DbRepository_MessageCountByChatIdAndUserId_Ok(t *testing.T)
 }
 
 func TestIntegration_DbRepository_MessageGroupByChatIdAndUserId_Ok(t *testing.T) {
-	ctx := shared.GetCtx()
-	db, err := pg.NewClientFromSettings()
-	require.NoError(t, err)
+	ctx := test_utils.GetLoggedContext()
+	db := getDB(t)
 
 	dbRepository, err := NewRepository(ctx, db)
 	require.NoError(t, err)
@@ -85,9 +92,8 @@ func TestIntegration_DbRepository_MessageGroupByChatIdAndUserId_Ok(t *testing.T)
 }
 
 func TestIntegration_DbRepository_MessageInsert_Ok(t *testing.T) {
-	ctx := shared.GetCtx()
-	db, err := pg.NewClientFromSettings()
-	require.NoError(t, err)
+	ctx := test_utils.GetLoggedContext()
+	db := getDB(t)
 
 	dbRepository, err := NewRepository(ctx, db)
 	require.NoError(t, err)

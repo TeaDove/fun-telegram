@@ -23,18 +23,6 @@ func (r *Presentation) getMeCommandHandler(
 			"id: "), styling.Code(strconv.FormatInt(chat.GetID(), 10)),
 	}
 
-	// TODO add replied user information
-	//  if update.EffectiveMessage.ReplyToMessage != nil {
-	//	repliedMessage := update.EffectiveMessage.ReplyToMessage
-	//	repliedMessage.GetFromID()
-	//	r.telegramManager.GetUser()
-	//
-	//	r.telegramApi.UsersGetUsers(ctx, []tg.InputUserClass{repliedMessage.FromID})
-	//	//repliedUser := update.EffectiveMessage.ReplyToMessage.
-	//	stylingOptions = append(stylingOptions, []styling.StyledTextOption{styling.Plain("Replied user: \n" +
-	//		"id: "), styling.MentionName("Aaa", update.EffectiveMessage.ReplyToMessage.PeerID)}...)
-	//  }
-
 	_, err := ctx.Reply(update, stylingOptions, nil)
 	if err != nil {
 		return errors.WithStack(err)

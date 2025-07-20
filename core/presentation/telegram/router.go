@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 
 type messageProcessor struct {
 	executor          func(ctx *ext.Context, update *ext.Update, input *input) error
-	description       resource.Code
+	description       string
 	requireAdmin      bool
 	requireOwner      bool
 	flags             []optFlag
@@ -101,15 +102,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		}
 
 		if !ok {
-			_, err = ctx.Reply(
-				update,
-				r.resourceService.Localize(
-					ctx,
-					resource.ErrInsufficientPrivilegesAdmin,
-					chatSettings.Locale,
-				),
-				nil,
-			)
+			_, err = ctx.Reply(update, "Err: insufficient privilege: admin rights required", nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -121,15 +114,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	if route.requireOwner {
 		ok = r.checkFromOwner(ctx, update)
 		if !ok {
-			_, err = ctx.Reply(
-				update,
-				r.resourceService.Localize(
-					ctx,
-					resource.ErrInsufficientPrivilegesOwner,
-					chatSettings.Locale,
-				),
-				nil,
-			)
+			_, err = ctx.Reply(update, "Err: insufficient privilege: owner rights required", nil)
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -150,20 +135,12 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	elapsed := time.Now().UTC().Sub(commandInput.StartedAt)
 
 	if err != nil {
-		zerolog.Ctx(ctx.Context).
-			Error().
-			Stack().
-			Err(errors.WithStack(err)).
-			Str("status", "failed.to.process.command").
+		zerolog.Ctx(ctx.Context).Error().
+			Stack().Err(errors.WithStack(err)).
 			Str("elapsed", elapsed.String()).
-			Send()
+			Msg("failed.to.process.command")
 
-		errMessage := r.resourceService.Localizef(
-			ctx,
-			resource.ErrISE,
-			chatSettings.Locale,
-			err.Error(),
-		)
+		errMessage := fmt.Sprintf("Err: something went wrong... : %e", err)
 
 		var innerErr error
 
@@ -180,8 +157,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			zerolog.Ctx(ctx).Error().
 				Stack().
 				Err(err).
-				Str("status", "failed.to.reply").
-				Send()
+				Msg("failed.to.reply")
 
 			return nil
 		}

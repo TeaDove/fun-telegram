@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type Repository struct {
@@ -25,10 +24,6 @@ func NewRepository(ctx context.Context, db *gorm.DB) (*Repository, error) {
 }
 
 func (r *Repository) Migrate(ctx context.Context) error {
-	oldLogger := r.db.Logger
-	r.db.Logger = oldLogger.LogMode(logger.Silent)
-	defer func() { r.db.Logger = oldLogger }()
-
 	err := r.db.
 		WithContext(ctx).
 		AutoMigrate(

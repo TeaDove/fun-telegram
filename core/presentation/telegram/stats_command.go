@@ -87,84 +87,6 @@ func (r *Presentation) getUserFromFlag(
 	return db_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
 }
 
-func (r *Presentation) statsChannelCommandHandler(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-	channel string,
-) (err error) {
-	maxDepth := defaultMaxDepth
-
-	if userFlagS, ok := input.Ops[FlagStatsChannelDepth.Long]; ok {
-		userV, err := strconv.Atoi(userFlagS)
-		if err != nil {
-			_, err = ctx.Reply(
-				update,
-				fmt.Sprintf("Err: failed to parse max depth flag: %s", err.Error()),
-				nil,
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		if userV < allowedMaxDepth {
-			maxDepth = userV
-		} else {
-			maxDepth = allowedMaxDepth
-		}
-	}
-
-	maxOrder := defaultOrder
-
-	if userFlagS, ok := input.Ops[FlagStatsChannelMaxOrder.Long]; ok {
-		userV, err := strconv.Atoi(userFlagS)
-		if err != nil {
-			_, err = ctx.Reply(
-				update,
-				fmt.Sprintf("Err: failed to parse max recommendation flag: %s", err.Error()),
-				nil,
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-		}
-
-		if userV < allowedMaxOrder {
-			maxOrder = userV
-		} else {
-			maxOrder = allowedMaxOrder
-		}
-	}
-
-	file, err := r.analiticsService.AnaliseChannel(ctx, &analitics.AnaliseChannelInput{
-		TgUsername: channel,
-		Depth:      int64(maxDepth),
-		MaxOrder:   int64(maxOrder),
-		Locale:     input.ChatSettings.Locale,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to get channel analyse")
-	}
-
-	fileUploader := uploader.NewUploader(ctx.Raw)
-
-	uploadedFile, err := fileUploader.FromBytes(ctx, file.Filename(), file.Content)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	document := message.UploadedDocument(uploadedFile)
-	document.MIME("image/png").Filename(file.Filename()).TTLSeconds(60 * 10)
-
-	_, err = ctx.Sender.To(update.EffectiveChat().GetInputPeer()).Media(ctx, document)
-	if err != nil {
-		return errors.Wrap(err, "failed to send file")
-	}
-
-	return nil
-}
-
 // statsCommandHandler
 // nolint: cyclop
 // TODO fix cyclop
@@ -173,10 +95,6 @@ func (r *Presentation) statsCommandHandler(
 	update *ext.Update,
 	input *input,
 ) (err error) {
-	if channel, ok := input.Ops[FlagStatsChannelName.Long]; ok {
-		return r.statsChannelCommandHandler(ctx, update, input, channel)
-	}
-
 	_, anonymize := input.Ops[FlagStatsAnonymize.Long]
 
 	analiseInput := analitics.AnaliseChatInput{
@@ -198,7 +116,7 @@ func (r *Presentation) statsCommandHandler(
 	report, err := r.analiticsService.AnaliseChat(ctx, &analiseInput)
 	if err != nil {
 		if errors.Is(err, analitics.ErrNoMessagesFound) {
-			err := r.replyIfNotSilentLocalized(ctx, update, input, resource.ErrNoMessagesFound)
+			err := r.replyIfNotSilent(ctx, update, input, "Err: no messages found")
 			if err != nil {
 				return errors.Wrap(err, "failed to reply")
 			}
@@ -249,14 +167,12 @@ func (r *Presentation) statsCommandHandler(
 
 	text = append(text,
 		styling.Plain(
-			r.resourceService.Localizef(
-				ctx,
-				resource.CommandStatsResponseSuccess,
-				input.ChatSettings.Locale,
+			fmt.Sprintf(`First message in stats send at %s\n"
+				"Messages processed: %d\n"
+				"Compiled in: %.2f sl`,
 				report.FirstMessageAt.Format(time.DateOnly),
 				report.MessagesCount,
-				time.Since(input.StartedAt).Seconds(),
-			),
+				time.Since(input.StartedAt).Seconds()),
 		),
 	)
 

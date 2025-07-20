@@ -10,7 +10,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 func (r *Presentation) restartCommandHandler(
@@ -18,20 +17,15 @@ func (r *Presentation) restartCommandHandler(
 	update *ext.Update,
 	input *input,
 ) error {
-	reloadMessage, err := ctx.SendMessage(ctx.Self.ID,
-		&tg.MessagesSendMessageRequest{
-			Message: r.resourceService.Localize(
-				ctx,
-				resource.CommandRestartRestarting,
-				input.ChatSettings.Locale,
-			),
-		},
+	reloadMessage, err := ctx.SendMessage(
+		ctx.Self.ID,
+		&tg.MessagesSendMessageRequest{Message: "Restarting..."},
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to send message")
 	}
 
-	zerolog.Ctx(ctx).Warn().Str("status", "reload.begin").Send()
+	zerolog.Ctx(ctx).Warn().Msg("reload.begin")
 
 	err = r.dbRepository.RestartMessageInsert(ctx, &db_repository.RestartMessage{
 		MessageTgChatID: ctx.Self.ID,
@@ -56,22 +50,13 @@ func (r *Presentation) updateRestartMessages(ctx context.Context) error {
 		return nil
 	}
 
-	chatSetting, err := r.getChatSettings(ctx, r.protoClient.Self.ID)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
 	for _, message := range messages {
 		tgCtx := r.protoClient.CreateContext()
 
 		_, err = tgCtx.EditMessage(message.MessageTgChatID, &tg.MessagesEditMessageRequest{
-			Peer: r.protoClient.Self.AsInputPeer(),
-			ID:   message.MessageTgId,
-			Message: r.resourceService.Localize(
-				ctx,
-				resource.CommandRestartSuccess,
-				chatSetting.Locale,
-			),
+			Peer:    r.protoClient.Self.AsInputPeer(),
+			ID:      message.MessageTgId,
+			Message: "Restart success!",
 		})
 		if err != nil {
 			return errors.WithStack(err)
