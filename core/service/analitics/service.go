@@ -109,6 +109,7 @@ func (r *AnaliseReport) appendFromChan(
 	statsReportChan chan statsReport,
 ) {
 	defer reportWg.Done()
+
 	t0 := time.Now()
 
 	for statsReportValue := range statsReportChan {
@@ -158,6 +159,7 @@ func (r *Service) analiseWholeChat(
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get users in chat")
 	}
+
 	zerolog.Ctx(ctx).
 		Info().
 		Interface("users", usersInChat).

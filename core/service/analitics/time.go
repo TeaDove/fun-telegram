@@ -17,6 +17,7 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 	input *AnaliseChatInput,
 ) {
 	defer wg.Done()
+
 	statsReportResult := statsReport{
 		repostImage: File{Name: "MessagesGroupedByDateByChatId", Extension: "jpeg"},
 	}

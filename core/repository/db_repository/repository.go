@@ -37,5 +37,6 @@ func (r *Repository) Migrate(ctx context.Context) error {
 	}
 
 	zerolog.Ctx(ctx).Info().Msg("pg.migrated.successfully")
+
 	return nil
 }

@@ -36,6 +36,7 @@ func (r *Presentation) compileHelpMessage(
 				),
 			),
 		)
+
 		for _, flag := range command.flags {
 			helpMessage = append(
 				helpMessage,

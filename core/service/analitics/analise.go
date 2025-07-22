@@ -21,6 +21,7 @@ func (r *Service) getChatterBoxes(
 	usersInChat db_repository.UsersInChat,
 ) {
 	defer wg.Done()
+
 	output := statsReport{
 		repostImage: File{
 			Extension: "jpeg",
@@ -92,6 +93,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	getter nameGetter,
 ) {
 	defer wg.Done()
+
 	output := statsReport{
 		repostImage: File{
 			Name:      "MessageFindAllRepliedBy",
@@ -147,6 +149,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 
 		return
 	}
+
 	output.repostImage.Content = jpgImg
 	statsReportChan <- output
 }
@@ -160,6 +163,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	getter nameGetter,
 ) {
 	defer wg.Done()
+
 	output := statsReport{
 		repostImage: File{
 			Name:      "MessageFindAllRepliedByAsHeatmap",

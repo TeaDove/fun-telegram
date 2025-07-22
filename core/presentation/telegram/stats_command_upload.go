@@ -260,6 +260,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 		Info().
 		Int("offset", offset).
 		Msg("stats.upload.begin")
+
 	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
 	historyQuery.BatchSize(iterHistoryBatchSize)
 	historyQuery.OffsetID(offset)
@@ -281,12 +282,14 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 
 	for {
 		zerolog.Ctx(ctx).Trace().Int("offset", offset).Msg("new.iteration")
+
 		ok := historyIter.Next(ctx)
 		if ok {
 			zerolog.Ctx(ctx).Trace().Msg("elem.got")
 
 			elem := historyIter.Value()
 			offset = elem.Msg.GetID()
+
 			msg, ok := elem.Msg.(*tg.Message)
 			if !ok {
 				zerolog.Ctx(ctx).Trace().Msg("not.an.message")

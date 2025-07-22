@@ -72,6 +72,7 @@ func (r *Repository) MessageCountByChatId(
 	tgChatId int64,
 ) (uint64, error) {
 	var count int64
+
 	err := r.db.
 		WithContext(ctx).
 		Model(&Message{}).
@@ -91,6 +92,7 @@ func (r *Repository) MessageCountByChatIdAndUserId(
 	tgUserId int64,
 ) (uint64, error) {
 	var count int64
+
 	err := r.db.
 		WithContext(ctx).
 		Model(&Message{}).
@@ -123,6 +125,7 @@ group by 1
 order by 2 asc
 limit ?
 `
+
 	const queryByDesc = `
 select 
     tg_user_id, 
@@ -133,6 +136,7 @@ group by 1
 order by 2 desc 
 limit ?
 `
+
 	var query string
 	if desc {
 		query = queryByDesc

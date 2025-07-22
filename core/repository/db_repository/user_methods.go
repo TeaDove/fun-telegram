@@ -10,6 +10,7 @@ import (
 
 func (r *Repository) UserSelectById(ctx context.Context, tgId int64) (User, error) {
 	var user User
+
 	err := r.db.WithContext(ctx).Where("tg_id = ?", tgId).Limit(1).Find(&user).Error
 	if err != nil {
 		return User{}, errors.Wrap(err, "failed to get user by tg_id")

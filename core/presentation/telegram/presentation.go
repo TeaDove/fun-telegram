@@ -62,7 +62,6 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			WithMaxRetries(20)
 
 		middlewares = append(middlewares, waiter)
-
 	}
 
 	protoClient, err := gotgproto.NewClient(

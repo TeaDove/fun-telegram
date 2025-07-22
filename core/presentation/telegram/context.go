@@ -11,6 +11,7 @@ func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error
 
 	ctx.Context = logger_utils.AddLoggerToCtx(ctx.Context)
 	ctx.Context = logger_utils.WithValue(ctx.Context, "chat_name", chatName)
+
 	if update.EffectiveUser() != nil {
 		ctx.Context = logger_utils.WithValue(
 			ctx.Context,
