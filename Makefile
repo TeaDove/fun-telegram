@@ -26,7 +26,7 @@ test:
 	go test ./... -cover -count=1 -p=100
 
 run:
-	CGO_ENABLED=0 go run main.go
+	CGO_ENABLED=1 go run main.go
 
 run-docker-rebuild:
 	docker-compose -f docker-compose-local.yaml up -d --build
@@ -37,7 +37,7 @@ infra-run:
 update:
 	git pull
 	docker-compose up -d
-	docker-compose logs -f core
+	docker-compose logs -f ds core
 
 logs:
-	docker-compose logs -f core
+	docker-compose logs -f ds core

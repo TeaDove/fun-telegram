@@ -10,7 +10,6 @@ import (
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
@@ -49,62 +48,6 @@ func (r *Presentation) replyIfNotSilent(
 	}
 
 	return nil
-}
-
-func (r *Presentation) replyIfNotSilentLocalized(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-	code resource.Code,
-) error {
-	text := r.resourceService.Localize(ctx, code, input.ChatSettings.Locale)
-
-	err := r.replyIfNotSilent(ctx, update, input, text)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
-func (r *Presentation) replyIfNotSilentLocalizedf(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-	code resource.Code,
-	args ...any,
-) error {
-	text := r.resourceService.Localizef(ctx, code, input.ChatSettings.Locale, args)
-
-	err := r.replyIfNotSilent(ctx, update, input, text)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
-func GetChatFromEffectiveChat(effectiveChat types.EffectiveChat) (int64, tg.InputPeerClass) {
-	switch t := effectiveChat.(type) {
-	case *types.Chat, *types.User, *types.Channel:
-		return t.GetID(), t.GetInputPeer()
-	default:
-		return 0, &tg.InputPeerEmpty{}
-	}
-}
-
-func GetSenderId(m *types.Message) (int64, error) {
-	peer, ok := m.GetFromID()
-	if !ok {
-		peer = m.PeerID
-	}
-
-	switch t := peer.(type) {
-	case *tg.PeerUser:
-		return t.UserID, nil
-	default:
-		return 0, errors.New("invalid peer")
-	}
 }
 
 func GetNameFromPeerUser(user *peers.User) string {

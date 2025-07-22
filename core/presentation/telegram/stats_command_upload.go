@@ -13,7 +13,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/guregu/null/v5"
 	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
 
 	"github.com/celestix/gotgproto/types"
@@ -29,37 +28,17 @@ var (
 	FlagUploadStatsOffset = optFlag{
 		Long:        "offset",
 		Short:       "o",
-		Description: resource.CommandStatsFlagChannelOffsetDescription,
+		Description: "force message offset",
 	}
 	FlagUploadStatsDay = optFlag{
 		Long:        "day",
 		Short:       "d",
-		Description: resource.CommandStatsFlagDayDescription,
-	}
-	FlagUploadStatsRemove = optFlag{
-		Long:        "rm",
-		Short:       "r",
-		Description: resource.CommandStatsFlagRemoveDescription,
+		Description: "max age of message to upload in days",
 	}
 	FlagUploadStatsCount = optFlag{
 		Long:        "count",
 		Short:       "c",
-		Description: resource.CommandStatsFlagCountDescription,
-	}
-	FlagStatsChannelName = optFlag{
-		Long:        "channel",
-		Short:       "h",
-		Description: resource.CommandStatsFlagChannelNameDescription,
-	}
-	FlagStatsChannelDepth = optFlag{
-		Long:        "depth",
-		Short:       "p",
-		Description: resource.CommandStatsFlagDepthDescription,
-	}
-	FlagStatsChannelMaxOrder = optFlag{
-		Long:        "max-order",
-		Short:       "m",
-		Description: resource.CommandStatsFlagChannelMaxOrderDescription,
+		Description: "max amount of message to upload",
 	}
 )
 
@@ -132,66 +111,6 @@ func (r *Presentation) uploadMessageToRepository(
 
 		zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
 	}
-}
-
-func (r *Presentation) uploadStatsDeleteMessages(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-) error {
-	if update.EffectiveChat().GetID() == ctx.Self.ID {
-		output, err := r.jobService.DeleteOldMessages(ctx)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		if output.OldCount == 0 {
-			err = r.replyIfNotSilent(
-				ctx,
-				update,
-				input,
-				"No need to delete messages",
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			return nil
-		}
-
-		err = r.replyIfNotSilent(
-			ctx,
-			update,
-			input,
-			fmt.Sprintf(
-				"Messages deleted\n"+
-					"Old count: %d, New count: %d\n"+
-					"Old size: %.2fkb, new size: %.2fkb\n"+
-					"Mem freed: %.2fkb",
-				output.OldCount, output.NewCount,
-				shared.ToKilo(output.OldSize), shared.ToKilo(output.NewSize),
-				shared.ToKilo(output.BytesFreed)),
-		)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		return nil
-	}
-
-	count, err := r.analiticsService.DeleteMessagesByChatId(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if !input.Silent {
-		_, err = ctx.Reply(update, fmt.Sprintf("%d messages was deleted", count), nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
 }
 
 func (r *Presentation) updateUploadStatsMessage(
@@ -323,12 +242,11 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	if flaggedOffset, ok := input.Ops[FlagUploadStatsOffset.Long]; ok {
 		offset, err = strconv.Atoi(flaggedOffset)
 		if err != nil {
-			err = r.replyIfNotSilentLocalizedf(
+			err = r.replyIfNotSilent(
 				ctx,
 				update,
 				input,
-				resource.ErrUnprocessableEntity,
-				err.Error(),
+				fmt.Sprintf("Err: Unprocessable entity: %e", err),
 			)
 			if err != nil {
 				return errors.WithStack(err)
@@ -342,6 +260,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 		Info().
 		Int("offset", offset).
 		Msg("stats.upload.begin")
+
 	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
 	historyQuery.BatchSize(iterHistoryBatchSize)
 	historyQuery.OffsetID(offset)
@@ -362,20 +281,22 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	var lastDate time.Time
 
 	for {
-		zerolog.Ctx(ctx).Trace().Str("status", "new.iteration").Int("offset", offset).Send()
+		zerolog.Ctx(ctx).Trace().Int("offset", offset).Msg("new.iteration")
+
 		ok := historyIter.Next(ctx)
 		if ok {
-			zerolog.Ctx(ctx).Trace().Str("status", "elem.got").Send()
+			zerolog.Ctx(ctx).Trace().Msg("elem.got")
 
 			elem := historyIter.Value()
 			offset = elem.Msg.GetID()
+
 			msg, ok := elem.Msg.(*tg.Message)
 			if !ok {
-				zerolog.Ctx(ctx).Trace().Str("status", "not.an.message").Send()
+				zerolog.Ctx(ctx).Trace().Msg("not.an.message")
 				continue
 			}
 
-			lastDate = time.Unix(int64(msg.Date), 0).In(input.ChatSettings.TimeLoc)
+			lastDate = time.Unix(int64(msg.Date), 0).In(shared.TZTime)
 
 			count++
 			elemChan <- elem
@@ -397,21 +318,21 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 			}
 
 			if !lastDate.After(queryTill) {
-				zerolog.Ctx(ctx).Info().Str("status", "last.in.period.message.found").Send()
+				zerolog.Ctx(ctx).Info().Msg("last.in.period.message.found")
 				break
 			}
 
 			if time.Since(startedAt) > maxElapsed {
-				zerolog.Ctx(ctx).Info().Str("status", "iterating.too.long").Send()
+				zerolog.Ctx(ctx).Info().Msg("iterating.too.long")
 				break
 			}
 
 			if count > maxCount {
-				zerolog.Ctx(ctx).Info().Str("status", "iterating.too.much").Send()
+				zerolog.Ctx(ctx).Info().Msg("iterating.too.much")
 				break
 			}
 
-			zerolog.Ctx(ctx).Trace().Str("status", "elem.processed").Send()
+			zerolog.Ctx(ctx).Trace().Msg("elem.processed")
 
 			continue
 		}
@@ -444,7 +365,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 				"LastDate: %s",
 			count,
 			time.Since(startedAt).Minutes(),
-			lastDate.In(input.ChatSettings.TimeLoc).String(),
+			lastDate.In(shared.TZTime).String(),
 		),
 	})
 	if err != nil {
@@ -459,13 +380,5 @@ func (r *Presentation) uploadStatsCommandHandler(
 	update *ext.Update,
 	input *input,
 ) error {
-	if channel, ok := input.Ops[FlagStatsChannelName.Long]; ok {
-		return r.uploadChannelStatsMessages(ctx, update, input, channel)
-	}
-
-	if _, ok := input.Ops[FlagUploadStatsRemove.Long]; ok {
-		return r.uploadStatsDeleteMessages(ctx, update, input)
-	}
-
 	return r.uploadStatsUpload(ctx, update, input)
 }

@@ -2,7 +2,7 @@
 FROM debian:trixie
 ARG TARGETARCH
 
-RUN rm -rf /var/lib/apt/lists/* && apt-get update && apt-get install -y --no-install-recommends ca-certificates curl tzdata
+RUN rm -rf /var/lib/apt/lists/* && apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
 RUN update-ca-certificates
 RUN rm -rf /var/lib/apt/lists/*
 

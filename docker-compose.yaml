@@ -6,19 +6,22 @@ services:
     environment:
       fun_file_storage_path: "/config"
       fun_storage__redis_host: "redis"
-      fun_storage__postgres_dsn: "postgresql://main:main@postgres:5432/main"
+      fun_storage__mongo_db_url: "mongodb://mongodb:27017"
+      fun_storage__clickhouse_url: "clickhouse:9000"
       fun_ds_supplier_url: "http://ds:8000"
-    image: ghcr.io/teadove/fun-telegram:v1.12.3
+    image: ghcr.io/teadove/fun-telegram:v1.11.63
     volumes:
       - ".mtproto:/.mtproto"
       - ".env:/.env"
     depends_on:
       redis:
         condition: service_healthy
-      postgres:
+      mongodb:
         condition: service_healthy
-#      ds:
-#        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      ds:
+        condition: service_healthy
     labels:
       - "autoheal=true"
     healthcheck:
@@ -33,27 +36,27 @@ services:
           cpus: '0.50'
           memory: 1200M
 
-#  ds:
-#    restart: always
-#    environment:
-#      _UVICORN__HOST: "0.0.0.0"
-#      _UVICORN__PORT: 8000
-#      _UVICORN__WORKERS: 1
-#    volumes: []
-#    healthcheck:
-#      test: curl -f http://127.0.0.1:8000/health || exit 1
-#      interval: 2m
-#      timeout: 20s
-#      retries: 3
-#      start_period: 5s
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.75'
-#          memory: 1800M
-#    labels:
-#      - "autoheal=true"
-#    image: ghcr.io/teadove/fun-datascience:v2.1.0
+  ds:
+    restart: always
+    environment:
+      _UVICORN__HOST: "0.0.0.0"
+      _UVICORN__PORT: 8000
+      _UVICORN__WORKERS: 2
+    volumes: []
+    healthcheck:
+      test: curl -f http://127.0.0.1:8000/health || exit 1
+      interval: 2m
+      timeout: 20s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 1800M
+    labels:
+      - "autoheal=true"
+    image: ghcr.io/teadove/fun-datascience:v2.0.3
 
   autoheal:
     restart: always
@@ -86,18 +89,35 @@ services:
           cpus: '0.50'
           memory: 100M
 
-  postgres:
-    image: postgres:16.3-bookworm
+  mongodb:
+    image: mongo:7.0.9-jammy
     environment:
-      POSTGRES_USER: "main"
-      POSTGRES_PASSWORD: "main"
-      POSTGRES_DB: "main"
+      MONGO_INITDB_DATABASE: db_main
     volumes:
-      - ./data/pg:/var/lib/postgresql/data
+      - "./data/mongo:/data/db"
+      - './extra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro'
     labels:
       - "autoheal=true"
     healthcheck:
-      test: ["CMD", "pg_isready", "-d", "main"]
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 2m
+      timeout: 20s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 500M
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.12
+    volumes:
+      - "./data/ch:/var/lib/clickhouse"
+    labels:
+      - "autoheal=true"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/?query=SELECT%201 || exit 1
       interval: 2m
       timeout: 20s
       retries: 3

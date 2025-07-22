@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -8,14 +9,11 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 type messageProcessor struct {
 	executor          func(ctx *ext.Context, update *ext.Update, input *input) error
-	description       resource.Code
-	requireAdmin      bool
-	requireOwner      bool
+	description       string
 	flags             []optFlag
 	example           string
 	disabledByDefault bool
@@ -46,96 +44,13 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 	commandInput := GetOpt(text, route.flags...)
 
-	chatSettings, err := r.getChatSettings(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.Wrap(err, "failed to get chat settings")
-	}
-
-	commandInput.ChatSettings = chatSettings
-
-	if !chatSettings.Enabled && command != "chat" {
-		zerolog.Ctx(ctx.Context).
-			Debug().
-			Str("status", "bot.disable.in.chat").
-			Str("command", command).
-			Send()
-
-		return nil
-	}
-
-	ok, err = r.isBanned(ctx, update.EffectiveUser().Username)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if ok {
-		_, err = ctx.Reply(
-			update,
-			r.resourceService.Localize(ctx, resource.ErrAccessDenies, chatSettings.Locale),
-			nil,
-		)
+	if !(update.EffectiveUser().GetID() == ctx.Self.ID) {
+		_, err := ctx.Reply(update, "Err: insufficient privilege: owner rights required", nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		return nil
-	}
-
-	if !r.checkFeatureEnabled(&chatSettings, command) {
-		_, err = ctx.Reply(
-			update,
-			r.resourceService.Localize(ctx, resource.ErrFeatureDisabled, chatSettings.Locale),
-			nil,
-		)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		return nil
-	}
-
-	if route.requireAdmin {
-		ok, err = r.checkFromAdmin(ctx, update)
-		if err != nil {
-			return errors.Wrap(err, "failed to check if admin")
-		}
-
-		if !ok {
-			_, err = ctx.Reply(
-				update,
-				r.resourceService.Localize(
-					ctx,
-					resource.ErrInsufficientPrivilegesAdmin,
-					chatSettings.Locale,
-				),
-				nil,
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			return nil
-		}
-	}
-
-	if route.requireOwner {
-		ok = r.checkFromOwner(ctx, update)
-		if !ok {
-			_, err = ctx.Reply(
-				update,
-				r.resourceService.Localize(
-					ctx,
-					resource.ErrInsufficientPrivilegesOwner,
-					chatSettings.Locale,
-				),
-				nil,
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			return nil
-		}
 	}
 
 	commandInput.StartedAt = time.Now().UTC()
@@ -146,24 +61,16 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Str("command", firstWord).
 		Msg("executing.command.begin")
 
-	err = route.executor(ctx, update, &commandInput)
+	err := route.executor(ctx, update, &commandInput)
 	elapsed := time.Now().UTC().Sub(commandInput.StartedAt)
 
 	if err != nil {
-		zerolog.Ctx(ctx.Context).
-			Error().
-			Stack().
-			Err(errors.WithStack(err)).
-			Str("status", "failed.to.process.command").
+		zerolog.Ctx(ctx.Context).Error().
+			Stack().Err(errors.WithStack(err)).
 			Str("elapsed", elapsed.String()).
-			Send()
+			Msg("failed.to.process.command")
 
-		errMessage := r.resourceService.Localizef(
-			ctx,
-			resource.ErrISE,
-			chatSettings.Locale,
-			err.Error(),
-		)
+		errMessage := fmt.Sprintf("Err: something went wrong... : %e", err)
 
 		var innerErr error
 
@@ -180,8 +87,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			zerolog.Ctx(ctx).Error().
 				Stack().
 				Err(err).
-				Str("status", "failed.to.reply").
-				Send()
+				Msg("failed.to.reply")
 
 			return nil
 		}

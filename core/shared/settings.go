@@ -3,59 +3,25 @@ package shared
 import (
 	"time"
 
-	"github.com/pkg/errors"
-
-	"github.com/caarlos0/env/v7"
-	"github.com/joho/godotenv"
-)
-
-const (
-	defaultEnvPrefix = "fun_"
-	defaultEnvFile   = ".env"
+	"github.com/teadove/teasutils/utils/settings_utils"
 )
 
 type telegram struct {
-	AppID       int    `env:"app_id,required"`
-	AppHash     string `env:"app_hash,required"`
-	PhoneNumber string `env:"phone_number,required"`
+	AppID       int    `env:"APP_ID"`
+	AppHash     string `env:"APP_HASH"`
+	PhoneNumber string `env:"PHONE_NUMBER"`
 
-	FloodWaiterEnabled bool          `env:"flood_waiter_enabled" envDefault:"true"`
-	RateLimiterEnabled bool          `env:"rate_limiter_enabled" envDefault:"true"`
-	RateLimiterRate    time.Duration `env:"rate_limiter_rate"    envDefault:"100ms"`
-	RateLimiterLimit   int           `env:"rate_limiter_rate"    envDefault:"100"`
-	SaveAllMessages    bool          `env:"save_all_messages"    envDefault:"false"`
-}
-
-type storage struct {
-	RedisHost   string `env:"redis_host"   envDefault:"localhost"`
-	PostgresDSN string `env:"postgres_dsn" envDefault:"postgresql://main:main@localhost:5432/main"`
+	FloodWaiterEnabled bool          `env:"FLOOD_WAITER_ENABLED" envDefault:"true"`
+	RateLimiterEnabled bool          `env:"RATE_LIMITER_ENABLED" envDefault:"true"`
+	RateLimiterRate    time.Duration `env:"RATE_LIMITER_RATE"    envDefault:"100ms"`
+	RateLimiterLimit   int           `env:"RATE_LIMITER_LIMIT"   envDefault:"100"`
 }
 
 type Settings struct {
-	Telegram telegram `envPrefix:"telegram__"`
-	Storage  storage  `envPrefix:"storage__"`
-	LogLevel string   `                       env:"log_level" envDefault:"debug"`
-
-	MessagesMaxSizeMB int `env:"messages_max_size_mb" envDefault:"100"`
-
-	KandinskyKey    string `env:"kandinsky_key"`
-	KandinskySecret string `env:"kandinsky_secret"`
+	Telegram   telegram `envPrefix:"TELEGRAM__"`
+	SQLiteFile string   `                       env:"SQLITE_FILE" envDefault:"./data/db.sqlite"`
 
 	DsSupplierUrl string `env:"ds_supplier_url" envDefault:"http://0.0.0.0:8000"`
-	LogMemUsage   bool   `env:"log_mem_usage"                                    endDefault:"true"`
 }
 
-func mustNewSettings() Settings {
-	var settings Settings
-
-	_ = godotenv.Load(defaultEnvFile)
-
-	err := env.Parse(&settings, env.Options{Prefix: defaultEnvPrefix})
-	if err != nil {
-		panic(errors.Wrap(err, "failed to env parse"))
-	}
-
-	return settings
-}
-
-var AppSettings = mustNewSettings()
+var AppSettings = settings_utils.MustGetSetting[Settings]("FUN_")

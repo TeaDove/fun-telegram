@@ -3,8 +3,6 @@ package pg
 import (
 	"time"
 
-	"github.com/teadove/fun_telegram/core/shared"
-
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 
@@ -15,7 +13,7 @@ import (
 
 func NewClientFromSettings() (*gorm.DB, error) {
 	pgConfig := postgres.Config{
-		DSN:                  shared.AppSettings.Storage.PostgresDSN,
+		DSN:                  "postgresql://main:main@localhost:5432/main",
 		PreferSimpleProtocol: true,
 	}
 

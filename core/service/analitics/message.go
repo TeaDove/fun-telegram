@@ -31,6 +31,7 @@ func (r *Service) MessageInsert(ctx context.Context, message *Message) error {
 		if !ok {
 			continue
 		}
+
 		chMessage.WordsCount++
 
 		ok, err = r.IsToxic(word)

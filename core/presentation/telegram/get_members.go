@@ -5,13 +5,14 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/peers/members"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var ErrNotChatOrChannel = errors.New("is not chat or channel")
@@ -37,7 +38,7 @@ func (r *Presentation) updateMembers(
 	ctx context.Context,
 	effectiveChat types.EffectiveChat,
 ) (db_repository.UsersInChat, error) {
-	t0 := time.Now()
+	t0 := time.Now().UTC()
 
 	zerolog.Ctx(ctx).
 		Info().
@@ -145,7 +146,7 @@ func (r *Presentation) getOrUpdateMembers(
 
 	chat, err := r.dbRepository.ChatSelectById(ctx, effectiveChat.GetID())
 	if err != nil {
-		if !errors.Is(err, mongo.ErrNoDocuments) {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.Wrap(err, "failed to get chat from repository")
 		}
 

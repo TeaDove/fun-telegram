@@ -6,7 +6,6 @@ import (
 
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
@@ -22,6 +21,7 @@ func (r *Service) getChatterBoxes(
 	usersInChat db_repository.UsersInChat,
 ) {
 	defer wg.Done()
+
 	output := statsReport{
 		repostImage: File{
 			Extension: "jpeg",
@@ -35,15 +35,11 @@ func (r *Service) getChatterBoxes(
 
 	if asc {
 		limit = 35
-		title = r.resourceService.Localize(
-			ctx,
-			resource.AnaliseChartLeastChatterBoxes,
-			input.Locale,
-		)
+		title = "Least chatter boxes"
 		output.repostImage.Name = "AntiChatterBoxes"
 	} else {
 		limit = 25
-		title = r.resourceService.Localize(ctx, resource.AnaliseChartChatterBoxes, input.Locale)
+		title = "Chatter boxes"
 		output.repostImage.Name = "ChatterBoxes"
 	}
 
@@ -69,12 +65,8 @@ func (r *Service) getChatterBoxes(
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  title,
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUser, input.Locale),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartWordsWritten,
-				input.Locale,
-			),
+			XLabel: "User",
+			YLabel: "Words written",
 		},
 		Values: userToCount,
 		Asc:    asc,
@@ -92,150 +84,6 @@ func (r *Service) getChatterBoxes(
 
 const interlocutorsLimit = 15
 
-func (r *Service) getMessageFindRepliedBy(
-	ctx context.Context,
-	wg *sync.WaitGroup,
-	statsReportChan chan<- statsReport,
-	input *AnaliseChatInput,
-	getter nameGetter,
-) {
-	defer wg.Done()
-	output := statsReport{
-		repostImage: File{
-			Name:      "MessageFindRepliedBy",
-			Extension: "jpeg",
-		},
-	}
-
-	interlocutors, err := r.dbRepository.MessageFindRepliedBy(
-		ctx,
-		input.TgChatId,
-		input.TgUserId,
-		3,
-		interlocutorsLimit,
-	)
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
-		statsReportChan <- output
-
-		return
-	}
-
-	if len(interlocutors) == 0 {
-		output.err = errors.New("no interlocutors found")
-		statsReportChan <- output
-
-		return
-	}
-
-	userToCount := make(map[string]float64, len(interlocutors))
-	for _, interlocutor := range interlocutors {
-		userToCount[getter.getName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
-	}
-
-	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
-		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliedBy,
-				input.Locale,
-			),
-			XLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartInterlocusts,
-				input.Locale,
-			),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartMessagesSent,
-				input.Locale,
-			),
-		},
-		Values: userToCount,
-	})
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to draw bar in ds supplier")
-		statsReportChan <- output
-
-		return
-	}
-
-	output.repostImage.Content = jpgImg
-	statsReportChan <- output
-}
-
-func (r *Service) getMessageFindRepliesTo(
-	ctx context.Context,
-	wg *sync.WaitGroup,
-	statsReportChan chan<- statsReport,
-	input *AnaliseChatInput,
-	getter nameGetter,
-) {
-	defer wg.Done()
-	output := statsReport{
-		repostImage: File{
-			Name:      "MessageFindRepliesTo",
-			Extension: "jpeg",
-		},
-	}
-
-	interlocutors, err := r.dbRepository.MessageFindRepliesTo(
-		ctx,
-		input.TgChatId,
-		input.TgUserId,
-		3,
-		interlocutorsLimit,
-	)
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
-		statsReportChan <- output
-
-		return
-	}
-
-	if len(interlocutors) == 0 {
-		output.err = errors.New("no interlocutors found")
-		statsReportChan <- output
-
-		return
-	}
-
-	userToCount := make(map[string]float64, len(interlocutors))
-	for _, interlocutor := range interlocutors {
-		userToCount[getter.getName(interlocutor.TgUserId)] = float64(interlocutor.MessagesCount)
-	}
-
-	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
-		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliesTo,
-				input.Locale,
-			),
-			XLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartInterlocusts,
-				input.Locale,
-			),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartMessagesSent,
-				input.Locale,
-			),
-		},
-		Values: userToCount,
-	})
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to draw bar in ds supplier")
-		statsReportChan <- output
-
-		return
-	}
-
-	output.repostImage.Content = jpgImg
-	statsReportChan <- output
-}
-
 func (r *Service) getMessageFindAllRepliedByGraph(
 	ctx context.Context,
 	wg *sync.WaitGroup,
@@ -245,6 +93,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	getter nameGetter,
 ) {
 	defer wg.Done()
+
 	output := statsReport{
 		repostImage: File{
 			Name:      "MessageFindAllRepliedBy",
@@ -289,9 +138,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	}
 
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
-		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
-		},
+		DrawInput:     ds_supplier.DrawInput{Title: "Interlocusts"},
 		Edges:         edges,
 		Layout:        "neato",
 		WeightedEdges: true,
@@ -302,6 +149,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 
 		return
 	}
+
 	output.repostImage.Content = jpgImg
 	statsReportChan <- output
 }
@@ -315,6 +163,7 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	getter nameGetter,
 ) {
 	defer wg.Done()
+
 	output := statsReport{
 		repostImage: File{
 			Name:      "MessageFindAllRepliedByAsHeatmap",
@@ -361,21 +210,9 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
 		WeightedEdges: false,
 		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartInterlocusts,
-				input.Locale,
-			),
-			XLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliedBy,
-				input.Locale,
-			),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliesTo,
-				input.Locale,
-			),
+			Title:  "Interlocusts",
+			XLabel: "User replied by",
+			YLabel: "User replies to",
 		},
 		Edges: edges,
 	})

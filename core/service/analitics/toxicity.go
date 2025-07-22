@@ -7,8 +7,6 @@ import (
 
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
-	"github.com/teadove/fun_telegram/core/service/resource"
-
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
@@ -58,17 +56,9 @@ func (r *Service) getMostToxicUsers(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartToxicityPercentShort,
-				input.Locale,
-			),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUser, input.Locale),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartToxicityPercentLong,
-				input.Locale,
-			),
+			Title:  "Toxic words percent",
+			XLabel: "User",
+			YLabel: "Percent of toxic words compared to all words",
 		},
 		Values: userToCount,
 	})
