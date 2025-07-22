@@ -10,7 +10,6 @@ import (
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
 )
 
@@ -46,39 +45,6 @@ func (r *Presentation) replyIfNotSilent(
 	_, err := ctx.Reply(update, text, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to reply to message")
-	}
-
-	return nil
-}
-
-func (r *Presentation) replyIfNotSilentLocalized(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-	code resource.Code,
-) error {
-	text := r.resourceService.Localize(ctx, code, input.ChatSettings.Locale)
-
-	err := r.replyIfNotSilent(ctx, update, input, text)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
-func (r *Presentation) replyIfNotSilentLocalizedf(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-	code resource.Code,
-	args ...any,
-) error {
-	text := r.resourceService.Localizef(ctx, code, input.ChatSettings.Locale, args)
-
-	err := r.replyIfNotSilent(ctx, update, input, text)
-	if err != nil {
-		return errors.WithStack(err)
 	}
 
 	return nil

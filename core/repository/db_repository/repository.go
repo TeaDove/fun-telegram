@@ -29,35 +29,13 @@ func (r *Repository) Migrate(ctx context.Context) error {
 		AutoMigrate(
 			&Message{},
 			&Member{},
-			&Channel{},
-			&ChannelEdge{},
 			&Chat{},
 			&User{},
-			&RestartMessage{},
-			&PingMessage{},
-			&Image{},
-			&KandinskyImage{},
-			&TgImage{},
 		)
 	if err != nil {
 		return errors.Wrap(err, "failed to migrate database")
 	}
 
 	zerolog.Ctx(ctx).Info().Msg("pg.migrated.successfully")
-	return nil
-}
-
-func (r *Repository) Ping(ctx context.Context) error {
-	var v int64
-
-	err := r.db.WithContext(ctx).Raw("select 1").Scan(&v).Error
-	if err != nil {
-		return errors.Wrap(err, "failed to ping database")
-	}
-
-	if v == 0 {
-		return errors.New("non one response")
-	}
-
 	return nil
 }

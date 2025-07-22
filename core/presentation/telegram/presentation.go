@@ -23,9 +23,7 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
 	"golang.org/x/time/rate"
 )
@@ -38,9 +36,7 @@ type Presentation struct {
 	router   map[string]messageProcessor
 	features map[string]bool
 
-	redisRepository  *redis_repository.Repository
 	dbRepository     *db_repository.Repository
-	resourceService  *resource.Service
 	analiticsService *analitics.Service
 }
 
@@ -96,20 +92,16 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 func MustNewTelegramPresentation(
 	ctx context.Context,
 	protoClient *gotgproto.Client,
-	redisRepository *redis_repository.Repository,
 	analiticsService *analitics.Service,
-	resourceService *resource.Service,
 	dbRepository *db_repository.Repository,
 ) *Presentation {
 	api := protoClient.API()
 
 	presentation := Presentation{
-		redisRepository:  redisRepository,
 		protoClient:      protoClient,
 		telegramApi:      api,
 		telegramManager:  peers.Options{}.Build(api),
 		analiticsService: analiticsService,
-		resourceService:  resourceService,
 		dbRepository:     dbRepository,
 	}
 
@@ -142,57 +134,27 @@ func MustNewTelegramPresentation(
 			description: "get this message",
 			flags:       []optFlag{},
 		},
-		"get_me": {
-			executor:    presentation.getMeCommandHandler,
-			description: "get id, username of requested user and group",
-			flags:       []optFlag{},
-		},
 		"stats": {
 			executor:    presentation.statsCommandHandler,
 			description: "get stats of this chat",
 			flags: []optFlag{
 				FlagStatsUsername,
-				FlagStatsChannelName,
-				FlagStatsChannelDepth,
-				FlagStatsChannelMaxOrder,
 				FlagStatsAnonymize,
 			},
-			requireAdmin: true,
 		},
 		"upload_stats": {
 			executor:    presentation.uploadStatsCommandHandler,
 			description: "uploads stats from this chat",
 			flags: []optFlag{
-				FlagUploadStatsRemove,
 				FlagUploadStatsCount,
 				FlagUploadStatsDay,
 				FlagUploadStatsOffset,
-				FlagStatsChannelName,
-				FlagStatsChannelDepth,
-				FlagStatsChannelMaxOrder,
 			},
-			requireAdmin: true,
-			example:      "-c=400000 -d=365 -o=0 --silent",
+			example: "-c=400000 -d=365 -o=0 --silent",
 		},
-		"dump_stats": {
-			executor:     presentation.statsDumpCommandHandler,
-			description:  "uploads stats from this chat",
-			requireOwner: true,
-			flags: []optFlag{
-				FlagStatsChannelName,
-				FlagStatsChannelDepth,
-				FlagStatsChannelMaxOrder,
-			},
-		},
-		"ban": {
-			executor:    presentation.banCommandHandler,
-			description: "bans or unbans user from using this bot globally",
-		},
-
 		"restart": {
-			executor:     presentation.restartCommandHandler,
-			description:  "restarts bot",
-			requireOwner: true,
+			executor:    presentation.restartCommandHandler,
+			description: "restarts bot",
 		},
 	}
 
@@ -203,16 +165,6 @@ func MustNewTelegramPresentation(
 
 	dp.Error = presentation.errorHandler
 	dp.Panic = presentation.panicHandler
-
-	err := presentation.updateRestartMessages(ctx)
-	if err != nil {
-		zerolog.Ctx(ctx).
-			Error().
-			Stack().
-			Err(err).
-			Str("status", "failed.to.update.restart.messages").
-			Send()
-	}
 
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.StartAsync()
@@ -248,7 +200,13 @@ func (r *Presentation) panicHandler(
 		Msg("panic.while.processing.update")
 }
 
-func (r *Presentation) Run() error {
+func (r *Presentation) Run(ctx context.Context) error {
+	user := r.protoClient.Self
+	zerolog.Ctx(ctx).
+		Info().
+		Str("username", user.Username).
+		Msg("starting.bot")
+
 	err := r.protoClient.Idle()
 	if err != nil {
 		return errors.WithStack(err)

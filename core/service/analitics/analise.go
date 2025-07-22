@@ -6,7 +6,6 @@ import (
 
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
@@ -35,15 +34,11 @@ func (r *Service) getChatterBoxes(
 
 	if asc {
 		limit = 35
-		title = r.resourceService.Localize(
-			ctx,
-			resource.AnaliseChartLeastChatterBoxes,
-			input.Locale,
-		)
+		title = "Least chatter boxes"
 		output.repostImage.Name = "AntiChatterBoxes"
 	} else {
 		limit = 25
-		title = r.resourceService.Localize(ctx, resource.AnaliseChartChatterBoxes, input.Locale)
+		title = "Chatter boxes"
 		output.repostImage.Name = "ChatterBoxes"
 	}
 
@@ -69,12 +64,8 @@ func (r *Service) getChatterBoxes(
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title:  title,
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartUser, input.Locale),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartWordsWritten,
-				input.Locale,
-			),
+			XLabel: "User",
+			YLabel: "Words written",
 		},
 		Values: userToCount,
 		Asc:    asc,
@@ -135,21 +126,9 @@ func (r *Service) getMessageFindRepliedBy(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliedBy,
-				input.Locale,
-			),
-			XLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartInterlocusts,
-				input.Locale,
-			),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartMessagesSent,
-				input.Locale,
-			),
+			Title:  "User replied by",
+			XLabel: "Interlocusts",
+			YLabel: "User replied by",
 		},
 		Values: userToCount,
 	})
@@ -207,21 +186,9 @@ func (r *Service) getMessageFindRepliesTo(
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliesTo,
-				input.Locale,
-			),
-			XLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartInterlocusts,
-				input.Locale,
-			),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartMessagesSent,
-				input.Locale,
-			),
+			Title:  "User replies to",
+			XLabel: "Interlocusts",
+			YLabel: "Messages sent",
 		},
 		Values: userToCount,
 	})
@@ -289,9 +256,7 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	}
 
 	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
-		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(ctx, resource.AnaliseChartInterlocusts, input.Locale),
-		},
+		DrawInput:     ds_supplier.DrawInput{Title: "Interlocusts"},
 		Edges:         edges,
 		Layout:        "neato",
 		WeightedEdges: true,
@@ -361,21 +326,9 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
 		WeightedEdges: false,
 		DrawInput: ds_supplier.DrawInput{
-			Title: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartInterlocusts,
-				input.Locale,
-			),
-			XLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliedBy,
-				input.Locale,
-			),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartUserRepliesTo,
-				input.Locale,
-			),
+			Title:  "Interlocusts",
+			XLabel: "User replied by",
+			YLabel: "User replies to",
 		},
 		Edges: edges,
 	})

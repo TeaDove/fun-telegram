@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/teadove/fun_telegram/core/shared"
+
 	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"gorm.io/gorm"
 
@@ -17,19 +19,18 @@ import (
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 var (
 	FlagStatsUsername = optFlag{
 		Long:        "username",
 		Short:       "u",
-		Description: resource.CommandStatsFlagUsernameDescription,
+		Description: "username or id of user, if presented, will compile stats by set username",
 	}
 	FlagStatsAnonymize = optFlag{
 		Long:        "anonymize",
 		Short:       "a",
-		Description: resource.CommandStatsFlagAnonymizeDescription,
+		Description: "anonymize names of users",
 	}
 )
 
@@ -99,8 +100,8 @@ func (r *Presentation) statsCommandHandler(
 
 	analiseInput := analitics.AnaliseChatInput{
 		TgChatId:  update.EffectiveChat().GetID(),
-		Tz:        input.ChatSettings.Tz,
-		Locale:    input.ChatSettings.Locale,
+		Tz:        shared.TZInt,
+		Locale:    "EN",
 		Anonymize: anonymize,
 	}
 
@@ -183,11 +184,7 @@ func (r *Presentation) statsCommandHandler(
 		requestBuilder = ctx.Sender.To(update.EffectiveChat().GetInputPeer())
 	}
 
-	_, err = requestBuilder.Album(
-		ctx,
-		message.UploadedPhoto(firstFile, text...),
-		album...,
-	)
+	_, err = requestBuilder.Album(ctx, message.UploadedPhoto(firstFile, text...), album...)
 	if err != nil {
 		return errors.WithStack(err)
 	}

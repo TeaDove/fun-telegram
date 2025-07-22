@@ -23,9 +23,8 @@ import (
 )
 
 type Service struct {
-	dbRepository    *db_repository.Repository
-	dsSupplier      *ds_supplier.Supplier
-	resourceService *resource.Service
+	dbRepository *db_repository.Repository
+	dsSupplier   *ds_supplier.Supplier
 
 	toxicityExp *regexp2.Regexp
 	lemmatizer  *golem.Lemmatizer
@@ -33,13 +32,11 @@ type Service struct {
 
 func New(
 	dsSupplier *ds_supplier.Supplier,
-	resourceService *resource.Service,
 	dbRepository *db_repository.Repository,
 ) (*Service, error) {
 	r := Service{
-		dsSupplier:      dsSupplier,
-		resourceService: resourceService,
-		dbRepository:    dbRepository,
+		dsSupplier:   dsSupplier,
+		dbRepository: dbRepository,
 	}
 
 	exp, err := regexp2.Compile(

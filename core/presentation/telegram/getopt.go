@@ -3,22 +3,19 @@ package telegram
 import (
 	"strings"
 	"time"
-
-	"github.com/teadove/fun_telegram/core/service/resource"
 )
 
 type optFlag struct {
 	Short       string
 	Long        string
-	Description resource.Code
+	Description string
 }
 
 type input struct {
-	Text         string
-	Silent       bool
-	Ops          map[string]string
-	StartedAt    time.Time
-	ChatSettings ChatSettings
+	Text      string
+	Silent    bool
+	Ops       map[string]string
+	StartedAt time.Time
 }
 
 var FlagSilent = optFlag{Long: "silent", Short: "q"}

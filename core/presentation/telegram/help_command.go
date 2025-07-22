@@ -42,32 +42,7 @@ func (r *Presentation) compileHelpMessage(
 				styling.Code(fmt.Sprintf("-%s", flag.Short)),
 				styling.Plain("/"),
 				styling.Code(fmt.Sprintf("--%s", flag.Long)),
-				styling.Plain(
-					fmt.Sprintf(
-						" - %s\n",
-						r.resourceService.Localize(
-							ctx,
-							flag.Description,
-							input.ChatSettings.Locale,
-						),
-					),
-				),
-			)
-		}
-
-		if command.requireAdmin {
-			helpMessage = append(
-				helpMessage,
-				styling.Bold("requires admin rights"),
-				styling.Plain("\n"),
-			)
-		}
-
-		if command.requireOwner {
-			helpMessage = append(
-				helpMessage,
-				styling.Bold("requires owner rights"),
-				styling.Plain("\n"),
+				styling.Plain(fmt.Sprintf(" - %s\n", flag.Description)),
 			)
 		}
 
@@ -80,14 +55,6 @@ func (r *Presentation) compileHelpMessage(
 						commandName,
 						command.example,
 					)),
-			)
-		}
-
-		if !r.checkFeatureEnabled(&input.ChatSettings, commandName) {
-			helpMessage = append(
-				helpMessage,
-				styling.Bold("Disabled"),
-				styling.Plain("\n"),
 			)
 		}
 

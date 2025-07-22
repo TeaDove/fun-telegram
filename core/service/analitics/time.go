@@ -8,8 +8,6 @@ import (
 
 	"github.com/teadove/fun_telegram/core/shared"
 
-	"github.com/teadove/fun_telegram/core/service/resource"
-
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
@@ -23,10 +21,7 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 ) {
 	defer wg.Done()
 	statsReportResult := statsReport{
-		repostImage: File{
-			Name:      "MessagesGroupedByDateByChatId",
-			Extension: "jpeg",
-		},
+		repostImage: File{Name: "MessagesGroupedByDateByChatId", Extension: "jpeg"},
 	}
 
 	messagesGrouped, err := r.dbRepository.MessageGroupByDateAndChatId(
@@ -48,13 +43,9 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartWordsByDate, input.Locale),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartDate, input.Locale),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartWordsWritten,
-				input.Locale,
-			),
+			Title:  "Word written by date",
+			XLabel: "Date",
+			YLabel: "Words written",
 		},
 		Values: map[string]map[time.Time]float64{"day": timeToCount},
 	})
@@ -77,10 +68,7 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 ) {
 	defer wg.Done()
 	statsReportResult := statsReport{
-		repostImage: File{
-			Name:      "MessagesGroupedByDateByChatIdByUserId",
-			Extension: "jpeg",
-		},
+		repostImage: File{Name: "MessagesGroupedByDateByChatIdByUserId", Extension: "jpeg"},
 	}
 
 	messagesGrouped, err := r.dbRepository.MessageGroupByDateAndChatIdAndUserId(
@@ -103,13 +91,9 @@ func (r *Service) getMessagesGroupedByDateByChatIdByUserId(
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
-			Title:  r.resourceService.Localize(ctx, resource.AnaliseChartWordsByDate, input.Locale),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartDate, input.Locale),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartWordsWritten,
-				input.Locale,
-			),
+			Title:  "Word written by date",
+			XLabel: "Date",
+			YLabel: "Words written",
 		},
 		Values: map[string]map[time.Time]float64{"day": timeToCount},
 	})
@@ -150,10 +134,7 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 
 		return
 	}
-	isweekendToString := map[bool]string{
-		true:  r.resourceService.Localize(ctx, resource.AnaliseChartIsWeekend, input.Locale),
-		false: r.resourceService.Localize(ctx, resource.AnaliseChartIsWeekday, input.Locale),
-	}
+	isweekendToString := map[bool]string{true: "is weekend", false: "is weekday"}
 
 	timeToCount := make(map[string]map[time.Time]float64, 2)
 
@@ -170,20 +151,11 @@ func (r *Service) getMessagesGroupedByTimeByChatId(
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title: fmt.Sprintf(
-				"%s UTC%s",
-				r.resourceService.Localize(
-					ctx,
-					resource.AnaliseChartWordsByTimeOfDay,
-					input.Locale,
-				),
+				"Words written by time of day UTC%s",
 				shared.IntToSignedString(input.Tz),
 			),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartWordsWritten,
-				input.Locale,
-			),
+			XLabel: "Time of day",
+			YLabel: "Words written",
 		},
 		Values:   timeToCount,
 		OnlyTime: true,
@@ -227,10 +199,7 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 		return
 	}
 
-	isweekendToString := map[bool]string{
-		true:  r.resourceService.Localize(ctx, resource.AnaliseChartIsWeekend, input.Locale),
-		false: r.resourceService.Localize(ctx, resource.AnaliseChartIsWeekday, input.Locale),
-	}
+	isweekendToString := map[bool]string{true: "is weekend", false: "is weekday"}
 
 	timeToCount := make(map[string]map[time.Time]float64, 2)
 
@@ -247,20 +216,11 @@ func (r *Service) getMessagesGroupedByTimeByChatIdByUserId(
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{
 		DrawInput: ds_supplier.DrawInput{
 			Title: fmt.Sprintf(
-				"%s UTC%s",
-				r.resourceService.Localize(
-					ctx,
-					resource.AnaliseChartWordsByTimeOfDay,
-					input.Locale,
-				),
+				"Words written by time of day UTC%s",
 				shared.IntToSignedString(input.Tz),
 			),
-			XLabel: r.resourceService.Localize(ctx, resource.AnaliseChartTime, input.Locale),
-			YLabel: r.resourceService.Localize(
-				ctx,
-				resource.AnaliseChartWordsWritten,
-				input.Locale,
-			),
+			XLabel: "Time of day",
+			YLabel: "Words written",
 		},
 		Values:   timeToCount,
 		OnlyTime: true,

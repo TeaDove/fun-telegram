@@ -12,45 +12,17 @@ import (
 	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 	"github.com/teadove/fun_telegram/core/presentation/telegram"
-	"github.com/teadove/fun_telegram/core/repository/redis_repository"
 	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/service/job"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
-	"github.com/teadove/fun_telegram/core/supplier/ip_locator"
-	"github.com/teadove/fun_telegram/core/supplier/kandinsky_supplier"
 )
 
 type Container struct {
 	Presentation *telegram.Presentation
-	JobService   *job.Service
 }
 
 func MustNewCombatContainer(ctx context.Context) Container {
-	persistentStorage := redis_repository.MustNew()
-
-	kandinskySupplier, err := kandinsky_supplier.New(
-		ctx,
-		shared.AppSettings.KandinskyKey,
-		shared.AppSettings.KandinskySecret,
-	)
-	if err != nil {
-		zerolog.Ctx(ctx).
-			Error().
-			Stack().
-			Err(errors.WithStack(err)).
-			Str("status", "failed.to.create.kandinsky.supplier").
-			Send()
-	}
-
-	locator := ip_locator.Supplier{}
-
 	dsSupplier, err := ds_supplier.New(ctx)
-	shared.Check(ctx, err)
-
-	resourceService, err := resource.New(ctx)
 	shared.Check(ctx, err)
 
 	db, err := gorm.Open(sqlite.Open(shared.AppSettings.SQLiteFile), &gorm.Config{
@@ -67,11 +39,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init pg repository"))
 	}
 
-	analiticsService, err := analitics.New(
-		dsSupplier,
-		resourceService,
-		dbRepository,
-	)
+	analiticsService, err := analitics.New(dsSupplier, dbRepository)
 	shared.Check(ctx, err)
 
 	protoClient, err := telegram.NewProtoClient(ctx)
@@ -80,15 +48,11 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	telegramPresentation := telegram.MustNewTelegramPresentation(
 		ctx,
 		protoClient,
-		persistentStorage,
-		kandinskySupplier,
-		&locator,
 		analiticsService,
-		resourceService,
 		dbRepository,
 	)
 
-	container := Container{telegramPresentation, jobService}
+	container := Container{telegramPresentation}
 
 	return container
 }

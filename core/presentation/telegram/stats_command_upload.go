@@ -13,7 +13,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/guregu/null/v5"
 	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/service/resource"
 	"github.com/teadove/fun_telegram/core/shared"
 
 	"github.com/celestix/gotgproto/types"
@@ -29,37 +28,17 @@ var (
 	FlagUploadStatsOffset = optFlag{
 		Long:        "offset",
 		Short:       "o",
-		Description: resource.CommandStatsFlagChannelOffsetDescription,
+		Description: "force message offset",
 	}
 	FlagUploadStatsDay = optFlag{
 		Long:        "day",
 		Short:       "d",
-		Description: resource.CommandStatsFlagDayDescription,
-	}
-	FlagUploadStatsRemove = optFlag{
-		Long:        "rm",
-		Short:       "r",
-		Description: resource.CommandStatsFlagRemoveDescription,
+		Description: "max age of message to upload in days",
 	}
 	FlagUploadStatsCount = optFlag{
 		Long:        "count",
 		Short:       "c",
-		Description: resource.CommandStatsFlagCountDescription,
-	}
-	FlagStatsChannelName = optFlag{
-		Long:        "channel",
-		Short:       "h",
-		Description: resource.CommandStatsFlagChannelNameDescription,
-	}
-	FlagStatsChannelDepth = optFlag{
-		Long:        "depth",
-		Short:       "p",
-		Description: resource.CommandStatsFlagDepthDescription,
-	}
-	FlagStatsChannelMaxOrder = optFlag{
-		Long:        "max-order",
-		Short:       "m",
-		Description: resource.CommandStatsFlagChannelMaxOrderDescription,
+		Description: "max amount of message to upload",
 	}
 )
 
@@ -132,66 +111,6 @@ func (r *Presentation) uploadMessageToRepository(
 
 		zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
 	}
-}
-
-func (r *Presentation) uploadStatsDeleteMessages(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-) error {
-	if update.EffectiveChat().GetID() == ctx.Self.ID {
-		output, err := r.jobService.DeleteOldMessages(ctx)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		if output.OldCount == 0 {
-			err = r.replyIfNotSilent(
-				ctx,
-				update,
-				input,
-				"No need to delete messages",
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			return nil
-		}
-
-		err = r.replyIfNotSilent(
-			ctx,
-			update,
-			input,
-			fmt.Sprintf(
-				"Messages deleted\n"+
-					"Old count: %d, New count: %d\n"+
-					"Old size: %.2fkb, new size: %.2fkb\n"+
-					"Mem freed: %.2fkb",
-				output.OldCount, output.NewCount,
-				shared.ToKilo(output.OldSize), shared.ToKilo(output.NewSize),
-				shared.ToKilo(output.BytesFreed)),
-		)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		return nil
-	}
-
-	count, err := r.analiticsService.DeleteMessagesByChatId(ctx, update.EffectiveChat().GetID())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	if !input.Silent {
-		_, err = ctx.Reply(update, fmt.Sprintf("%d messages was deleted", count), nil)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
 }
 
 func (r *Presentation) updateUploadStatsMessage(
@@ -374,7 +293,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 				continue
 			}
 
-			lastDate = time.Unix(int64(msg.Date), 0).In(input.ChatSettings.TimeLoc)
+			lastDate = time.Unix(int64(msg.Date), 0).In(shared.TZTime)
 
 			count++
 			elemChan <- elem
@@ -443,7 +362,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 				"LastDate: %s",
 			count,
 			time.Since(startedAt).Minutes(),
-			lastDate.In(input.ChatSettings.TimeLoc).String(),
+			lastDate.In(shared.TZTime).String(),
 		),
 	})
 	if err != nil {
@@ -458,9 +377,5 @@ func (r *Presentation) uploadStatsCommandHandler(
 	update *ext.Update,
 	input *input,
 ) error {
-	if _, ok := input.Ops[FlagUploadStatsRemove.Long]; ok {
-		return r.uploadStatsDeleteMessages(ctx, update, input)
-	}
-
 	return r.uploadStatsUpload(ctx, update, input)
 }
