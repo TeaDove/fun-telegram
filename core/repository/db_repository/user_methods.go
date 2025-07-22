@@ -103,7 +103,8 @@ func (r *Repository) MemberUpsert(ctx context.Context, member *Member) error {
 				[]string{"status", "updated_in_db_at"},
 			),
 		}).
-		Create(&member).Error
+		Create(&member).
+		Error
 	if err != nil {
 		return errors.Wrap(err, "failed to upsert member")
 	}

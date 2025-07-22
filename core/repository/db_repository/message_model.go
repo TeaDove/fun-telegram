@@ -1,8 +1,6 @@
 package db_repository
 
 import (
-	"time"
-
 	"github.com/guregu/null/v5"
 )
 
@@ -29,14 +27,14 @@ type MessageGroupByChatIdAndUserIdOutput struct {
 }
 
 type MessageGroupByTimeOutput struct {
-	CreatedAt  time.Time `sql:"created_at"`
-	WordsCount uint64    `sql:"words_count"`
+	CreatedAt  string `sql:"created_at"`
+	WordsCount uint64 `sql:"words_count"`
 }
 
 type MessagesGroupByTimeByWeekdayOutput struct {
-	IsWeekend  bool      `sql:"is_weekend"`
-	CreatedAt  time.Time `sql:"created_at"`
-	WordsCount uint64    `sql:"words_count"`
+	IsWeekend  bool   `sql:"is_weekend"`
+	CreatedAt  string `sql:"created_at"`
+	WordsCount uint64 `sql:"words_count"`
 }
 
 type MessageGroupByInterlocutorsOutput struct {

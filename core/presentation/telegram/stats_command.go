@@ -2,90 +2,20 @@ package telegram
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
-
-	"github.com/teadove/fun_telegram/core/shared"
-
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
-	"gorm.io/gorm"
-
-	"github.com/teadove/fun_telegram/core/service/analitics"
-	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/pkg/errors"
+	"github.com/teadove/fun_telegram/core/service/analitics"
 )
 
-var (
-	FlagStatsUsername = optFlag{
-		Long:        "username",
-		Short:       "u",
-		Description: "username or id of user, if presented, will compile stats by set username",
-	}
-	FlagStatsAnonymize = optFlag{
-		Long:        "anonymize",
-		Short:       "a",
-		Description: "anonymize names of users",
-	}
-)
-
-func (r *Presentation) getUserFromFlag(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-) (db_repository.User, bool, error) {
-	username, usernameFlagOk := input.Ops[FlagStatsUsername.Long]
-	if !usernameFlagOk || len(username) == 0 {
-		return db_repository.User{}, false, nil
-	}
-
-	targetUserId, err := strconv.ParseInt(username, 10, 64)
-	if err == nil {
-		targetUser, err := r.dbRepository.UserSelectById(ctx, targetUserId)
-		if err == nil {
-			return targetUser, true, nil
-		}
-
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = r.replyIfNotSilent(
-				ctx,
-				update,
-				input,
-				fmt.Sprintf("Err: user not found by id: %d", targetUserId),
-			)
-			if err != nil {
-				return db_repository.User{}, false, errors.Wrap(err, "failed to reply")
-			}
-		}
-
-		return db_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
-	}
-
-	username = strings.ToLower(username)
-
-	targetUser, err := r.dbRepository.UserSelectByUsername(ctx, username)
-	if err == nil {
-		return targetUser, true, nil
-	}
-
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		err = r.replyIfNotSilent(
-			ctx,
-			update,
-			input,
-			fmt.Sprintf("Err: user not found by username: %s", username),
-		)
-		if err != nil {
-			return db_repository.User{}, false, errors.Wrap(err, "failed to reply")
-		}
-	}
-
-	return db_repository.User{}, false, errors.Wrap(err, "failed to fetch user")
+var FlagStatsAnonymize = optFlag{
+	Long:        "anonymize",
+	Short:       "a",
+	Description: "anonymize names of users",
 }
 
 // statsCommandHandler
@@ -96,22 +26,16 @@ func (r *Presentation) statsCommandHandler(
 	update *ext.Update,
 	input *input,
 ) (err error) {
+	_, err = r.updateMembers(ctx, update.EffectiveChat())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	_, anonymize := input.Ops[FlagStatsAnonymize.Long]
 
 	analiseInput := analitics.AnaliseChatInput{
 		TgChatId:  update.EffectiveChat().GetID(),
-		Tz:        shared.TZInt,
-		Locale:    "EN",
 		Anonymize: anonymize,
-	}
-
-	targetUser, usernameFlagOk, err := r.getUserFromFlag(ctx, update, input)
-	if err != nil {
-		return errors.Wrap(err, "failed to get user from flag")
-	}
-
-	if usernameFlagOk {
-		analiseInput.TgUserId = targetUser.TgId
 	}
 
 	report, err := r.analiticsService.AnaliseChat(ctx, &analiseInput)
@@ -155,23 +79,12 @@ func (r *Presentation) statsCommandHandler(
 	}
 
 	text := make([]styling.StyledTextOption, 0, 3)
-	if usernameFlagOk {
-		text = append(
-			text,
-			styling.Plain(
-				fmt.Sprintf("%s -> %s\n\n", GetChatName(update.EffectiveChat()), targetUser.TgName),
-			),
-		)
-	} else {
-		text = append(text, styling.Plain(fmt.Sprintf("%s \n\n", GetChatName(update.EffectiveChat()))))
-	}
+	text = append(text, styling.Plain(fmt.Sprintf("%s \n\n", GetChatName(update.EffectiveChat()))))
 
 	text = append(text,
 		styling.Plain(
-			fmt.Sprintf(`First message in stats send at %s\n"
-				"Messages processed: %d\n"
-				"Compiled in: %.2f sl`,
-				report.FirstMessageAt.Format(time.DateOnly),
+			fmt.Sprintf(`"Messages processed: %d
+Compiled in: %.2fs`,
 				report.MessagesCount,
 				time.Since(input.StartedAt).Seconds()),
 		),

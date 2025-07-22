@@ -73,14 +73,12 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
-			Session: sessionMaker.SqlSession(
-				sqlite.Open(".mtproto"),
-			),
-			Middlewares:   middlewares,
-			RunMiddleware: runMiddleware,
-			RetryInterval: 10 * time.Second,
-			MaxRetries:    10,
-			DC:            2,
+			Session:          sessionMaker.SqlSession(sqlite.Open(".mtproto")),
+			Middlewares:      middlewares,
+			RunMiddleware:    runMiddleware,
+			RetryInterval:    10 * time.Second,
+			MaxRetries:       10,
+			DC:               2,
 		})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create gotgproto client")
@@ -137,10 +135,7 @@ func MustNewTelegramPresentation(
 		"stats": {
 			executor:    presentation.statsCommandHandler,
 			description: "get stats of this chat",
-			flags: []optFlag{
-				FlagStatsUsername,
-				FlagStatsAnonymize,
-			},
+			flags:       []optFlag{FlagStatsAnonymize},
 		},
 		"upload_stats": {
 			executor:    presentation.uploadStatsCommandHandler,

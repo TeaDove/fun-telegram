@@ -2,7 +2,6 @@ package ds_supplier
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -44,8 +43,8 @@ func (r *Supplier) DrawBar(ctx context.Context, input *DrawBarInput) ([]byte, er
 type DrawTimeseriesInput struct {
 	DrawInput
 
-	Values   map[string]map[time.Time]float64 `json:"values"`
-	OnlyTime bool                             `json:"only_time"`
+	Values   map[string]map[string]float64 `json:"values"`
+	OnlyTime bool                          `json:"only_time"`
 }
 
 func (r *Supplier) DrawTimeseries(ctx context.Context, input *DrawTimeseriesInput) ([]byte, error) {

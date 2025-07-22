@@ -165,27 +165,6 @@ func (r *Repository) MessageGetLastByChatId(ctx context.Context, tgChatId int64)
 	return message, nil
 }
 
-func (r *Repository) MessageGetLastByChatIdAndUserId(
-	ctx context.Context,
-	tgChatId int64,
-	tgUserId int64,
-) (Message, error) {
-	var message Message
-
-	err := r.db.
-		WithContext(ctx).
-		Where("tg_chat_id = ? and tg_user_id = ?", tgChatId, tgUserId).
-		Order("created_at desc").
-		Limit(1).
-		Find(&message).
-		Error
-	if err != nil {
-		return Message{}, errors.Wrap(err, "failed to get message")
-	}
-
-	return message, nil
-}
-
 func (r *Repository) MessageGroupByDateAndChatId(
 	ctx context.Context,
 	tgChatId int64,
@@ -197,96 +176,13 @@ func (r *Repository) MessageGroupByDateAndChatId(
 
 	err := r.db.WithContext(ctx).Raw(`
 select 
-    to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) as "created_at", 
+    datetime((unixepoch(m.created_at) / ?) * ?, 'unixepoch') as "created_at", 
     sum(m.words_count) as "words_count"
 from message m 
 where tg_chat_id = ?
 group by 1
 order by 1 desc
 `, precisionSeconds, precisionSeconds, tgChatId).
-		Scan(&output).
-		Error
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to group by messages")
-	}
-
-	return output, nil
-}
-
-func (r *Repository) MessageGroupByTimeAndChatId(
-	ctx context.Context,
-	tgChatId int64,
-	precision time.Duration,
-	tz int8,
-) ([]MessagesGroupByTimeByWeekdayOutput, error) {
-	var output []MessagesGroupByTimeByWeekdayOutput
-	precisionSeconds := int(precision.Seconds())
-
-	err := r.db.WithContext(ctx).Raw(`
-select case when extract(isodow from m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
-		   date '1970-01-01' + to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) :: time as "created_at",
-		   sum(m.words_count) as words_count
-		from message m
-			where tg_chat_id = ?
-		group by 1, 2
-		order by 1 desc;
-`, tz, precisionSeconds, precisionSeconds, tgChatId).
-		Scan(&output).
-		Error
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to group by messages")
-	}
-
-	return output, nil
-}
-
-func (r *Repository) MessageGroupByTimeAndChatIdAndUserId(
-	ctx context.Context,
-	tgChatId int64,
-	tgUserId int64,
-	precision time.Duration,
-	tz int8,
-) ([]MessagesGroupByTimeByWeekdayOutput, error) {
-	var output []MessagesGroupByTimeByWeekdayOutput
-	precisionSeconds := int(precision.Seconds())
-
-	err := r.db.WithContext(ctx).Raw(`
-select case when extract(isodow from m.created_at + interval ? hour) >= 6 then true else false end as is_weekend,
-		   date '1970-01-01' + to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) :: time as "created_at",
-		   sum(m.words_count) as words_count
-		from message m
-			where tg_chat_id = ? and tg_user_id = ?
-		group by 1, 2
-		order by 1 desc;
-`, tz, precisionSeconds, precisionSeconds, tgChatId, tgUserId).
-		Scan(&output).
-		Error
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to group by messages")
-	}
-
-	return output, nil
-}
-
-func (r *Repository) MessageGroupByDateAndChatIdAndUserId(
-	ctx context.Context,
-	tgChatId int64,
-	tgUserId int64,
-	precision time.Duration,
-) ([]MessageGroupByTimeOutput, error) {
-	var output []MessageGroupByTimeOutput
-
-	precisionSeconds := int(precision.Seconds())
-
-	err := r.db.WithContext(ctx).Raw(`
-select 
-    to_timestamp((EXTRACT(EPOCH from m.created_at) ::int / ?) * ?) as "created_at", 
-    sum(m.words_count) as "words_count"
-from message m 
-where tg_chat_id = ? and tg_user_id = ?
-group by 1
-order by 1 desc
-`, precisionSeconds, precisionSeconds, tgChatId, tgUserId).
 		Scan(&output).
 		Error
 	if err != nil {
@@ -317,85 +213,6 @@ order by 2 desc limit ?
 `, tgChatId, tgUserId, minReplyCount, limit).Scan(&output).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to group by messages")
-	}
-
-	return output, nil
-}
-
-func (r *Repository) MessageFindRepliedBy(
-	ctx context.Context,
-	tgChatId int64,
-	tgUserId int64,
-	minReplyCount int,
-	limit int,
-) ([]MessageGroupByInterlocutorsOutput, error) {
-	var output []MessageGroupByInterlocutorsOutput
-
-	err := r.db.WithContext(ctx).Raw(`
-select am.tg_user_id as tg_user_id, count(1) as count
-	from message am 
-		where am.tg_chat_id = ? and am.reply_to_tg_user_id = ?
-	group by 1
-		having count(1) > ?
-		order by 2 desc
-		LIMIT ?;
-`, tgChatId, tgUserId, minReplyCount, limit).Scan(&output).Error
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to group by messages")
-	}
-
-	return output, nil
-}
-
-func (r *Repository) MessageSelectByChatIds(
-	ctx context.Context,
-	tgChatIds []int64,
-) ([]Message, error) {
-	var output []Message
-	err := r.db.WithContext(ctx).Find(&output, "tg_chat_id in (?)", tgChatIds).Error
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to find messages")
-	}
-
-	return output, nil
-}
-
-func (r *Repository) MessageSelectByChatIdAndUserIdWithWordsCount(
-	ctx context.Context,
-	tgChatId int64,
-	tgUserId int64,
-	atLeastWordCount int,
-	limit int,
-) ([]Message, error) {
-	var output []Message
-	err := r.db.
-		WithContext(ctx).
-		Where("tg_chat_id = ? and tg_user_id = ? and words_count >= ?", tgChatId, tgUserId, atLeastWordCount).
-		Limit(limit).
-		Find(&output).
-		Error
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to find messages")
-	}
-
-	return output, nil
-}
-
-func (r *Repository) MessageSelectByChatIdWithWordsCount(
-	ctx context.Context,
-	tgChatId int64,
-	atLeastWordCount int,
-	limit int,
-) ([]Message, error) {
-	var output []Message
-	err := r.db.
-		WithContext(ctx).
-		Where("tg_chat_id = ? and words_count >= ?", tgChatId, atLeastWordCount).
-		Limit(limit).
-		Find(&output).
-		Error
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to find messages")
 	}
 
 	return output, nil

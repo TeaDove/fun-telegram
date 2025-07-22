@@ -29,6 +29,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 		SkipDefaultTransaction: true,
 		NamingStrategy:         schema.NamingStrategy{SingularTable: true},
 		Logger:                 logger.Default.LogMode(logger.Silent),
+		// Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		shared.FancyPanic(ctx, errors.Wrap(err, "failed to init pg client"))
