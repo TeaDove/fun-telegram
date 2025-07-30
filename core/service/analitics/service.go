@@ -9,10 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"fun_telegram/core/repository/db_repository"
+
+	"fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/aaaton/golem/v4"
 	"github.com/aaaton/golem/v4/dicts/ru"
@@ -38,7 +39,7 @@ func New(
 	}
 
 	exp := regexp2.MustCompile(
-		`((у|[нз]а|(хитро|не)?вз?[ыьъ]|с[ьъ]|(и|ра)[зс]ъ?|(о[тб]|под)[ьъ]?|(.\B)+?[оаеи])?-?([её]б(?!о[рй])|и[пб][ае][тц]).*?|(н[иеа]|[дп]о|ра[зс]|з?а|с(ме)?|о(т|дно)?|апч)?-?х[уy]([яйиеёю]|ли(?!ган)).*?|(в[зы]|(три|два|четыре)жды|(н|сук)а)?-?[б6]л(я(?!(х|ш[кн]|мб)[ауеыио]).*?|[еэ][дт]ь?)|(ра[сз]|[зн]а|[со]|вы?|п(р[ои]|од)|и[зс]ъ?|[ао]т)?п[иеё]зд.*?|(за)?п[ие]д[аое]?р((ас)?(и(ли)?[нщктл]ь?)?|(о(ч[еи])?)?к|юг)[ауеы]?|манд([ауеы]|ой|[ао]вошь?(е?к[ауе])?|юк(ов|[ауи])?)|муд([аио].*?|е?н([ьюия]|ей))|мля([тд]ь)?|лять|([нз]а|по)х|м[ао]л[ао]фь[яию]|(жоп|чмо|гнид)[а-я]*|г[ао]ндон|[а-я]*(с[рс]ать|хрен|хер|дрист|дроч|минет|говн|шлюх|г[а|о]вн)[а-я]*|мраз(ь|ота)|сук[а-я])|cock|fuck(er|ing)?`,
+		`((у|[нз]а|(хитро|не)?вз?[ыьъ]|с[ьъ]|(и|ра)[зс]ъ?|(о[тб]|под)[ьъ]?|(.\B)+?[оаеи])?-?([её]б(?!о[рй])|и[пб][ае][тц]).*?|(н[иеа]|[дп]о|ра[зс]|з?а|с(ме)?|о(т|дно)?|апч)?-?х[уy]([яйиеёю]|ли(?!ган)).*?|(в[зы]|(три|два|четыре)жды|(н|сук)а)?-?[б6]л(я(?!(х|ш[кн]|мб)[ауеыио]).*?|[еэ][дт]ь?)|(ра[сз]|[зн]а|[со]|вы?|п(р[ои]|од)|и[зс]ъ?|[ао]т)?п[иеё]зд.*?|(за)?п[ие]д[аое]?р((ас)?(и(ли)?[нщктл]ь?)?|(о(ч[еи])?)?к|юг)[ауеы]?|манд([ауеы]|ой|[ао]вошь?(е?к[ауе])?|юк(ов|[ауи])?)|муд([аио].*?|е?н([ьюия]|ей))|мля([тд]ь)?|лять|([нз]а|по)х|м[ао]л[ао]фь[яию]|(жоп|чмо|гнид)[а-я]*|г[ао]ндон|[а-я]*(с[рс]ать|хрен|хер|дрист|дроч|минет|говн|шлюх|г[а|о]вн)[а-я]*|мраз(ь|ота)|сук[а-я])|cock|fuck(er|ing)?`, //nolint: lll // as expected
 		0,
 	)
 
@@ -153,7 +154,7 @@ func (r *Service) analiseWholeChat(
 ) (AnaliseReport, error) {
 	usersInChat, err := r.dbRepository.UsersSelectByStatusInChat(
 		ctx,
-		input.TgChatId,
+		input.TgChatID,
 		db_repository.MemberStatusesActive,
 	)
 	if err != nil {
@@ -165,12 +166,12 @@ func (r *Service) analiseWholeChat(
 		Interface("users", usersInChat).
 		Msg("users.in.chat")
 
-	count, err := r.dbRepository.MessageCountByChatId(ctx, input.TgChatId)
+	count, err := r.dbRepository.MessageCountByChatID(ctx, input.TgChatID)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get count")
 	}
 
-	lastMessage, err := r.dbRepository.MessageGetLastByChatId(ctx, input.TgChatId)
+	lastMessage, err := r.dbRepository.MessageGetLastByChatID(ctx, input.TgChatID)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to get last message")
 	}
@@ -204,7 +205,7 @@ func (r *Service) analiseWholeChat(
 
 	wg.Add(1)
 
-	go r.getMessagesGroupedByDateByChatId(ctx, &wg, statsReportChan, input)
+	go r.getMessagesGroupedByDateByChatID(ctx, &wg, statsReportChan, input)
 
 	wg.Add(1)
 
@@ -226,17 +227,14 @@ func (r *Service) analiseWholeChat(
 }
 
 type AnaliseChatInput struct {
-	TgChatId  int64
+	TgChatID  int64
 	Anonymize bool
 }
 
-func (r *Service) AnaliseChat(
-	ctx context.Context,
-	input *AnaliseChatInput,
-) (report AnaliseReport, err error) {
+func (r *Service) AnaliseChat(ctx context.Context, input *AnaliseChatInput) (AnaliseReport, error) {
 	zerolog.Ctx(ctx).Info().Interface("input", input).Msg("compiling.stats.begin")
 
-	report, err = r.analiseWholeChat(ctx, input)
+	report, err := r.analiseWholeChat(ctx, input)
 	if err != nil {
 		return AnaliseReport{}, errors.Wrap(err, "failed to analise chat")
 	}
@@ -244,9 +242,9 @@ func (r *Service) AnaliseChat(
 	slices.SortFunc(report.Images, func(a, b File) int {
 		if a.Name > b.Name {
 			return 1
-		} else {
-			return -1
 		}
+
+		return -1
 	})
 
 	return report, nil

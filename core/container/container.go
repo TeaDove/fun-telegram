@@ -3,18 +3,20 @@ package container
 import (
 	"context"
 
+	"fun_telegram/core/repository/db_repository"
+
 	"github.com/glebarez/sqlite"
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 
-	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
+	"fun_telegram/core/supplier/ds_supplier"
+
+	"fun_telegram/core/presentation/telegram"
+	"fun_telegram/core/service/analitics"
+	"fun_telegram/core/shared"
 
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/presentation/telegram"
-	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Container struct {
@@ -22,8 +24,7 @@ type Container struct {
 }
 
 func MustNewCombatContainer(ctx context.Context) Container {
-	dsSupplier, err := ds_supplier.New(ctx)
-	shared.Check(ctx, err)
+	dsSupplier := ds_supplier.New()
 
 	db, err := gorm.Open(sqlite.Open(shared.AppSettings.SQLiteFile), &gorm.Config{
 		SkipDefaultTransaction: true,
@@ -46,12 +47,7 @@ func MustNewCombatContainer(ctx context.Context) Container {
 	protoClient, err := telegram.NewProtoClient(ctx)
 	shared.Check(ctx, err)
 
-	telegramPresentation := telegram.MustNewTelegramPresentation(
-		ctx,
-		protoClient,
-		analiticsService,
-		dbRepository,
-	)
+	telegramPresentation := telegram.MustNewTelegramPresentation(protoClient, analiticsService, dbRepository)
 
 	container := Container{telegramPresentation}
 

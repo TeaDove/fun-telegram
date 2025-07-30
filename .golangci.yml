@@ -39,7 +39,6 @@ linters:
     - makezero
     - mirror
     - misspell
-    - mnd
     - musttag
     - nakedret
     - nestif

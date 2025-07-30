@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"fun_telegram/core/repository/db_repository"
 
-	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
+	"fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 )
@@ -31,10 +31,10 @@ func (r *Service) getMostToxicUsers(
 		},
 	}
 
-	userToCountArray, err := r.dbRepository.MessageGroupByChatIdAndUserId(
+	userToCountArray, err := r.dbRepository.MessageGroupByChatIDAndUserID(
 		ctx,
-		input.TgChatId,
-		usersInChat.ToIds(),
+		input.TgChatID,
+		usersInChat.ToIDs(),
 		maxUsers,
 		true,
 	)
@@ -47,7 +47,7 @@ func (r *Service) getMostToxicUsers(
 
 	userToCount := make(map[string]float64, maxUsers)
 	for _, message := range userToCountArray {
-		userToCount[getter.getName(message.TgUserId)] = float64(
+		userToCount[getter.getName(message.TgUserID)] = float64(
 			message.ToxicWordsCount,
 		) / float64(
 			message.WordsCount,

@@ -21,8 +21,10 @@ func (r *Repository) ChatUpsert(ctx context.Context, row *Chat) error {
 	return nil
 }
 
-func (r *Repository) ChatSelectById(ctx context.Context, tgId int64) (chat Chat, err error) {
-	err = r.db.WithContext(ctx).Where("tg_id = ?", tgId).Find(&chat).Limit(1).Error
+func (r *Repository) ChatSelectByID(ctx context.Context, tgID int64) (Chat, error) {
+	var chat Chat
+
+	err := r.db.WithContext(ctx).Where("tg_id = ?", tgID).Find(&chat).Limit(1).Error
 	if err != nil {
 		return Chat{}, errors.Wrap(err, "failed to get chat")
 	}

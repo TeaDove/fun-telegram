@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/teadove/fun_telegram/core/container"
+	"fun_telegram/core/container"
+
 	"github.com/teadove/teasutils/utils/logger_utils"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *Repository) messageSetReplyToUserId(
+func (r *Repository) messageSetReplyToUserID(
 	ctx context.Context,
 	tx *gorm.DB,
 	input *Message,
@@ -20,7 +20,7 @@ func (r *Repository) messageSetReplyToUserId(
 		err := tx.WithContext(ctx).
 			Model(&Message{}).
 			Where("reply_to_tg_msg_id = ? AND tg_chat_id = ?", input.ReplyToTgMsgID.Int64, input.TgChatID).
-			Update("reply_to_tg_user_id", input.TgUserId).
+			Update("reply_to_tg_user_id", input.TgUserID).
 			Error
 		if err != nil {
 			return errors.Wrap(err, "failed to update reply_to_user_id")
@@ -44,7 +44,7 @@ func (r *Repository) MessageInsert(ctx context.Context, input *Message) error {
 			return errors.Wrap(err, "failed to insert message")
 		}
 
-		err = r.messageSetReplyToUserId(ctx, tx, input)
+		err = r.messageSetReplyToUserID(ctx, tx, input)
 		if err != nil {
 			return errors.Wrap(err, "failed to set reply to user id")
 		}
@@ -58,8 +58,8 @@ func (r *Repository) MessageInsert(ctx context.Context, input *Message) error {
 	return nil
 }
 
-func (r *Repository) MessagesDeleteByChat(ctx context.Context, tgChatId int64) (uint64, error) {
-	resp := r.db.Delete(&Message{}, "tg_chat_id = ?", tgChatId).WithContext(ctx)
+func (r *Repository) MessagesDeleteByChat(ctx context.Context, tgChatID int64) (uint64, error) {
+	resp := r.db.Delete(&Message{}, "tg_chat_id = ?", tgChatID).WithContext(ctx)
 	if resp.Error != nil {
 		return 0, errors.Wrap(resp.Error, "failed to delete message")
 	}
@@ -67,16 +67,13 @@ func (r *Repository) MessagesDeleteByChat(ctx context.Context, tgChatId int64) (
 	return uint64(resp.RowsAffected), nil
 }
 
-func (r *Repository) MessageCountByChatId(
-	ctx context.Context,
-	tgChatId int64,
-) (uint64, error) {
+func (r *Repository) MessageCountByChatID(ctx context.Context, tgChatID int64) (uint64, error) {
 	var count int64
 
 	err := r.db.
 		WithContext(ctx).
 		Model(&Message{}).
-		Where("tg_chat_id = ?", tgChatId).
+		Where("tg_chat_id = ?", tgChatID).
 		Count(&count).
 		Error
 	if err != nil {
@@ -86,17 +83,17 @@ func (r *Repository) MessageCountByChatId(
 	return uint64(count), nil
 }
 
-func (r *Repository) MessageCountByChatIdAndUserId(
+func (r *Repository) MessageCountByChatIDAndUserID(
 	ctx context.Context,
-	tgChatId int64,
-	tgUserId int64,
+	tgChatID int64,
+	tgUserID int64,
 ) (uint64, error) {
 	var count int64
 
 	err := r.db.
 		WithContext(ctx).
 		Model(&Message{}).
-		Where("tg_chat_id = ? AND tg_user_id = ?", tgChatId, tgUserId).
+		Where("tg_chat_id = ? AND tg_user_id = ?", tgChatID, tgUserID).
 		Count(&count).
 		Error
 	if err != nil {
@@ -106,14 +103,14 @@ func (r *Repository) MessageCountByChatIdAndUserId(
 	return uint64(count), nil
 }
 
-func (r *Repository) MessageGroupByChatIdAndUserId(
+func (r *Repository) MessageGroupByChatIDAndUserID(
 	ctx context.Context,
-	tgChatId int64,
-	tgUserIds []int64,
+	tgChatID int64,
+	tgUserIDs []int64,
 	limit int64,
 	desc bool,
-) ([]MessageGroupByChatIdAndUserIdOutput, error) {
-	var output []MessageGroupByChatIdAndUserIdOutput
+) ([]MessageGroupByChatIDAndUserIDOutput, error) {
+	var output []MessageGroupByChatIDAndUserIDOutput
 
 	const queryByAsc = `
 select 
@@ -144,7 +141,7 @@ limit ?
 		query = queryByAsc
 	}
 
-	err := r.db.WithContext(ctx).Raw(query, tgChatId, tgUserIds, limit).Scan(&output).Error
+	err := r.db.WithContext(ctx).Raw(query, tgChatID, tgUserIDs, limit).Scan(&output).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to group by messages")
 	}
@@ -152,13 +149,13 @@ limit ?
 	return output, nil
 }
 
-func (r *Repository) MessageGetLastByChatId(ctx context.Context, tgChatId int64) (Message, error) {
+func (r *Repository) MessageGetLastByChatID(ctx context.Context, tgChatID int64) (Message, error) {
 	var message Message
 
 	err := r.db.
 		WithContext(ctx).
 		Find(&message).
-		Where("tg_chat_id = ?", tgChatId).
+		Where("tg_chat_id = ?", tgChatID).
 		Order("created_at desc").
 		Limit(1).
 		Error
@@ -169,9 +166,9 @@ func (r *Repository) MessageGetLastByChatId(ctx context.Context, tgChatId int64)
 	return message, nil
 }
 
-func (r *Repository) MessageGroupByDateAndChatId(
+func (r *Repository) MessageGroupByDateAndChatID(
 	ctx context.Context,
-	tgChatId int64,
+	tgChatID int64,
 	precision time.Duration,
 ) ([]MessageGroupByTimeOutput, error) {
 	var output []MessageGroupByTimeOutput
@@ -186,7 +183,7 @@ from message m
 where tg_chat_id = ?
 group by 1
 order by 1 desc
-`, precisionSeconds, precisionSeconds, tgChatId).
+`, precisionSeconds, precisionSeconds, tgChatID).
 		Scan(&output).
 		Error
 	if err != nil {
@@ -198,8 +195,8 @@ order by 1 desc
 
 func (r *Repository) MessageFindRepliesTo(
 	ctx context.Context,
-	tgChatId int64,
-	tgUserId int64,
+	tgChatID int64,
+	tgUserID int64,
 	minReplyCount int,
 	limit int,
 ) ([]MessageGroupByInterlocutorsOutput, error) {
@@ -214,7 +211,7 @@ where am.tg_chat_id = ? and am.tg_user_id = ? and am.reply_to_tg_user_id is not 
 group by 1
 	having count(1) > ?
 order by 2 desc limit ?
-`, tgChatId, tgUserId, minReplyCount, limit).Scan(&output).Error
+`, tgChatID, tgUserID, minReplyCount, limit).Scan(&output).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to group by messages")
 	}

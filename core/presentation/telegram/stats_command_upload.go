@@ -7,13 +7,14 @@ import (
 	"sync"
 	"time"
 
+	"fun_telegram/core/service/analitics"
+	"fun_telegram/core/shared"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/query"
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/tg"
 	"github.com/guregu/null/v5"
-	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/shared"
 
 	"github.com/celestix/gotgproto/types"
 	"github.com/pkg/errors"
@@ -25,17 +26,17 @@ const (
 )
 
 var (
-	FlagUploadStatsOffset = optFlag{
+	FlagUploadStatsOffset = optFlag{ //nolint: gochecknoglobals // FIXME
 		Long:        "offset",
 		Short:       "o",
 		Description: "force message offset",
 	}
-	FlagUploadStatsDay = optFlag{
+	FlagUploadStatsDay = optFlag{ //nolint: gochecknoglobals // FIXME
 		Long:        "day",
 		Short:       "d",
 		Description: "max age of message to upload in days",
 	}
-	FlagUploadStatsCount = optFlag{
+	FlagUploadStatsCount = optFlag{ //nolint: gochecknoglobals // FIXME
 		Long:        "count",
 		Short:       "c",
 		Description: "max amount of message to upload",
@@ -85,9 +86,9 @@ func (r *Presentation) uploadMessageToRepository(
 		analiticsMessage := analitics.Message{
 			CreatedAt: time.Unix(int64(msg.Date), 0),
 			TgChatID:  update.EffectiveChat().GetID(),
-			TgUserId:  msgFrom.UserID,
+			TgUserID:  msgFrom.UserID,
 			Text:      msg.Message,
-			TgId:      msg.ID,
+			TgID:      msg.ID,
 		}
 
 		if msg.ReplyTo != nil {
@@ -116,8 +117,8 @@ func (r *Presentation) uploadMessageToRepository(
 func (r *Presentation) updateUploadStatsMessage(
 	ctx *ext.Context,
 	count int,
-	chatId int64,
-	msgId int,
+	chatID int64,
+	msgID int,
 	chatPeer tg.InputPeerClass,
 	offset int,
 	startedAt time.Time,
@@ -132,9 +133,9 @@ func (r *Presentation) updateUploadStatsMessage(
 	remainingCount := maxCount - count
 	speedSeconds := float64(count) / elapsed
 
-	_, err := ctx.EditMessage(chatId, &tg.MessagesEditMessageRequest{
+	_, err := ctx.EditMessage(chatID, &tg.MessagesEditMessageRequest{
 		Peer: chatPeer,
-		ID:   msgId,
+		ID:   msgID,
 		Message: fmt.Sprintf(
 			`⚙️ Uploading messages
 
@@ -156,24 +157,24 @@ LastDate: %s`,
 	}
 }
 
-// uploadStatsUpload
-func (r *Presentation) uploadStatsUpload( // nolint: cyclop
+// uploadStatsUpload.
+func (r *Presentation) uploadStatsUpload( //nolint: gocognit, funlen // ((((
 	ctx *ext.Context,
 	update *ext.Update,
 	input *input,
-) (err error) {
+) error {
 	const (
 		maxElapsed = time.Hour
 	)
 
 	maxCount := shared.DefaultUploadCount
 
-	if userMaxCountS, ok := input.Ops[FlagUploadStatsCount.Long]; ok {
+	if userMaxCountS, ok := input.Ops[FlagUploadStatsCount.Long]; ok { //nolint: nestif // FIXME
 		userMaxCount, err := strconv.Atoi(userMaxCountS)
 		if err != nil {
 			_, err := ctx.Reply(
 				update,
-				fmt.Sprintf("Err: failed to parse count flag: %s", err.Error()),
+				ext.ReplyTextString(fmt.Sprintf("Err: failed to parse count flag: %s", err.Error())),
 				nil,
 			)
 			if err != nil {
@@ -190,12 +191,12 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 
 	maxQueryAge := shared.DefaultUploadQueryAge
 
-	if userQueryAgeS, ok := input.Ops[FlagUploadStatsDay.Long]; ok {
+	if userQueryAgeS, ok := input.Ops[FlagUploadStatsDay.Long]; ok { //nolint: nestif // FIXME
 		userQueryAge, err := strconv.Atoi(userQueryAgeS)
 		if err != nil {
 			_, err = ctx.Reply(
 				update,
-				fmt.Sprintf("Err: failed to parse age flag: %s", err.Error()),
+				ext.ReplyTextString(fmt.Sprintf("Err: failed to parse age flag: %s", err.Error())),
 				nil,
 			)
 			if err != nil {
@@ -213,19 +214,19 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	queryTill := time.Now().UTC().Add(-maxQueryAge)
 
 	var (
-		barChatId    int64
-		barMessageId int
+		barChatID    int64
+		barMessageID int
 		barPeer      tg.InputPeerClass
 	)
 
 	if !input.Silent {
-		barMessage, err := ctx.Reply(update, "⚙️ Uploading messages", nil)
+		barMessage, err := ctx.Reply(update, ext.ReplyTextString("⚙️ Uploading messages"), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		barMessageId = barMessage.ID
-		barChatId = update.EffectiveChat().GetID()
+		barMessageID = barMessage.ID
+		barChatID = update.EffectiveChat().GetID()
 		barPeer = update.EffectiveChat().GetInputPeer()
 	} else {
 		barMessage, err := ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{Message: "⚙️ Uploading messages"})
@@ -233,12 +234,15 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 			return errors.WithStack(err)
 		}
 
-		barMessageId = barMessage.ID
-		barChatId = ctx.Self.ID
+		barMessageID = barMessage.ID
+		barChatID = ctx.Self.ID
 		barPeer = ctx.Self.AsInputPeer()
 	}
 
 	offset := 0
+
+	var err error
+
 	if flaggedOffset, ok := input.Ops[FlagUploadStatsOffset.Long]; ok {
 		offset, err = strconv.Atoi(flaggedOffset)
 		if err != nil {
@@ -246,7 +250,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 				ctx,
 				update,
 				input,
-				fmt.Sprintf("Err: Unprocessable entity: %e", err),
+				ext.ReplyTextString(fmt.Sprintf("Err: Unprocessable entity: %e", err)),
 			)
 			if err != nil {
 				return errors.WithStack(err)
@@ -261,7 +265,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 		Int("offset", offset).
 		Msg("stats.upload.begin")
 
-	historyQuery := query.Messages(r.telegramApi).GetHistory(update.EffectiveChat().GetInputPeer())
+	historyQuery := query.Messages(r.telegramAPI).GetHistory(update.EffectiveChat().GetInputPeer())
 	historyQuery.BatchSize(iterHistoryBatchSize)
 	historyQuery.OffsetID(offset)
 	historyIter := historyQuery.Iter()
@@ -284,7 +288,7 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 		zerolog.Ctx(ctx).Trace().Int("offset", offset).Msg("new.iteration")
 
 		ok := historyIter.Next(ctx)
-		if ok {
+		if ok { //nolint: nestif // FIXME
 			zerolog.Ctx(ctx).Trace().Msg("elem.got")
 
 			elem := historyIter.Value()
@@ -307,8 +311,8 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 				go r.updateUploadStatsMessage(
 					ctx,
 					count,
-					barChatId,
-					barMessageId,
+					barChatID,
+					barMessageID,
 					barPeer,
 					offset,
 					startedAt,
@@ -355,9 +359,9 @@ func (r *Presentation) uploadStatsUpload( // nolint: cyclop
 	wg.Wait()
 	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
 
-	_, err = ctx.EditMessage(barChatId, &tg.MessagesEditMessageRequest{
+	_, err = ctx.EditMessage(barChatID, &tg.MessagesEditMessageRequest{
 		Peer: barPeer,
-		ID:   barMessageId,
+		ID:   barMessageID,
 		Message: fmt.Sprintf(
 			"Messages uploaded!\n\n"+
 				"Amount: %d\n"+

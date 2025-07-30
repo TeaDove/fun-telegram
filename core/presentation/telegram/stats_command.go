@@ -4,29 +4,30 @@ import (
 	"fmt"
 	"time"
 
+	"fun_telegram/core/service/analitics"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/service/analitics"
 )
 
-var FlagStatsAnonymize = optFlag{
+var FlagStatsAnonymize = optFlag{ // nolint: gochecknoglobals // FIXME
 	Long:        "anonymize",
 	Short:       "a",
 	Description: "anonymize names of users",
 }
 
 // statsCommandHandler
-// nolint: cyclop
+// nolint: cyclop // don't care
 // TODO fix cyclop
 func (r *Presentation) statsCommandHandler(
 	ctx *ext.Context,
 	update *ext.Update,
 	input *input,
-) (err error) {
-	_, err = r.updateMembers(ctx, update.EffectiveChat())
+) error {
+	_, err := r.updateMembers(ctx, update.EffectiveChat())
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -34,14 +35,14 @@ func (r *Presentation) statsCommandHandler(
 	_, anonymize := input.Ops[FlagStatsAnonymize.Long]
 
 	analiseInput := analitics.AnaliseChatInput{
-		TgChatId:  update.EffectiveChat().GetID(),
+		TgChatID:  update.EffectiveChat().GetID(),
 		Anonymize: anonymize,
 	}
 
 	report, err := r.analiticsService.AnaliseChat(ctx, &analiseInput)
 	if err != nil {
 		if errors.Is(err, analitics.ErrNoMessagesFound) {
-			err := r.replyIfNotSilent(ctx, update, input, "Err: no messages found")
+			err := r.replyIfNotSilent(ctx, update, input, ext.ReplyTextString("Err: no messages found"))
 			if err != nil {
 				return errors.Wrap(err, "failed to reply")
 			}

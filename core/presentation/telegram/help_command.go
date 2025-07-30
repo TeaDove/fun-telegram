@@ -1,7 +1,6 @@
 package telegram
 
 import (
-	"context"
 	"fmt"
 	"slices"
 
@@ -11,10 +10,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func (r *Presentation) compileHelpMessage(
-	ctx context.Context,
-	input *input,
-) []styling.StyledTextOption {
+func (r *Presentation) compileHelpMessage() []styling.StyledTextOption {
 	helpMessage := make([]styling.StyledTextOption, 0, 20)
 	helpMessage = append(
 		helpMessage,
@@ -68,9 +64,9 @@ func (r *Presentation) compileHelpMessage(
 func (r *Presentation) helpCommandHandler(
 	ctx *ext.Context,
 	update *ext.Update,
-	input *input,
+	_ *input,
 ) error {
-	_, err := ctx.Reply(update, r.compileHelpMessage(ctx, input), nil)
+	_, err := ctx.Reply(update, ext.ReplyTextStyledTextArray(r.compileHelpMessage()), nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}

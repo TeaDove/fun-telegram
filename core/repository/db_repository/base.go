@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type WithId struct {
+type WithID struct {
 	ID uint `gorm:"primarykey"`
 }
 

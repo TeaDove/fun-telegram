@@ -4,17 +4,18 @@ import (
 	"context"
 	"strings"
 
+	"fun_telegram/core/repository/db_repository"
+
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
 )
 
 func (r *Service) MessageInsert(ctx context.Context, message *Message) error {
 	chMessage := &db_repository.Message{
 		WithCreatedAt:   db_repository.WithCreatedAt{CreatedAt: message.CreatedAt},
 		TgChatID:        message.TgChatID,
-		TgUserId:        message.TgUserId,
+		TgUserID:        message.TgUserID,
 		Text:            message.Text,
-		TgId:            message.TgId,
+		TgID:            message.TgID,
 		ReplyToTgMsgID:  message.ReplyToMsgID,
 		ReplyToTgUserID: message.ReplyToUserID,
 	}
@@ -52,8 +53,8 @@ func (r *Service) MessageInsert(ctx context.Context, message *Message) error {
 	return nil
 }
 
-func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (uint64, error) {
-	count, err := r.dbRepository.MessagesDeleteByChat(ctx, chatId)
+func (r *Service) DeleteMessagesByChatID(ctx context.Context, chatID int64) (uint64, error) {
+	count, err := r.dbRepository.MessagesDeleteByChat(ctx, chatID)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to delete messages from mongo repository")
 	}
@@ -61,8 +62,8 @@ func (r *Service) DeleteMessagesByChatId(ctx context.Context, chatId int64) (uin
 	return count, nil
 }
 
-func (r *Service) GetLastMessage(ctx context.Context, chatId int64) (Message, error) {
-	message, err := r.dbRepository.MessageGetLastByChatId(ctx, chatId)
+func (r *Service) GetLastMessage(ctx context.Context, chatID int64) (Message, error) {
+	message, err := r.dbRepository.MessageGetLastByChatID(ctx, chatID)
 	if err != nil {
 		return Message{}, errors.Wrap(err, "failed to get last message")
 	}
@@ -70,8 +71,8 @@ func (r *Service) GetLastMessage(ctx context.Context, chatId int64) (Message, er
 	return Message{
 		CreatedAt: message.CreatedAt,
 		TgChatID:  message.TgChatID,
-		TgId:      message.TgId,
-		TgUserId:  message.TgUserId,
+		TgID:      message.TgID,
+		TgUserID:  message.TgUserID,
 		Text:      message.Text,
 	}, nil
 }

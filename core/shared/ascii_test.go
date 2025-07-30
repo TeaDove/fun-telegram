@@ -7,5 +7,7 @@ import (
 )
 
 func TestUnit_Shared_TrimUnprintable_Ok(t *testing.T) {
-	assert.Equal(t, "nastik  ", ReplaceNonAsciiWithSpace("nastik\U0001FAE7🧸"))
+	t.Parallel()
+
+	assert.Equal(t, "nastik  ", ReplaceNonASCIIWithSpace("nastik\U0001FAE7🧸"))
 }

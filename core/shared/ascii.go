@@ -5,7 +5,7 @@ import (
 	"unicode"
 )
 
-func ReplaceNonAsciiWithSpace(v string) string {
+func ReplaceNonASCIIWithSpace(v string) string {
 	return strings.TrimSpace(
 		strings.Map(
 			func(r rune) rune {

@@ -1,16 +1,16 @@
 package db_repository
 
 type Chat struct {
-	WithId
+	WithID
 	WithCreatedAt
 	WithUpdatedAt
 
-	TgId  int64  `sql:"tg_id" gorm:"index:,unique"`
+	TgID  int64  `sql:"tg_id" gorm:"index:,unique"`
 	Title string `            gorm:"index"`
 }
 
 type UserInChat struct {
-	TgId       int64
+	TgID       int64
 	TgUsername string
 	TgName     string
 	IsBot      bool
@@ -20,18 +20,18 @@ type UserInChat struct {
 type UsersInChat []UserInChat
 
 func (r UsersInChat) ToMap() map[int64]UserInChat {
-	map_ := make(map[int64]UserInChat, len(r))
+	v := make(map[int64]UserInChat, len(r))
 	for _, user := range r {
-		map_[user.TgId] = user
+		v[user.TgID] = user
 	}
 
-	return map_
+	return v
 }
 
-func (r UsersInChat) ToIds() []int64 {
-	slice := make([]int64, len(r))
+func (r UsersInChat) ToIDs() []int64 {
+	var slice []int64
 	for _, user := range r {
-		slice = append(slice, user.TgId)
+		slice = append(slice, user.TgID)
 	}
 
 	return slice

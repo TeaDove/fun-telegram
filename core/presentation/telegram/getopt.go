@@ -18,7 +18,7 @@ type input struct {
 	StartedAt time.Time
 }
 
-var FlagSilent = optFlag{Long: "silent", Short: "q"}
+var FlagSilent = optFlag{Long: "silent", Short: "q"} // nolint: gochecknoglobals // FIXME
 
 func stripWords(text string) []string {
 	output := make([]string, 0, 10)
@@ -39,13 +39,13 @@ func stripWords(text string) []string {
 				buff.Reset()
 				buff.WriteString(text[start:quoteIdx] + text[quoteIdx+1:idx])
 
-				idx += 1
+				idx++
 
 				continue
-			} else {
-				quoteIdx = idx
-				quoted = true
 			}
+
+			quoteIdx = idx
+			quoted = true
 		}
 
 		if text[idx] == ' ' && !quoted {
@@ -57,13 +57,14 @@ func stripWords(text string) []string {
 			buff.Reset()
 
 			start = idx + 1
-			idx += 1
+			idx++
 
 			continue
 		}
 
 		buff.WriteByte(text[idx])
-		idx += 1
+
+		idx++
 	}
 
 	if start != idx {
@@ -73,9 +74,9 @@ func stripWords(text string) []string {
 	return output
 }
 
-// GetOpt
-// nolint: gocyclo
-func GetOpt(text string, flags ...optFlag) (output input) {
+// getOpt
+// nolint: gocyclo // don't care
+func getOpt(text string, flags ...optFlag) input { // nolint: gocognit, funlen // ((((
 	const longHypenByte = 226
 
 	flags = append(flags, FlagSilent)
@@ -87,6 +88,7 @@ func GetOpt(text string, flags ...optFlag) (output input) {
 		shortToLong[flag.Short] = flag.Long
 	}
 
+	var output input
 	output.Ops = make(map[string]string, 3)
 	textBuilder := strings.Builder{}
 	words := stripWords(text)
@@ -96,7 +98,7 @@ func GetOpt(text string, flags ...optFlag) (output input) {
 	}
 
 	for _, word := range words[1:] {
-		if len(word) == 0 || len(word) == 1 || !(word[0] == '-' || word[0] == longHypenByte) {
+		if len(word) == 0 || len(word) == 1 || (word[0] != '-' && word[0] != longHypenByte) {
 			textBuilder.WriteString(" " + word)
 			continue
 		}

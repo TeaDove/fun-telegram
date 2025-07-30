@@ -6,7 +6,7 @@ import (
 
 	"github.com/teadove/teasutils/utils/random_utils"
 
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"fun_telegram/core/repository/db_repository"
 )
 
 type nameGetter struct {
@@ -15,32 +15,32 @@ type nameGetter struct {
 	idToAnonName map[int64]string
 }
 
-func (r *nameGetter) contains(userId int64) bool {
-	_, ok := r.idToUser[userId]
+func (r *nameGetter) contains(userID int64) bool {
+	_, ok := r.idToUser[userID]
 	return ok
 }
 
-func (r *nameGetter) getName(userId int64) string {
+func (r *nameGetter) getName(userID int64) string {
 	if r.anonymize {
-		return r.idToAnonName[userId]
+		return r.idToAnonName[userID]
 	}
 
-	user, ok := r.idToUser[userId]
+	user, ok := r.idToUser[userID]
 	if !ok || strings.TrimSpace(user.TgName) == "" {
-		return fmt.Sprintf("id: %d", userId)
+		return fmt.Sprintf("id: %d", userID)
 	}
 
 	return user.TgName
 }
 
-func (r *nameGetter) getNameAndUsername(userId int64) string {
+func (r *nameGetter) getNameAndUsername(userID int64) string {
 	if r.anonymize {
-		return r.idToAnonName[userId]
+		return r.idToAnonName[userID]
 	}
 
-	user, ok := r.idToUser[userId]
+	user, ok := r.idToUser[userID]
 	if !ok || (strings.TrimSpace(user.TgName) == "" && strings.TrimSpace(user.TgUsername) == "") {
-		return fmt.Sprintf("id: %d", userId)
+		return fmt.Sprintf("id: %d", userID)
 	}
 
 	return fmt.Sprintf("%s (@%s)", user.TgName, user.TgUsername)
@@ -53,7 +53,7 @@ func (r *Service) getNameGetter(
 	idToUser := make(map[int64]db_repository.UserInChat, len(usersInChat))
 
 	for _, user := range usersInChat {
-		idToUser[user.TgId] = user
+		idToUser[user.TgID] = user
 	}
 
 	getter := nameGetter{idToUser: idToUser, anonymize: anonymize}
@@ -62,7 +62,7 @@ func (r *Service) getNameGetter(
 		getter.idToAnonName = make(map[int64]string, len(usersInChat))
 
 		for _, user := range usersInChat {
-			getter.idToAnonName[user.TgId] = random_utils.TextWithLen(6)
+			getter.idToAnonName[user.TgID] = random_utils.TextWithLen(6)
 		}
 	}
 

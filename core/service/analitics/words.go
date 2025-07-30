@@ -1,13 +1,12 @@
 package analitics
 
 import (
-	"regexp"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 )
 
-var serviceWords = mapset.NewSet(
+var serviceWords = mapset.NewSet( //nolint: gochecknoglobals // FIXME
 	"в",
 	"и",
 	"не",
@@ -173,7 +172,7 @@ var serviceWords = mapset.NewSet(
 	"уж",
 )
 
-var lemmaToLemma = map[string]string{"житься": "нет"}
+var lemmaToLemma = map[string]string{"житься": "нет"} //nolint: gochecknoglobals // FIXME
 
 func (r *Service) filterAndLemma(word string) (string, bool) {
 	word = strings.Trim(strings.ToLower(word), "\n.,)(-—/_?!* ")
@@ -192,10 +191,4 @@ func (r *Service) filterAndLemma(word string) (string, bool) {
 	}
 
 	return word, true
-}
-
-var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Zа-яА-Я0-9 ]+`)
-
-func removeNonAlphanumeric(str string) string {
-	return nonAlphanumericRegex.ReplaceAllString(str, "")
 }

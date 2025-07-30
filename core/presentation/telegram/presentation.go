@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"fun_telegram/core/repository/db_repository"
 
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/glebarez/sqlite"
 
-	"github.com/go-co-op/gocron"
+	"fun_telegram/core/service/analitics"
+	"fun_telegram/core/shared"
 
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
@@ -23,18 +24,15 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/teadove/fun_telegram/core/service/analitics"
-	"github.com/teadove/fun_telegram/core/shared"
 	"golang.org/x/time/rate"
 )
 
 type Presentation struct {
-	telegramApi     *tg.Client
+	telegramAPI     *tg.Client
 	telegramManager *peers.Manager
 	protoClient     *gotgproto.Client
 
-	router   map[string]messageProcessor
-	features map[string]bool
+	router map[string]messageProcessor
 
 	dbRepository     *db_repository.Repository
 	analiticsService *analitics.Service
@@ -87,7 +85,6 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 }
 
 func MustNewTelegramPresentation(
-	ctx context.Context,
 	protoClient *gotgproto.Client,
 	analiticsService *analitics.Service,
 	dbRepository *db_repository.Repository,
@@ -96,7 +93,7 @@ func MustNewTelegramPresentation(
 
 	presentation := Presentation{
 		protoClient:      protoClient,
-		telegramApi:      api,
+		telegramAPI:      api,
 		telegramManager:  peers.Options{}.Build(api),
 		analiticsService: analiticsService,
 		dbRepository:     dbRepository,
@@ -159,12 +156,6 @@ func MustNewTelegramPresentation(
 
 	dp.Error = presentation.errorHandler
 	dp.Panic = presentation.panicHandler
-
-	scheduler := gocron.NewScheduler(time.UTC)
-	scheduler.StartAsync()
-
-	zerolog.Ctx(ctx).Info().
-		Msg("telegram.presentation.created")
 
 	return &presentation
 }

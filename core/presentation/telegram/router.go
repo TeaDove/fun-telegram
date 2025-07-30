@@ -12,18 +12,17 @@ import (
 )
 
 type messageProcessor struct {
-	executor          func(ctx *ext.Context, update *ext.Update, input *input) error
-	description       string
-	flags             []optFlag
-	example           string
-	disabledByDefault bool
+	executor    func(ctx *ext.Context, update *ext.Update, input *input) error
+	description string
+	flags       []optFlag
+	example     string
 }
 
 // route
-// nolint: gocyclo
+// nolint: gocyclo // don't care
 func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	text := update.EffectiveMessage.Message.Message
-	if len(text) == 0 || !(text[0] == '!' || text[0] == '/') {
+	if len(text) == 0 || (text[0] != '!' && text[0] != '/') {
 		return nil
 	}
 
@@ -42,10 +41,10 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Logger().
 		WithContext(ctx.Context)
 
-	commandInput := GetOpt(text, route.flags...)
+	commandInput := getOpt(text, route.flags...)
 
-	if !(update.EffectiveUser().GetID() == ctx.Self.ID) {
-		_, err := ctx.Reply(update, "Err: insufficient privilege: owner rights required", nil)
+	if update.EffectiveUser().GetID() != ctx.Self.ID {
+		_, err := ctx.Reply(update, ext.ReplyTextString("Err: insufficient privilege: owner rights required"), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -80,7 +79,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 				&tg.MessagesSendMessageRequest{Message: errMessage},
 			)
 		} else {
-			_, innerErr = ctx.Reply(update, errMessage, nil)
+			_, innerErr = ctx.Reply(update, ext.ReplyTextString(errMessage), nil)
 		}
 
 		if innerErr != nil {
@@ -89,7 +88,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 				Err(err).
 				Msg("failed.to.reply")
 
-			return nil
+			return nil // nolint: nilerr // as expected
 		}
 
 		return nil

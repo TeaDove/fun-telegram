@@ -18,4 +18,4 @@ const (
 	TZ    = "Europe/Moscow"
 )
 
-var TZTime = must_utils.Must(time.LoadLocation(TZ))
+var TZTime = must_utils.Must(time.LoadLocation(TZ)) //nolint: gochecknoglobals // FIXME

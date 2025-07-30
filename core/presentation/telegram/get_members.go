@@ -5,9 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
-
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"fun_telegram/core/repository/db_repository"
 
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/peers/members"
@@ -34,10 +32,10 @@ func tgStatusToRepositoryStatus(status members.Status) db_repository.MemberStatu
 	}
 }
 
-func (r *Presentation) updateMembers(
+func (r *Presentation) updateMembers( // nolint: funlen // FIXME
 	ctx context.Context,
 	effectiveChat types.EffectiveChat,
-) (db_repository.UsersInChat, error) {
+) (db_repository.UsersInChat, error) { // nolint: unparam // FIXME
 	t0 := time.Now().UTC()
 
 	zerolog.Ctx(ctx).
@@ -52,7 +50,7 @@ func (r *Presentation) updateMembers(
 		username, _ := user.Username()
 
 		userInChat := db_repository.UserInChat{
-			TgId:       user.ID(),
+			TgID:       user.ID(),
 			TgUsername: strings.ToLower(username),
 			TgName:     GetNameFromPeerUser(&user),
 			IsBot:      isBot,
@@ -61,7 +59,7 @@ func (r *Presentation) updateMembers(
 		usersInChat = append(usersInChat, userInChat)
 
 		err := r.dbRepository.UserUpsert(ctx, &db_repository.User{
-			TgId:       userInChat.TgId,
+			TgID:       userInChat.TgID,
 			TgUsername: userInChat.TgUsername,
 			TgName:     userInChat.TgName,
 			IsBot:      userInChat.IsBot,
@@ -71,8 +69,8 @@ func (r *Presentation) updateMembers(
 		}
 
 		err = r.dbRepository.MemberUpsert(ctx, &db_repository.Member{
-			TgUserId: userInChat.TgId,
-			TgChatId: effectiveChat.GetID(),
+			TgUserID: userInChat.TgID,
+			TgChatID: effectiveChat.GetID(),
 			Status:   userInChat.Status,
 		})
 		if err != nil {
@@ -117,7 +115,7 @@ func (r *Presentation) updateMembers(
 	err := r.dbRepository.ChatUpsert(ctx, &db_repository.Chat{
 		WithCreatedAt: db_repository.WithCreatedAt{CreatedAt: time.Now().UTC()},
 		WithUpdatedAt: db_repository.WithUpdatedAt{UpdatedAt: time.Now().UTC()},
-		TgId:          effectiveChat.GetID(),
+		TgID:          effectiveChat.GetID(),
 		Title:         chatTitle,
 	})
 	if err != nil {
@@ -134,38 +132,6 @@ func (r *Presentation) updateMembers(
 		Str("elapsed", time.Since(t0).String()).
 		Int("count", len(usersInChat)).
 		Msg("members.uploaded")
-
-	return usersInChat, nil
-}
-
-func (r *Presentation) getOrUpdateMembers(
-	ctx context.Context,
-	effectiveChat types.EffectiveChat,
-) (db_repository.UsersInChat, error) {
-	needUpload := false
-
-	chat, err := r.dbRepository.ChatSelectById(ctx, effectiveChat.GetID())
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.Wrap(err, "failed to get chat from repository")
-		}
-
-		needUpload = true
-	}
-
-	if needUpload || time.Since(chat.UpdatedAt) > 3*24*time.Hour {
-		usersInChat, err := r.updateMembers(ctx, effectiveChat)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to upload members")
-		}
-
-		return usersInChat, nil
-	}
-
-	usersInChat, err := r.dbRepository.UsersSelectInChat(ctx, effectiveChat.GetID())
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get users by chat id")
-	}
 
 	return usersInChat, nil
 }

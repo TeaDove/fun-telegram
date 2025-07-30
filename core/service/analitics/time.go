@@ -5,12 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
+	"fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 )
 
-func (r *Service) getMessagesGroupedByDateByChatId(
+func (r *Service) getMessagesGroupedByDateByChatID(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
@@ -22,9 +22,9 @@ func (r *Service) getMessagesGroupedByDateByChatId(
 		repostImage: File{Name: "MessagesGroupedByDateByChatId", Extension: "jpeg"},
 	}
 
-	messagesGrouped, err := r.dbRepository.MessageGroupByDateAndChatId(
+	messagesGrouped, err := r.dbRepository.MessageGroupByDateAndChatID(
 		ctx,
-		input.TgChatId,
+		input.TgChatID,
 		time.Hour*24*7,
 	)
 	if err != nil {

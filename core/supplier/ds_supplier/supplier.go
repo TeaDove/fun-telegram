@@ -13,8 +13,9 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"fun_telegram/core/shared"
+
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/shared"
 )
 
 type Supplier struct {
@@ -22,16 +23,16 @@ type Supplier struct {
 	basePath string
 }
 
-func New(ctx context.Context) (*Supplier, error) {
+func New() *Supplier {
 	r := Supplier{}
 	r.client = http.DefaultClient
-	r.basePath = shared.AppSettings.DsSupplierUrl
+	r.basePath = shared.AppSettings.DsSupplierURL
 
-	return &r, nil
+	return &r
 }
 
 func (r *Supplier) Ping(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/health", r.basePath), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/health", r.basePath), nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to make request")
 	}
@@ -43,7 +44,7 @@ func (r *Supplier) Ping(ctx context.Context) error {
 
 	shared.CloseOrLog(ctx, resp.Body)
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("wrong status code: %d", resp.StatusCode)
 	}
 
@@ -58,7 +59,7 @@ func (r *Supplier) sendRequest(ctx context.Context, path string, input any) ([]b
 
 	req, err := http.NewRequestWithContext(
 		ctx,
-		"POST",
+		http.MethodPost,
 		fmt.Sprintf("%s/%s", r.basePath, path),
 		bytes.NewReader(reqBody),
 	)

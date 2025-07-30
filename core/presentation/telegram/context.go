@@ -28,7 +28,7 @@ func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	if !GetOpt(update.EffectiveMessage.Message.Message).Silent {
+	if !getOpt(update.EffectiveMessage.Message.Message).Silent {
 		return nil
 	}
 

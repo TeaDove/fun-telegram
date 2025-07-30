@@ -1,4 +1,4 @@
-module github.com/teadove/fun_telegram
+module fun_telegram
 
 go 1.24.0
 

@@ -5,12 +5,13 @@ import (
 	"strconv"
 	"strings"
 
+	"fun_telegram/core/shared"
+
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/pkg/errors"
-	"github.com/teadove/fun_telegram/core/shared"
 )
 
 func filterNonNewMessages(update *ext.Update) bool {
@@ -36,7 +37,7 @@ func (r *Presentation) replyIfNotSilent(
 	ctx *ext.Context,
 	update *ext.Update,
 	input *input,
-	text any,
+	text ext.ReplyTextType,
 ) error {
 	if input.Silent {
 		return nil
@@ -86,7 +87,7 @@ func GetNameFromTgUser(user *tg.User) string {
 		}
 	}
 
-	result = strings.TrimSpace(shared.ReplaceNonAsciiWithSpace(result))
+	result = strings.TrimSpace(shared.ReplaceNonASCIIWithSpace(result))
 
 	if result == "" {
 		username, ok := user.GetUsername()

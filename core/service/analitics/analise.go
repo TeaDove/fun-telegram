@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/teadove/fun_telegram/core/repository/db_repository"
+	"fun_telegram/core/repository/db_repository"
 
-	"github.com/teadove/fun_telegram/core/supplier/ds_supplier"
+	"fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
 )
@@ -43,10 +43,10 @@ func (r *Service) getChatterBoxes(
 		output.repostImage.Name = "ChatterBoxes"
 	}
 
-	userToCountArray, err := r.dbRepository.MessageGroupByChatIdAndUserId(
+	userToCountArray, err := r.dbRepository.MessageGroupByChatIDAndUserID(
 		ctx,
-		input.TgChatId,
-		usersInChat.ToIds(),
+		input.TgChatID,
+		usersInChat.ToIDs(),
 		limit,
 		asc,
 	)
@@ -59,7 +59,7 @@ func (r *Service) getChatterBoxes(
 
 	userToCount := make(map[string]float64, 25)
 	for _, message := range userToCountArray {
-		userToCount[getter.getNameAndUsername(message.TgUserId)] = float64(message.WordsCount)
+		userToCount[getter.getNameAndUsername(message.TgUserID)] = float64(message.WordsCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{
@@ -105,8 +105,8 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 	for _, user := range usersInChat {
 		replies, err := r.dbRepository.MessageFindRepliesTo(
 			ctx,
-			input.TgChatId,
-			user.TgId,
+			input.TgChatID,
+			user.TgID,
 			9,
 			3,
 		)
@@ -118,13 +118,13 @@ func (r *Service) getMessageFindAllRepliedByGraph(
 		}
 
 		for _, reply := range replies {
-			if !getter.contains(reply.TgUserId) {
+			if !getter.contains(reply.TgUserID) {
 				continue
 			}
 
 			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.getName(reply.TgUserId),
-				Second: getter.getName(user.TgId),
+				First:  getter.getName(reply.TgUserID),
+				Second: getter.getName(user.TgID),
 				Weight: float64(reply.MessagesCount),
 			})
 		}
@@ -175,8 +175,8 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 	for _, user := range usersInChat {
 		replies, err := r.dbRepository.MessageFindRepliesTo(
 			ctx,
-			input.TgChatId,
-			user.TgId,
+			input.TgChatID,
+			user.TgID,
 			0,
 			20,
 		)
@@ -188,13 +188,13 @@ func (r *Service) getMessageFindAllRepliedByHeatmap(
 		}
 
 		for _, reply := range replies {
-			if !getter.contains(reply.TgUserId) {
+			if !getter.contains(reply.TgUserID) {
 				continue
 			}
 
 			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.getName(reply.TgUserId),
-				Second: getter.getName(user.TgId),
+				First:  getter.getName(reply.TgUserID),
+				Second: getter.getName(user.TgID),
 				Weight: float64(reply.MessagesCount),
 			})
 		}

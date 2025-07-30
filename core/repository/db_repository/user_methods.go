@@ -8,10 +8,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *Repository) UserSelectById(ctx context.Context, tgId int64) (User, error) {
+func (r *Repository) UserSelectByID(ctx context.Context, tgID int64) (User, error) {
 	var user User
 
-	err := r.db.WithContext(ctx).Where("tg_id = ?", tgId).Limit(1).Find(&user).Error
+	err := r.db.WithContext(ctx).Where("tg_id = ?", tgID).Limit(1).Find(&user).Error
 	if err != nil {
 		return User{}, errors.Wrap(err, "failed to get user by tg_id")
 	}
@@ -32,7 +32,7 @@ func (r *Repository) UserSelectByUsername(ctx context.Context, tgUsername string
 
 func (r *Repository) UsersSelectByStatusInChat(
 	ctx context.Context,
-	tgChatId int64,
+	tgChatID int64,
 	memberStatuses []MemberStatus,
 ) (UsersInChat, error) {
 	var usersInChat UsersInChat
@@ -43,7 +43,7 @@ select u.tg_id, u.tg_username, u.tg_name, u.is_bot, m.status
 	from "user" u 
 join member m on u.tg_id = m.tg_user_id
 	where m.tg_chat_id = ? and m.status in (?)
-`, tgChatId, memberStatuses).
+`, tgChatID, memberStatuses).
 		Scan(&usersInChat).
 		Error
 	if err != nil {
@@ -55,7 +55,7 @@ join member m on u.tg_id = m.tg_user_id
 
 func (r *Repository) UsersSelectInChat(
 	ctx context.Context,
-	tgChatId int64,
+	tgChatID int64,
 ) (UsersInChat, error) {
 	var usersInChat UsersInChat
 
@@ -65,7 +65,7 @@ select u.tg_id, u.tg_username, u.tg_name, u.is_bot, m.status
 	from "user" u 
 join member m on u.tg_id = m.tg_user_id
 	where m.tg_chat_id = ?
-`, tgChatId).
+`, tgChatID).
 		Scan(&usersInChat).
 		Error
 	if err != nil {
@@ -115,13 +115,13 @@ func (r *Repository) MemberUpsert(ctx context.Context, member *Member) error {
 
 func (r *Repository) MemberSetAsLeftBeforeTime(
 	ctx context.Context,
-	tgChatId int64,
+	tgChatID int64,
 	notUpdatedBefore time.Time,
 ) error {
 	err := r.db.
 		WithContext(ctx).
 		Model(&Member{}).
-		Where("tg_chat_id = ? AND updated_in_db_at < ?", tgChatId, notUpdatedBefore).
+		Where("tg_chat_id = ? AND updated_in_db_at < ?", tgChatID, notUpdatedBefore).
 		Update("status", Left).
 		Error
 	if err != nil {

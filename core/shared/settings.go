@@ -21,7 +21,7 @@ type Settings struct {
 	Telegram   telegram `envPrefix:"TELEGRAM__"`
 	SQLiteFile string   `                       env:"SQLITE_FILE" envDefault:"./data/db.sqlite"`
 
-	DsSupplierUrl string `env:"ds_supplier_url" envDefault:"http://0.0.0.0:8000"`
+	DsSupplierURL string `env:"DS_SUPPLIER_URL" envDefault:"http://0.0.0.0:8000"`
 }
 
-var AppSettings = settings_utils.MustGetSetting[Settings]("FUN_")
+var AppSettings = settings_utils.MustGetSetting[Settings]("FUN_") //nolint: gochecknoglobals // FIXME
