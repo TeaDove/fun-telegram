@@ -65,23 +65,26 @@ LastDate: %s`,
 	}
 }
 
-func statsGetArgs(c *Context) (time.Duration, int, time.Time, error) {
+func statsGetArgs(c *Context) (getChatStorageInput, error) {
+	var input getChatStorageInput
+
 	const (
 		maxElapsed = time.Hour
 	)
 
-	maxCount := shared.DefaultUploadCount
+	input.MaxElapsed = maxElapsed
+	input.MaxCount = shared.DefaultUploadCount
 
 	if userMaxCountS, ok := c.Ops[FlagUploadStatsCount.Long]; ok {
 		userMaxCount, err := strconv.Atoi(userMaxCountS)
 		if err != nil {
-			return 0, 0, time.Time{}, errors.Wrap(err, "failed to parse count flag")
+			return getChatStorageInput{}, errors.Wrap(err, "failed to parse count flag")
 		}
 
 		if userMaxCount < shared.MaxUploadCount {
-			maxCount = userMaxCount
+			input.MaxCount = userMaxCount
 		} else {
-			maxCount = shared.MaxUploadCount
+			input.MaxCount = shared.MaxUploadCount
 		}
 	}
 
@@ -90,7 +93,7 @@ func statsGetArgs(c *Context) (time.Duration, int, time.Time, error) {
 	if userQueryAgeS, ok := c.Ops[FlagUploadStatsDay.Long]; ok {
 		userQueryAge, err := strconv.Atoi(userQueryAgeS)
 		if err != nil {
-			return 0, 0, time.Time{}, errors.Wrap(err, "failed to parse age flag")
+			return getChatStorageInput{}, errors.Wrap(err, "failed to parse age flag")
 		}
 
 		if userQueryAge < int(shared.MaxUploadQueryAge.Hours()/24) {
@@ -100,9 +103,9 @@ func statsGetArgs(c *Context) (time.Duration, int, time.Time, error) {
 		}
 	}
 
-	queryTill := time.Now().UTC().Add(-maxQueryAge)
+	input.QueryTill = time.Now().UTC().Add(-maxQueryAge)
 
-	return maxElapsed, maxCount, queryTill, nil
+	return input, nil
 }
 
 func (r *Presentation) appendMessage(c *Context, storage *message_service.Storage, elem messages.Elem) {
@@ -134,13 +137,16 @@ func (r *Presentation) appendMessage(c *Context, storage *message_service.Storag
 	r.analiticsService.AppendMessage(storage, &analiticsMessage)
 }
 
-// uploadStatsUpload.
-func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit, funlen // FIXME
-	maxElapled, maxCount, queryTill, err := statsGetArgs(c)
-	if err != nil {
-		return c.replyWithError(err)
-	}
+type getChatStorageInput struct {
+	MaxElapsed time.Duration
+	MaxCount   int
+	QueryTill  time.Time
+}
 
+func (r *Presentation) getChatStorage( //nolint: funlen // FIXME
+	c *Context,
+	input *getChatStorageInput,
+) (*message_service.Storage, error) {
 	var (
 		barChatID    int64
 		barMessageID int
@@ -150,7 +156,7 @@ func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit,
 	if !c.Silent {
 		barMessage, err := c.extCtx.Reply(c.update, ext.ReplyTextString("⚙️ Uploading messages"), nil)
 		if err != nil {
-			return errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 
 		barMessageID = barMessage.ID
@@ -162,7 +168,7 @@ func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit,
 			&tg.MessagesSendMessageRequest{Message: "⚙️ Uploading messages"},
 		)
 		if err != nil {
-			return errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 
 		barMessageID = barMessage.ID
@@ -188,10 +194,11 @@ func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit,
 
 	users, err := r.updateMembers(c.extCtx, c.update.EffectiveChat())
 	if err != nil {
-		return c.replyWithError(errors.WithStack(err))
+		return nil, c.replyWithError(errors.WithStack(err))
 	}
 
 	storage.Users = users
+	storage.UsersNameGetter = storage.Users.GetNameGetter()
 
 	for {
 		zerolog.Ctx(c.extCtx).Trace().Int("offset", offset).Msg("new.iteration")
@@ -200,7 +207,7 @@ func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit,
 		if !ok {
 			err = historyIter.Err()
 			if err != nil {
-				return errors.WithStack(err)
+				return nil, errors.WithStack(err)
 			}
 
 			zerolog.Ctx(c.extCtx).Info().Str("status", "all.messages.found").Send()
@@ -234,11 +241,11 @@ func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit,
 				offset,
 				startedAt,
 				lastDate,
-				maxCount,
+				input.MaxCount,
 			)
 		}
 
-		if !lastDate.After(queryTill) || time.Since(startedAt) > maxElapled || count > maxCount {
+		if !lastDate.After(input.QueryTill) || time.Since(startedAt) > input.MaxElapsed || count > input.MaxCount {
 			break
 		}
 	}
@@ -266,9 +273,20 @@ func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit,
 		zerolog.Ctx(c.extCtx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
 	}
 
-	return r.statsCommandHandler(c, storage)
+	return storage, nil
 }
 
-func (r *Presentation) uploadStatsCommandHandler(c *Context) error {
-	return r.uploadStatsUpload(c)
+// statsCommand.
+func (r *Presentation) statsCommand(c *Context) error {
+	input, err := statsGetArgs(c)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	storage, err := r.getChatStorage(c, &input)
+	if err != nil {
+		return errors.Wrap(err, "failed to get chat storage")
+	}
+
+	return r.compileStats(c, storage)
 }

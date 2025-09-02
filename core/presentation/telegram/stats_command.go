@@ -36,10 +36,10 @@ var (
 	}
 )
 
-// statsCommandHandler
+// compileStats
 // nolint: cyclop // don't care
 // TODO fix cyclop
-func (r *Presentation) statsCommandHandler(c *Context, storage *message_service.Storage) error {
+func (r *Presentation) compileStats(c *Context, storage *message_service.Storage) error {
 	_, anonymize := c.Ops[FlagStatsAnonymize.Long]
 
 	analiseInput := analitics.AnaliseChatInput{

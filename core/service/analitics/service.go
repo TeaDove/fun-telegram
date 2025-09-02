@@ -114,8 +114,6 @@ func (r *Service) analiseWholeChat(
 	ctx context.Context,
 	input *AnaliseChatInput,
 ) (AnaliseReport, error) { //nolint: unparam // FIXME
-	getter := r.getNameGetter(input.Storage.Users, input.Anonymize)
-
 	report := AnaliseReport{
 		Images:         make([]File, 0, 7),
 		FirstMessageAt: time.Now(),
@@ -134,16 +132,16 @@ func (r *Service) analiseWholeChat(
 	})
 
 	wg.Go(func() {
-		r.getChatterBoxes(ctx, statsReportChan, input, getter, true)
+		r.getChatterBoxes(ctx, statsReportChan, input, true)
 	})
 	wg.Go(func() {
-		r.getChatterBoxes(ctx, statsReportChan, input, getter, false)
+		r.getChatterBoxes(ctx, statsReportChan, input, false)
 	})
 	wg.Go(func() {
 		r.getMessagesGroupedByDateByChatID(ctx, statsReportChan, input)
 	})
 	wg.Go(func() {
-		r.getMostToxicUsers(ctx, statsReportChan, input, getter)
+		r.getMostToxicUsers(ctx, statsReportChan, input)
 	})
 
 	wg.Wait()

@@ -11,7 +11,6 @@ func (r *Service) getChatterBoxes(
 	ctx context.Context,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
-	getter nameGetter,
 	asc bool,
 ) {
 	output := statsReport{
@@ -46,7 +45,7 @@ func (r *Service) getChatterBoxes(
 
 	userToCount := make(map[string]float64, 25)
 	for _, message := range userToCountArray {
-		userToCount[getter.getNameAndUsername(message.TgUserID)] = float64(message.WordsCount)
+		userToCount[input.Storage.UsersNameGetter.GetNameAndUsername(message.TgUserID)] = float64(message.WordsCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawBar(ctx, &ds_supplier.DrawBarInput{

@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"fun_telegram/core/supplier/gigachat_supplier"
 	"time"
 
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
@@ -33,6 +34,7 @@ type Presentation struct {
 	router map[string]messageProcessor
 
 	analiticsService *analitics.Service
+	gigachatSupplier *gigachat_supplier.Supplier
 }
 
 func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
@@ -81,7 +83,11 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 	return protoClient, nil
 }
 
-func MustNewTelegramPresentation(protoClient *gotgproto.Client, analiticsService *analitics.Service) *Presentation {
+func MustNewTelegramPresentation(
+	protoClient *gotgproto.Client,
+	analiticsService *analitics.Service,
+	gigachatSupplier *gigachat_supplier.Supplier,
+) *Presentation {
 	api := protoClient.API()
 
 	presentation := Presentation{
@@ -89,6 +95,7 @@ func MustNewTelegramPresentation(protoClient *gotgproto.Client, analiticsService
 		telegramAPI:      api,
 		telegramManager:  peers.Options{}.Build(api),
 		analiticsService: analiticsService,
+		gigachatSupplier: gigachatSupplier,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -121,7 +128,7 @@ func MustNewTelegramPresentation(protoClient *gotgproto.Client, analiticsService
 			flags:       []optFlag{},
 		},
 		"stats": {
-			executor:    presentation.uploadStatsCommandHandler,
+			executor:    presentation.statsCommand,
 			description: "uploads stats from this chat",
 			flags: []optFlag{
 				FlagUploadStatsCount,
@@ -130,6 +137,11 @@ func MustNewTelegramPresentation(protoClient *gotgproto.Client, analiticsService
 				FlagStatsAnonymize,
 			},
 			example: "-c=400000 -d=365 -o=0 --silent",
+		},
+		"summarize": {
+			executor:    presentation.summarizeCommand,
+			description: "summarize last messages",
+			flags:       []optFlag{},
 		},
 		"restart": {
 			executor:    presentation.restartCommandHandler,

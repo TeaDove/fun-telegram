@@ -17,8 +17,15 @@ type telegram struct {
 	RateLimiterLimit   int           `env:"RATE_LIMITER_LIMIT"   envDefault:"100"`
 }
 
+type gigachat struct {
+	AuthURL          string `env:"AUTH_URL"          envDefault:"https://ngw.devices.sberbank.ru:9443/api/v2/oauth"`
+	BaseURL          string `env:"BASE_URL"          envDefault:"https://gigachat.devices.sberbank.ru/api/v1/chat/completions"` //nolint: lll // as-expected
+	AuthorizationKey string `env:"AUTHORIZATION_KEY" envDefault:""`
+}
+
 type Settings struct {
 	Telegram telegram `envPrefix:"TELEGRAM__"`
+	Gigachat gigachat `envPrefix:"GIGACHAT__"`
 
 	DsSupplierURL string `env:"DS_SUPPLIER_URL" envDefault:"http://0.0.0.0:8000"`
 }

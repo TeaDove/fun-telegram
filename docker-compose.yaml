@@ -1,71 +1,26 @@
-version: '3.9'
-
 services:
   core:
     restart: always
-    environment:
-      fun_file_storage_path: "/config"
-      fun_storage__redis_host: "redis"
-      fun_storage__mongo_db_url: "mongodb://mongodb:27017"
-      fun_storage__clickhouse_url: "clickhouse:9000"
-      fun_ds_supplier_url: "http://ds:8000"
-    image: ghcr.io/teadove/fun-telegram:v1.11.63
+    build:
+      context: .
     volumes:
       - ".mtproto:/.mtproto"
       - ".env:/.env"
-    depends_on:
-      redis:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-      clickhouse:
-        condition: service_healthy
-      ds:
-        condition: service_healthy
-    labels:
-      - "autoheal=true"
-    healthcheck:
-      test: curl -f http://127.0.0.1:3333/health || exit 1
-      interval: 2m
-      timeout: 20s
-      retries: 3
-      start_period: 5s
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 1200M
+          cpus: '1'
+          memory: 2000M
 
   ds:
+    image: ghcr.io/teadove/fun-datascience:v2.0.3
     restart: always
     environment:
       _UVICORN__HOST: "0.0.0.0"
       _UVICORN__PORT: 8000
       _UVICORN__WORKERS: 2
-    volumes: []
-    healthcheck:
-      test: curl -f http://127.0.0.1:8000/health || exit 1
-      interval: 2m
-      timeout: 20s
-      retries: 3
-      start_period: 5s
     deploy:
       resources:
         limits:
           cpus: '0.75'
-          memory: 1800M
-    labels:
-      - "autoheal=true"
-    image: ghcr.io/teadove/fun-datascience:v2.0.3
-
-  autoheal:
-    restart: always
-    image: willfarrell/autoheal
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 100M
-
+          memory: 1000M

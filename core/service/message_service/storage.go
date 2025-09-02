@@ -52,5 +52,7 @@ const (
 
 type Storage struct {
 	Messages Messages
-	Users    UsersInChat
+
+	Users           UsersInChat
+	UsersNameGetter NameGetter
 }

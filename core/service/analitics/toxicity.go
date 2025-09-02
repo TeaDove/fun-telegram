@@ -11,7 +11,6 @@ func (r *Service) getMostToxicUsers(
 	ctx context.Context,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
-	getter nameGetter,
 ) {
 	output := statsReport{
 		repostImage: File{
@@ -32,7 +31,7 @@ func (r *Service) getMostToxicUsers(
 
 	userToCount := make(map[string]float64, limit)
 	for _, message := range userToCountArray {
-		userToCount[getter.getName(message.TgUserID)] = float64(
+		userToCount[input.Storage.UsersNameGetter.GetName(message.TgUserID)] = float64(
 			message.ToxicWordsCount,
 		) / float64(
 			message.WordsCount,
