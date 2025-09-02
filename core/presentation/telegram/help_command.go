@@ -61,12 +61,8 @@ func (r *Presentation) compileHelpMessage() []styling.StyledTextOption {
 	return helpMessage
 }
 
-func (r *Presentation) helpCommandHandler(
-	ctx *ext.Context,
-	update *ext.Update,
-	_ *input,
-) error {
-	_, err := ctx.Reply(update, ext.ReplyTextStyledTextArray(r.compileHelpMessage()), nil)
+func (r *Presentation) helpCommandHandler(c *Context) error {
+	_, err := c.extCtx.Reply(c.update, ext.ReplyTextStyledTextArray(r.compileHelpMessage()), nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}

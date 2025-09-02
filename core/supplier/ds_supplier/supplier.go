@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/teadove/teasutils/utils/closer_utils"
+
 	"github.com/tidwall/gjson"
 
 	"github.com/rs/zerolog"
@@ -42,7 +44,7 @@ func (r *Supplier) Ping(ctx context.Context) error {
 		return errors.Wrap(err, "failed to do request")
 	}
 
-	shared.CloseOrLog(ctx, resp.Body)
+	closer_utils.CloseOrLog(ctx, resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("wrong status code: %d", resp.StatusCode)
@@ -97,7 +99,7 @@ func (r *Supplier) doRequest(ctx context.Context, req *http.Request) ([]byte, er
 		return nil, errors.Wrap(err, "failed to read body request")
 	}
 
-	shared.CloseOrLog(ctx, resp.Body)
+	closer_utils.CloseOrLog(ctx, resp.Body)
 
 	zerolog.Ctx(ctx).Debug().
 		Str("elapsed", time.Since(t0).String()).

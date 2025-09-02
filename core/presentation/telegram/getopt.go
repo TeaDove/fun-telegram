@@ -3,6 +3,8 @@ package telegram
 import (
 	"strings"
 	"time"
+
+	"github.com/celestix/gotgproto/ext"
 )
 
 type optFlag struct {
@@ -11,11 +13,15 @@ type optFlag struct {
 	Description string
 }
 
-type input struct {
+type Context struct {
 	Text      string
 	Silent    bool
 	Ops       map[string]string
 	StartedAt time.Time
+
+	extCtx       *ext.Context
+	update       *ext.Update
+	presentation *Presentation
 }
 
 var FlagSilent = optFlag{Long: "silent", Short: "q"} // nolint: gochecknoglobals // FIXME
@@ -76,7 +82,7 @@ func stripWords(text string) []string {
 
 // getOpt
 // nolint: gocyclo // don't care
-func getOpt(text string, flags ...optFlag) input { // nolint: gocognit, funlen // ((((
+func getOpt(text string, flags ...optFlag) Context { // nolint: gocognit, funlen // ((((
 	const longHypenByte = 226
 
 	flags = append(flags, FlagSilent)
@@ -88,7 +94,8 @@ func getOpt(text string, flags ...optFlag) input { // nolint: gocognit, funlen /
 		shortToLong[flag.Short] = flag.Long
 	}
 
-	var output input
+	var output Context
+
 	output.Ops = make(map[string]string, 3)
 	textBuilder := strings.Builder{}
 	words := stripWords(text)

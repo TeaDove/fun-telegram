@@ -8,9 +8,13 @@ import (
 
 func main() {
 	ctx := logger_utils.NewLoggedCtx()
-	combatContainer := container.MustNewCombatContainer(ctx)
 
-	err := combatContainer.Presentation.Run(ctx)
+	combatContainer, err := container.NewContainer(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	err = combatContainer.Presentation.Run(ctx)
 	if err != nil {
 		panic(err)
 	}

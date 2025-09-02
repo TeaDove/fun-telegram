@@ -2,11 +2,6 @@ package analitics
 
 import (
 	"context"
-	"strings"
-	"sync"
-
-	"fun_telegram/core/repository/db_repository"
-
 	"fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
@@ -14,16 +9,10 @@ import (
 
 func (r *Service) getMostToxicUsers(
 	ctx context.Context,
-	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
 	getter nameGetter,
-	usersInChat db_repository.UsersInChat,
 ) {
-	defer wg.Done()
-
-	const maxUsers = 15
-
 	output := statsReport{
 		repostImage: File{
 			Name:      "MostToxicUsers",
@@ -31,21 +20,17 @@ func (r *Service) getMostToxicUsers(
 		},
 	}
 
-	userToCountArray, err := r.dbRepository.MessageGroupByChatIDAndUserID(
-		ctx,
-		input.TgChatID,
-		usersInChat.ToIDs(),
-		maxUsers,
-		true,
-	)
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to get GroupedCountGetByChatIdByUserId")
-		statsReportChan <- output
+	limit := 15
+	userToCountArray := input.Storage.Messages.GroupByUserID()
+	userToCountArray.SortByWordsCount(true)
 
-		return
+	if limit > len(userToCountArray) {
+		limit = len(userToCountArray)
 	}
 
-	userToCount := make(map[string]float64, maxUsers)
+	userToCountArray = userToCountArray[:limit]
+
+	userToCount := make(map[string]float64, limit)
 	for _, message := range userToCountArray {
 		userToCount[getter.getName(message.TgUserID)] = float64(
 			message.ToxicWordsCount,
@@ -80,20 +65,4 @@ func (r *Service) IsToxic(word string) (bool, error) {
 	}
 
 	return match, nil
-}
-
-func (r *Service) IsToxicSentence(words string) (string, bool, error) {
-	sentence := strings.Fields(strings.TrimSpace(strings.ToLower(words)))
-	for _, word := range sentence {
-		match, err := r.toxicityExp.MatchString(word)
-		if err != nil {
-			return "", false, errors.WithStack(err)
-		}
-
-		if match {
-			return word, true, nil
-		}
-	}
-
-	return "", false, nil
 }

@@ -18,8 +18,7 @@ type telegram struct {
 }
 
 type Settings struct {
-	Telegram   telegram `envPrefix:"TELEGRAM__"`
-	SQLiteFile string   `                       env:"SQLITE_FILE" envDefault:"./data/db.sqlite"`
+	Telegram telegram `envPrefix:"TELEGRAM__"`
 
 	DsSupplierURL string `env:"DS_SUPPLIER_URL" envDefault:"http://0.0.0.0:8000"`
 }

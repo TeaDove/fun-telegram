@@ -70,7 +70,7 @@ linters:
     - usestdlibvars
     - wastedassign
     - whitespace
-    - wsl
+    - wsl_v5
     - zerologlint
   settings:
     cyclop:

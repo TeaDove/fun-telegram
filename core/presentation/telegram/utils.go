@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog"
+
 	"fun_telegram/core/shared"
 
 	"github.com/celestix/gotgproto/ext"
@@ -33,22 +35,23 @@ func filterNonNewMessagesNotFromUser(update *ext.Update) bool {
 	return update.EffectiveUser() != nil
 }
 
-func (r *Presentation) replyIfNotSilent(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-	text ext.ReplyTextType,
-) error {
-	if input.Silent {
+func (r *Context) reply(text ext.ReplyTextType) error {
+	if r.Silent {
 		return nil
 	}
 
-	_, err := ctx.Reply(update, text, nil)
+	_, err := r.extCtx.Reply(r.update, text, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to reply to message")
 	}
 
 	return nil
+}
+
+func (r *Context) replyWithError(err error) error {
+	zerolog.Ctx(r.extCtx).Warn().Stack().Err(err).Msg("client.error.occurred")
+
+	return r.reply(ext.ReplyTextString(fmt.Sprintf("Error occurred: %s", err.Error())))
 }
 
 func GetNameFromPeerUser(user *peers.User) string {

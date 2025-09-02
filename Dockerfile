@@ -1,5 +1,5 @@
 # Start by building the application.
-FROM golang:1.22-bullseye as build
+FROM golang:1.25-bullseye as build
 
 WORKDIR /src
 COPY . .

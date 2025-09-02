@@ -12,7 +12,7 @@ import (
 )
 
 type messageProcessor struct {
-	executor    func(ctx *ext.Context, update *ext.Update, input *input) error
+	executor    func(c *Context) error
 	description string
 	flags       []optFlag
 	example     string
@@ -41,7 +41,10 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		Logger().
 		WithContext(ctx.Context)
 
-	commandInput := getOpt(text, route.flags...)
+	c := getOpt(text, route.flags...)
+	c.extCtx = ctx
+	c.update = update
+	c.presentation = r
 
 	if update.EffectiveUser().GetID() != ctx.Self.ID {
 		_, err := ctx.Reply(update, ext.ReplyTextString("Err: insufficient privilege: owner rights required"), nil)
@@ -52,16 +55,15 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		return nil
 	}
 
-	commandInput.StartedAt = time.Now().UTC()
+	c.StartedAt = time.Now().UTC()
 
 	zerolog.Ctx(ctx.Context).
-		Info().
-		// Interface("input", commandInput).
+		Debug().
 		Str("command", firstWord).
 		Msg("executing.command.begin")
 
-	err := route.executor(ctx, update, &commandInput)
-	elapsed := time.Now().UTC().Sub(commandInput.StartedAt)
+	err := route.executor(&c)
+	elapsed := time.Now().UTC().Sub(c.StartedAt)
 
 	if err != nil {
 		zerolog.Ctx(ctx.Context).Error().
@@ -73,7 +75,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 
 		var innerErr error
 
-		if commandInput.Silent {
+		if c.Silent {
 			_, innerErr = ctx.SendMessage(
 				ctx.Self.ID,
 				&tg.MessagesSendMessageRequest{Message: errMessage},

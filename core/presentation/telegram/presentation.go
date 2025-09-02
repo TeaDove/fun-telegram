@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"fun_telegram/core/repository/db_repository"
-
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/glebarez/sqlite"
 
@@ -34,7 +32,6 @@ type Presentation struct {
 
 	router map[string]messageProcessor
 
-	dbRepository     *db_repository.Repository
 	analiticsService *analitics.Service
 }
 
@@ -84,11 +81,7 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 	return protoClient, nil
 }
 
-func MustNewTelegramPresentation(
-	protoClient *gotgproto.Client,
-	analiticsService *analitics.Service,
-	dbRepository *db_repository.Repository,
-) *Presentation {
+func MustNewTelegramPresentation(protoClient *gotgproto.Client, analiticsService *analitics.Service) *Presentation {
 	api := protoClient.API()
 
 	presentation := Presentation{
@@ -96,7 +89,6 @@ func MustNewTelegramPresentation(
 		telegramAPI:      api,
 		telegramManager:  peers.Options{}.Build(api),
 		analiticsService: analiticsService,
-		dbRepository:     dbRepository,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -129,17 +121,13 @@ func MustNewTelegramPresentation(
 			flags:       []optFlag{},
 		},
 		"stats": {
-			executor:    presentation.statsCommandHandler,
-			description: "get stats of this chat",
-			flags:       []optFlag{FlagStatsAnonymize},
-		},
-		"upload_stats": {
 			executor:    presentation.uploadStatsCommandHandler,
 			description: "uploads stats from this chat",
 			flags: []optFlag{
 				FlagUploadStatsCount,
 				FlagUploadStatsDay,
 				FlagUploadStatsOffset,
+				FlagStatsAnonymize,
 			},
 			example: "-c=400000 -d=365 -o=0 --silent",
 		},

@@ -2,65 +2,65 @@ package telegram
 
 import (
 	"fmt"
+	"fun_telegram/core/service/message_service"
 	"time"
 
 	"fun_telegram/core/service/analitics"
 
-	"github.com/celestix/gotgproto/ext"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/pkg/errors"
 )
 
-var FlagStatsAnonymize = optFlag{ // nolint: gochecknoglobals // FIXME
-	Long:        "anonymize",
-	Short:       "a",
-	Description: "anonymize names of users",
-}
+var (
+	FlagUploadStatsOffset = optFlag{ //nolint: gochecknoglobals // FIXME
+		Long:        "offset",
+		Short:       "o",
+		Description: "force message offset",
+	}
+	FlagUploadStatsDay = optFlag{ //nolint: gochecknoglobals // FIXME
+		Long:        "day",
+		Short:       "d",
+		Description: "max age of message to upload in days",
+	}
+	FlagUploadStatsCount = optFlag{ //nolint: gochecknoglobals // FIXME
+		Long:        "count",
+		Short:       "c",
+		Description: "max amount of message to upload",
+	}
+	FlagStatsAnonymize = optFlag{ // nolint: gochecknoglobals // FIXME
+		Long:        "anonymize",
+		Short:       "a",
+		Description: "anonymize names of users",
+	}
+)
 
 // statsCommandHandler
 // nolint: cyclop // don't care
 // TODO fix cyclop
-func (r *Presentation) statsCommandHandler(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-) error {
-	_, err := r.updateMembers(ctx, update.EffectiveChat())
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	_, anonymize := input.Ops[FlagStatsAnonymize.Long]
+func (r *Presentation) statsCommandHandler(c *Context, storage *message_service.Storage) error {
+	_, anonymize := c.Ops[FlagStatsAnonymize.Long]
 
 	analiseInput := analitics.AnaliseChatInput{
-		TgChatID:  update.EffectiveChat().GetID(),
+		TgChatID:  c.update.EffectiveChat().GetID(),
 		Anonymize: anonymize,
+		Storage:   *storage,
 	}
 
-	report, err := r.analiticsService.AnaliseChat(ctx, &analiseInput)
+	report, err := r.analiticsService.AnaliseChat(c.extCtx, &analiseInput)
 	if err != nil {
-		if errors.Is(err, analitics.ErrNoMessagesFound) {
-			err := r.replyIfNotSilent(ctx, update, input, ext.ReplyTextString("Err: no messages found"))
-			if err != nil {
-				return errors.Wrap(err, "failed to reply")
-			}
-
-			return nil
-		}
-
 		return errors.Wrap(err, "failed to analise chat")
 	}
 
-	fileUploader := uploader.NewUploader(ctx.Raw)
+	fileUploader := uploader.NewUploader(c.extCtx.Raw)
 
 	if len(report.Images) == 0 {
 		return errors.Wrapf(err, "no images in report")
 	}
 
 	firstFile, err := fileUploader.FromBytes(
-		ctx,
+		c.extCtx,
 		report.Images[0].Filename(),
 		report.Images[0].Content,
 	)
@@ -71,7 +71,7 @@ func (r *Presentation) statsCommandHandler(
 	album := make([]message.MultiMediaOption, 0, 10)
 
 	for _, repostImage := range report.Images[1:] {
-		file, err := fileUploader.FromBytes(ctx, repostImage.Filename(), repostImage.Content)
+		file, err := fileUploader.FromBytes(c.extCtx, repostImage.Filename(), repostImage.Content)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -80,25 +80,25 @@ func (r *Presentation) statsCommandHandler(
 	}
 
 	text := make([]styling.StyledTextOption, 0, 3)
-	text = append(text, styling.Plain(fmt.Sprintf("%s \n\n", GetChatName(update.EffectiveChat()))))
+	text = append(text, styling.Plain(fmt.Sprintf("%s \n\n", GetChatName(c.update.EffectiveChat()))))
 
 	text = append(text,
 		styling.Plain(
 			fmt.Sprintf(`"Messages processed: %d
 Compiled in: %.2fs`,
 				report.MessagesCount,
-				time.Since(input.StartedAt).Seconds()),
+				time.Since(c.StartedAt).Seconds()),
 		),
 	)
 
 	var requestBuilder *message.RequestBuilder
-	if input.Silent {
-		requestBuilder = ctx.Sender.Self()
+	if c.Silent {
+		requestBuilder = c.extCtx.Sender.Self()
 	} else {
-		requestBuilder = ctx.Sender.To(update.EffectiveChat().GetInputPeer())
+		requestBuilder = c.extCtx.Sender.To(c.update.EffectiveChat().GetInputPeer())
 	}
 
-	_, err = requestBuilder.Album(ctx, message.UploadedPhoto(firstFile, text...), album...)
+	_, err = requestBuilder.Album(c.extCtx, message.UploadedPhoto(firstFile, text...), album...)
 	if err != nil {
 		return errors.WithStack(err)
 	}

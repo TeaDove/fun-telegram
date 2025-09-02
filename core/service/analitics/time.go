@@ -2,7 +2,6 @@ package analitics
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"fun_telegram/core/supplier/ds_supplier"
@@ -12,31 +11,18 @@ import (
 
 func (r *Service) getMessagesGroupedByDateByChatID(
 	ctx context.Context,
-	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
 ) {
-	defer wg.Done()
-
 	statsReportResult := statsReport{
 		repostImage: File{Name: "MessagesGroupedByDateByChatId", Extension: "jpeg"},
 	}
 
-	messagesGrouped, err := r.dbRepository.MessageGroupByDateAndChatID(
-		ctx,
-		input.TgChatID,
-		time.Hour*24*7,
-	)
-	if err != nil {
-		statsReportResult.err = errors.Wrap(err, "failed to get messages from repository")
-		statsReportChan <- statsReportResult
-
-		return
-	}
+	messagesGrouped := input.Storage.Messages.GroupByTime(time.Hour * 24 * 7)
 
 	timeToCount := make(map[string]float64, 100)
 	for _, message := range messagesGrouped {
-		timeToCount[message.CreatedAt] = float64(message.WordsCount)
+		timeToCount[message.CreatedAt.Format(time.RFC3339)] = float64(message.WordsCount)
 	}
 
 	jpgImg, err := r.dsSupplier.DrawTimeseries(ctx, &ds_supplier.DrawTimeseriesInput{

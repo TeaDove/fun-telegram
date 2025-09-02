@@ -2,10 +2,6 @@ package analitics
 
 import (
 	"context"
-	"sync"
-
-	"fun_telegram/core/repository/db_repository"
-
 	"fun_telegram/core/supplier/ds_supplier"
 
 	"github.com/pkg/errors"
@@ -13,15 +9,11 @@ import (
 
 func (r *Service) getChatterBoxes(
 	ctx context.Context,
-	wg *sync.WaitGroup,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
 	getter nameGetter,
 	asc bool,
-	usersInChat db_repository.UsersInChat,
 ) {
-	defer wg.Done()
-
 	output := statsReport{
 		repostImage: File{
 			Extension: "jpeg",
@@ -30,7 +22,7 @@ func (r *Service) getChatterBoxes(
 
 	var (
 		title string
-		limit int64
+		limit int
 	)
 
 	if asc {
@@ -43,19 +35,14 @@ func (r *Service) getChatterBoxes(
 		output.repostImage.Name = "ChatterBoxes"
 	}
 
-	userToCountArray, err := r.dbRepository.MessageGroupByChatIDAndUserID(
-		ctx,
-		input.TgChatID,
-		usersInChat.ToIDs(),
-		limit,
-		asc,
-	)
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to get chatter boxes")
-		statsReportChan <- output
+	userToCountArray := input.Storage.Messages.GroupByUserID()
+	userToCountArray.SortByWordsCount(asc)
 
-		return
+	if limit > len(userToCountArray) {
+		limit = len(userToCountArray)
 	}
+
+	userToCountArray = userToCountArray[:limit]
 
 	userToCount := make(map[string]float64, 25)
 	for _, message := range userToCountArray {
@@ -82,147 +69,146 @@ func (r *Service) getChatterBoxes(
 	statsReportChan <- output
 }
 
-const interlocutorsLimit = 15
-
-func (r *Service) getMessageFindAllRepliedByGraph(
-	ctx context.Context,
-	wg *sync.WaitGroup,
-	statsReportChan chan<- statsReport,
-	input *AnaliseChatInput,
-	usersInChat db_repository.UsersInChat,
-	getter nameGetter,
-) {
-	defer wg.Done()
-
-	output := statsReport{
-		repostImage: File{
-			Name:      "MessageFindAllRepliedBy",
-			Extension: "jpeg",
-		},
-	}
-	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
-
-	for _, user := range usersInChat {
-		replies, err := r.dbRepository.MessageFindRepliesTo(
-			ctx,
-			input.TgChatID,
-			user.TgID,
-			9,
-			3,
-		)
-		if err != nil {
-			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
-			statsReportChan <- output
-
-			return
-		}
-
-		for _, reply := range replies {
-			if !getter.contains(reply.TgUserID) {
-				continue
-			}
-
-			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.getName(reply.TgUserID),
-				Second: getter.getName(user.TgID),
-				Weight: float64(reply.MessagesCount),
-			})
-		}
-	}
-
-	if len(edges) == 0 {
-		output.err = errors.New("no edges of graph")
-		statsReportChan <- output
-
-		return
-	}
-
-	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
-		DrawInput:     ds_supplier.DrawInput{Title: "Interlocusts"},
-		Edges:         edges,
-		Layout:        "neato",
-		WeightedEdges: true,
-	})
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
-		statsReportChan <- output
-
-		return
-	}
-
-	output.repostImage.Content = jpgImg
-	statsReportChan <- output
-}
-
-func (r *Service) getMessageFindAllRepliedByHeatmap(
-	ctx context.Context,
-	wg *sync.WaitGroup,
-	statsReportChan chan<- statsReport,
-	input *AnaliseChatInput,
-	usersInChat db_repository.UsersInChat,
-	getter nameGetter,
-) {
-	defer wg.Done()
-
-	output := statsReport{
-		repostImage: File{
-			Name:      "MessageFindAllRepliedByAsHeatmap",
-			Extension: "jpeg",
-		},
-	}
-	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
-
-	for _, user := range usersInChat {
-		replies, err := r.dbRepository.MessageFindRepliesTo(
-			ctx,
-			input.TgChatID,
-			user.TgID,
-			0,
-			20,
-		)
-		if err != nil {
-			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
-			statsReportChan <- output
-
-			return
-		}
-
-		for _, reply := range replies {
-			if !getter.contains(reply.TgUserID) {
-				continue
-			}
-
-			edges = append(edges, ds_supplier.GraphEdge{
-				First:  getter.getName(reply.TgUserID),
-				Second: getter.getName(user.TgID),
-				Weight: float64(reply.MessagesCount),
-			})
-		}
-	}
-
-	if len(edges) == 0 {
-		output.err = errors.New("no edges of graph")
-		statsReportChan <- output
-
-		return
-	}
-
-	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
-		WeightedEdges: false,
-		DrawInput: ds_supplier.DrawInput{
-			Title:  "Interlocusts",
-			XLabel: "User replied by",
-			YLabel: "User replies to",
-		},
-		Edges: edges,
-	})
-	if err != nil {
-		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
-		statsReportChan <- output
-
-		return
-	}
-
-	output.repostImage.Content = jpgImg
-	statsReportChan <- output
-}
+// const interlocutorsLimit = 15
+// func (r *Service) getMessageFindAllRepliedByGraph(
+//	ctx context.Context,
+//	wg *sync.WaitGroup,
+//	statsReportChan chan<- statsReport,
+//	input *AnaliseChatInput,
+//	usersInChat db_repository.UsersInChat,
+//	getter nameGetter,
+// ) {
+//	defer wg.Done()
+//
+//	output := statsReport{
+//		repostImage: File{
+//			Name:      "MessageFindAllRepliedBy",
+//			Extension: "jpeg",
+//		},
+//	}
+//	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
+//
+//	for _, user := range usersInChat {
+//		replies, err := r.dbRepository.MessageFindRepliesTo(
+//			ctx,
+//			input.TgChatID,
+//			user.TgID,
+//			9,
+//			3,
+//		)
+//		if err != nil {
+//			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
+//			statsReportChan <- output
+//
+//			return
+//		}
+//
+//		for _, reply := range replies {
+//			if !getter.contains(reply.TgUserID) {
+//				continue
+//			}
+//
+//			edges = append(edges, ds_supplier.GraphEdge{
+//				First:  getter.getName(reply.TgUserID),
+//				Second: getter.getName(user.TgID),
+//				Weight: float64(reply.MessagesCount),
+//			})
+//		}
+//	}
+//
+//	if len(edges) == 0 {
+//		output.err = errors.New("no edges of graph")
+//		statsReportChan <- output
+//
+//		return
+//	}
+//
+//	jpgImg, err := r.dsSupplier.DrawGraph(ctx, &ds_supplier.DrawGraphInput{
+//		DrawInput:     ds_supplier.DrawInput{Title: "Interlocusts"},
+//		Edges:         edges,
+//		Layout:        "neato",
+//		WeightedEdges: true,
+//	})
+//	if err != nil {
+//		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
+//		statsReportChan <- output
+//
+//		return
+//	}
+//
+//	output.repostImage.Content = jpgImg
+//	statsReportChan <- output
+//}
+//
+// func (r *Service) getMessageFindAllRepliedByHeatmap(
+//	ctx context.Context,
+//	wg *sync.WaitGroup,
+//	statsReportChan chan<- statsReport,
+//	input *AnaliseChatInput,
+//	usersInChat db_repository.UsersInChat,
+//	getter nameGetter,
+// ) {
+//	defer wg.Done()
+//
+//	output := statsReport{
+//		repostImage: File{
+//			Name:      "MessageFindAllRepliedByAsHeatmap",
+//			Extension: "jpeg",
+//		},
+//	}
+//	edges := make([]ds_supplier.GraphEdge, 0, len(usersInChat)*interlocutorsLimit)
+//
+//	for _, user := range usersInChat {
+//		replies, err := r.dbRepository.MessageFindRepliesTo(
+//			ctx,
+//			input.TgChatID,
+//			user.TgID,
+//			0,
+//			20,
+//		)
+//		if err != nil {
+//			output.err = errors.Wrap(err, "failed to find interflocutors from ch repository")
+//			statsReportChan <- output
+//
+//			return
+//		}
+//
+//		for _, reply := range replies {
+//			if !getter.contains(reply.TgUserID) {
+//				continue
+//			}
+//
+//			edges = append(edges, ds_supplier.GraphEdge{
+//				First:  getter.getName(reply.TgUserID),
+//				Second: getter.getName(user.TgID),
+//				Weight: float64(reply.MessagesCount),
+//			})
+//		}
+//	}
+//
+//	if len(edges) == 0 {
+//		output.err = errors.New("no edges of graph")
+//		statsReportChan <- output
+//
+//		return
+//	}
+//
+//	jpgImg, err := r.dsSupplier.DrawGraphAsHeatpmap(ctx, &ds_supplier.DrawGraphInput{
+//		WeightedEdges: false,
+//		DrawInput: ds_supplier.DrawInput{
+//			Title:  "Interlocusts",
+//			XLabel: "User replied by",
+//			YLabel: "User replies to",
+//		},
+//		Edges: edges,
+//	})
+//	if err != nil {
+//		output.err = errors.Wrap(err, "failed to draw graph in ds supplier")
+//		statsReportChan <- output
+//
+//		return
+//	}
+//
+//	output.repostImage.Content = jpgImg
+//	statsReportChan <- output
+//}

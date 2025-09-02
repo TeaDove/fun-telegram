@@ -1,13 +1,11 @@
 package telegram
 
 import (
-	"context"
 	"fmt"
+	"fun_telegram/core/service/message_service"
 	"strconv"
-	"sync"
 	"time"
 
-	"fun_telegram/core/service/analitics"
 	"fun_telegram/core/shared"
 
 	"github.com/celestix/gotgproto/ext"
@@ -16,7 +14,6 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/guregu/null/v5"
 
-	"github.com/celestix/gotgproto/types"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
@@ -24,95 +21,6 @@ import (
 const (
 	iterHistoryBatchSize = 100
 )
-
-var (
-	FlagUploadStatsOffset = optFlag{ //nolint: gochecknoglobals // FIXME
-		Long:        "offset",
-		Short:       "o",
-		Description: "force message offset",
-	}
-	FlagUploadStatsDay = optFlag{ //nolint: gochecknoglobals // FIXME
-		Long:        "day",
-		Short:       "d",
-		Description: "max age of message to upload in days",
-	}
-	FlagUploadStatsCount = optFlag{ //nolint: gochecknoglobals // FIXME
-		Long:        "count",
-		Short:       "c",
-		Description: "max amount of message to upload",
-	}
-)
-
-func (r *Presentation) uploadMembers(
-	ctx context.Context,
-	wg *sync.WaitGroup,
-	chat types.EffectiveChat,
-) {
-	defer wg.Done()
-
-	_, err := r.updateMembers(ctx, chat)
-	if err != nil {
-		zerolog.Ctx(ctx).
-			Error().
-			Stack().
-			Err(errors.WithStack(err)).
-			Str("status", "failed.to.update.members").
-			Send()
-
-		return
-	}
-}
-
-func (r *Presentation) uploadMessageToRepository(
-	ctx *ext.Context,
-	wg *sync.WaitGroup,
-	update *ext.Update,
-	elemChan <-chan messages.Elem,
-) {
-	defer wg.Done()
-
-	var elem messages.Elem
-	for elem = range elemChan {
-		msg, ok := elem.Msg.(*tg.Message)
-		if !ok {
-			continue
-		}
-
-		msgFrom, ok := msg.FromID.(*tg.PeerUser)
-		if !ok {
-			continue
-		}
-
-		analiticsMessage := analitics.Message{
-			CreatedAt: time.Unix(int64(msg.Date), 0),
-			TgChatID:  update.EffectiveChat().GetID(),
-			TgUserID:  msgFrom.UserID,
-			Text:      msg.Message,
-			TgID:      msg.ID,
-		}
-
-		if msg.ReplyTo != nil {
-			messageReplyHeader, ok := msg.ReplyTo.(*tg.MessageReplyHeader)
-			if ok {
-				analiticsMessage.ReplyToMsgID = null.IntFrom(int64(messageReplyHeader.ReplyToMsgID))
-			}
-		}
-
-		err := r.analiticsService.MessageInsert(ctx, &analiticsMessage)
-		if err != nil {
-			zerolog.Ctx(ctx).
-				Error().
-				Stack().
-				Err(errors.WithStack(err)).
-				Str("status", "failed.to.upload.message.to.repository").
-				Send()
-
-			continue
-		}
-
-		zerolog.Ctx(ctx).Trace().Str("status", "message.uploaded").Int("msg_id", msg.ID).Send()
-	}
-}
 
 func (r *Presentation) updateUploadStatsMessage(
 	ctx *ext.Context,
@@ -157,29 +65,17 @@ LastDate: %s`,
 	}
 }
 
-// uploadStatsUpload.
-func (r *Presentation) uploadStatsUpload( //nolint: gocognit, funlen // ((((
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-) error {
+func statsGetArgs(c *Context) (time.Duration, int, time.Time, error) {
 	const (
 		maxElapsed = time.Hour
 	)
 
 	maxCount := shared.DefaultUploadCount
 
-	if userMaxCountS, ok := input.Ops[FlagUploadStatsCount.Long]; ok { //nolint: nestif // FIXME
+	if userMaxCountS, ok := c.Ops[FlagUploadStatsCount.Long]; ok {
 		userMaxCount, err := strconv.Atoi(userMaxCountS)
 		if err != nil {
-			_, err := ctx.Reply(
-				update,
-				ext.ReplyTextString(fmt.Sprintf("Err: failed to parse count flag: %s", err.Error())),
-				nil,
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
+			return 0, 0, time.Time{}, errors.Wrap(err, "failed to parse count flag")
 		}
 
 		if userMaxCount < shared.MaxUploadCount {
@@ -191,17 +87,10 @@ func (r *Presentation) uploadStatsUpload( //nolint: gocognit, funlen // ((((
 
 	maxQueryAge := shared.DefaultUploadQueryAge
 
-	if userQueryAgeS, ok := input.Ops[FlagUploadStatsDay.Long]; ok { //nolint: nestif // FIXME
+	if userQueryAgeS, ok := c.Ops[FlagUploadStatsDay.Long]; ok {
 		userQueryAge, err := strconv.Atoi(userQueryAgeS)
 		if err != nil {
-			_, err = ctx.Reply(
-				update,
-				ext.ReplyTextString(fmt.Sprintf("Err: failed to parse age flag: %s", err.Error())),
-				nil,
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
+			return 0, 0, time.Time{}, errors.Wrap(err, "failed to parse age flag")
 		}
 
 		if userQueryAge < int(shared.MaxUploadQueryAge.Hours()/24) {
@@ -213,153 +102,154 @@ func (r *Presentation) uploadStatsUpload( //nolint: gocognit, funlen // ((((
 
 	queryTill := time.Now().UTC().Add(-maxQueryAge)
 
+	return maxElapsed, maxCount, queryTill, nil
+}
+
+func (r *Presentation) appendMessage(c *Context, storage *message_service.Storage, elem messages.Elem) {
+	msg, ok := elem.Msg.(*tg.Message)
+	if !ok {
+		return
+	}
+
+	msgFrom, ok := msg.FromID.(*tg.PeerUser)
+	if !ok {
+		return
+	}
+
+	analiticsMessage := message_service.Message{
+		CreatedAt: time.Unix(int64(msg.Date), 0),
+		TgChatID:  c.update.EffectiveChat().GetID(),
+		TgUserID:  msgFrom.UserID,
+		Text:      msg.Message,
+		TgID:      msg.ID,
+	}
+
+	if msg.ReplyTo != nil {
+		messageReplyHeader, ok := msg.ReplyTo.(*tg.MessageReplyHeader)
+		if ok {
+			analiticsMessage.ReplyToTgMsgID = null.IntFrom(int64(messageReplyHeader.ReplyToMsgID))
+		}
+	}
+
+	r.analiticsService.AppendMessage(storage, &analiticsMessage)
+}
+
+// uploadStatsUpload.
+func (r *Presentation) uploadStatsUpload(c *Context) error { //nolint: gocognit, funlen // FIXME
+	maxElapled, maxCount, queryTill, err := statsGetArgs(c)
+	if err != nil {
+		return c.replyWithError(err)
+	}
+
 	var (
 		barChatID    int64
 		barMessageID int
 		barPeer      tg.InputPeerClass
 	)
 
-	if !input.Silent {
-		barMessage, err := ctx.Reply(update, ext.ReplyTextString("⚙️ Uploading messages"), nil)
+	if !c.Silent {
+		barMessage, err := c.extCtx.Reply(c.update, ext.ReplyTextString("⚙️ Uploading messages"), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		barMessageID = barMessage.ID
-		barChatID = update.EffectiveChat().GetID()
-		barPeer = update.EffectiveChat().GetInputPeer()
+		barChatID = c.update.EffectiveChat().GetID()
+		barPeer = c.update.EffectiveChat().GetInputPeer()
 	} else {
-		barMessage, err := ctx.SendMessage(ctx.Self.ID, &tg.MessagesSendMessageRequest{Message: "⚙️ Uploading messages"})
+		barMessage, err := c.extCtx.SendMessage(
+			c.extCtx.Self.ID,
+			&tg.MessagesSendMessageRequest{Message: "⚙️ Uploading messages"},
+		)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		barMessageID = barMessage.ID
-		barChatID = ctx.Self.ID
-		barPeer = ctx.Self.AsInputPeer()
+		barChatID = c.extCtx.Self.ID
+		barPeer = c.extCtx.Self.AsInputPeer()
 	}
 
-	offset := 0
-
-	var err error
-
-	if flaggedOffset, ok := input.Ops[FlagUploadStatsOffset.Long]; ok {
-		offset, err = strconv.Atoi(flaggedOffset)
-		if err != nil {
-			err = r.replyIfNotSilent(
-				ctx,
-				update,
-				input,
-				ext.ReplyTextString(fmt.Sprintf("Err: Unprocessable entity: %e", err)),
-			)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			return nil
-		}
-	}
-
-	zerolog.Ctx(ctx).
+	zerolog.Ctx(c.extCtx).
 		Info().
-		Int("offset", offset).
 		Msg("stats.upload.begin")
 
-	historyQuery := query.Messages(r.telegramAPI).GetHistory(update.EffectiveChat().GetInputPeer())
+	offset := 0
+	historyQuery := query.Messages(r.telegramAPI).GetHistory(c.update.EffectiveChat().GetInputPeer())
 	historyQuery.BatchSize(iterHistoryBatchSize)
 	historyQuery.OffsetID(offset)
 	historyIter := historyQuery.Iter()
 	startedAt := time.Now()
 	count := 0
 
-	var wg sync.WaitGroup
-
-	wg.Add(2)
-
-	go r.uploadMembers(ctx, &wg, update.EffectiveChat())
-
-	elemChan := make(chan messages.Elem, iterHistoryBatchSize*3)
-
-	go r.uploadMessageToRepository(ctx, &wg, update, elemChan)
-
 	var lastDate time.Time
 
+	storage := r.analiticsService.NewStorage()
+
+	users, err := r.updateMembers(c.extCtx, c.update.EffectiveChat())
+	if err != nil {
+		return c.replyWithError(errors.WithStack(err))
+	}
+
+	storage.Users = users
+
 	for {
-		zerolog.Ctx(ctx).Trace().Int("offset", offset).Msg("new.iteration")
+		zerolog.Ctx(c.extCtx).Trace().Int("offset", offset).Msg("new.iteration")
 
-		ok := historyIter.Next(ctx)
-		if ok { //nolint: nestif // FIXME
-			zerolog.Ctx(ctx).Trace().Msg("elem.got")
-
-			elem := historyIter.Value()
-			offset = elem.Msg.GetID()
-
-			msg, ok := elem.Msg.(*tg.Message)
-			if !ok {
-				zerolog.Ctx(ctx).Trace().Msg("not.an.message")
-				continue
+		ok := historyIter.Next(c.extCtx)
+		if !ok {
+			err = historyIter.Err()
+			if err != nil {
+				return errors.WithStack(err)
 			}
 
-			lastDate = time.Unix(int64(msg.Date), 0).In(shared.TZTime)
+			zerolog.Ctx(c.extCtx).Info().Str("status", "all.messages.found").Send()
 
-			count++
-			elemChan <- elem
+			break
+		}
 
-			if count%iterHistoryBatchSize == 0 {
-				time.Sleep(time.Millisecond * 800)
+		elem := historyIter.Value()
+		offset = elem.Msg.GetID()
 
-				go r.updateUploadStatsMessage(
-					ctx,
-					count,
-					barChatID,
-					barMessageID,
-					barPeer,
-					offset,
-					startedAt,
-					lastDate,
-					maxCount,
-				)
-			}
-
-			if !lastDate.After(queryTill) {
-				zerolog.Ctx(ctx).Info().Msg("last.in.period.message.found")
-				break
-			}
-
-			if time.Since(startedAt) > maxElapsed {
-				zerolog.Ctx(ctx).Info().Msg("iterating.too.long")
-				break
-			}
-
-			if count > maxCount {
-				zerolog.Ctx(ctx).Info().Msg("iterating.too.much")
-				break
-			}
-
-			zerolog.Ctx(ctx).Trace().Msg("elem.processed")
-
+		msg, ok := elem.Msg.(*tg.Message)
+		if !ok {
 			continue
 		}
 
-		err = historyIter.Err()
-		if err != nil {
-			return errors.WithStack(err)
+		lastDate = time.Unix(int64(msg.Date), 0).In(shared.TZTime)
+
+		count++
+
+		r.appendMessage(c, storage, elem)
+
+		if count%iterHistoryBatchSize == 0 {
+			time.Sleep(time.Millisecond * 800)
+
+			go r.updateUploadStatsMessage(
+				c.extCtx,
+				count,
+				barChatID,
+				barMessageID,
+				barPeer,
+				offset,
+				startedAt,
+				lastDate,
+				maxCount,
+			)
 		}
 
-		zerolog.Ctx(ctx).Info().Str("status", "all.messages.found").Send()
-
-		break
+		if !lastDate.After(queryTill) || time.Since(startedAt) > maxElapled || count > maxCount {
+			break
+		}
 	}
 
-	zerolog.Ctx(ctx).
+	zerolog.Ctx(c.extCtx).
 		Info().
 		Int("count", count).
 		Msg("waiting.for.uploading.to.repository")
-	close(elemChan)
-	wg.Wait()
-	zerolog.Ctx(ctx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
+	zerolog.Ctx(c.extCtx).Info().Str("status", "messages.uploaded").Int("count", count).Send()
 
-	_, err = ctx.EditMessage(barChatID, &tg.MessagesEditMessageRequest{
+	_, err = c.extCtx.EditMessage(barChatID, &tg.MessagesEditMessageRequest{
 		Peer: barPeer,
 		ID:   barMessageID,
 		Message: fmt.Sprintf(
@@ -373,16 +263,12 @@ func (r *Presentation) uploadStatsUpload( //nolint: gocognit, funlen // ((((
 		),
 	})
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
+		zerolog.Ctx(c.extCtx).Error().Stack().Err(err).Str("status", "failed.to.edit.message").Send()
 	}
 
-	return nil
+	return r.statsCommandHandler(c, storage)
 }
 
-func (r *Presentation) uploadStatsCommandHandler(
-	ctx *ext.Context,
-	update *ext.Update,
-	input *input,
-) error {
-	return r.uploadStatsUpload(ctx, update, input)
+func (r *Presentation) uploadStatsCommandHandler(c *Context) error {
+	return r.uploadStatsUpload(c)
 }
