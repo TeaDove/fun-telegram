@@ -1,11 +1,9 @@
 package gigachat_supplier
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fun_telegram/core/shared"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -58,25 +56,7 @@ type Response struct {
 func (r *Supplier) OneMessage(ctx context.Context, messages []Message) (string, error) {
 	body := Completion{Model: "GigaChat", Messages: messages, Stream: false, RepetitionPenalty: 1}
 
-	bodyJSON, err := json.Marshal(body)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		shared.AppSettings.Gigachat.BaseURL,
-		bytes.NewReader(bodyJSON),
-	)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := r.sendRequestWithAuth(ctx, req)
+	resp, err := r.sendRequestWithAuth(ctx, body)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to do request")
 	}

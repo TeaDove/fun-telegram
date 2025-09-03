@@ -71,7 +71,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 			Str("elapsed", elapsed.String()).
 			Msg("failed.to.process.command")
 
-		errMessage := fmt.Sprintf("Err: something went wrong... : %e", err)
+		errMessage := fmt.Sprintf("Err: something went wrong: %s", err.Error())
 
 		var innerErr error
 
