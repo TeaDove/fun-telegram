@@ -10,7 +10,6 @@ type telegram struct {
 	AppID       int    `env:"APP_ID"`
 	AppHash     string `env:"APP_HASH"`
 	PhoneNumber string `env:"PHONE_NUMBER"`
-	SessionPath string `env:"SESSION_PATH" envDefault:".mtproto"`
 
 	FloodWaiterEnabled bool          `env:"FLOOD_WAITER_ENABLED" envDefault:"true"`
 	RateLimiterEnabled bool          `env:"RATE_LIMITER_ENABLED" envDefault:"true"`

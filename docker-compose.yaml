@@ -3,10 +3,8 @@ services:
     restart: always
     build:
       context: .
-    environment:
-      FUN_TELEGRAM__SESSION_PATH: /var/lib/fun-telegram/.mtproto
     volumes:
-      - telegram-sessions:/var/lib/fun-telegram
+      - ".mtproto:/.mtproto"
       - ".env:/.env"
     deploy:
       resources:
@@ -26,6 +24,3 @@ services:
         limits:
           cpus: '0.75'
           memory: 1000M
-
-volumes:
-  telegram-sessions:
