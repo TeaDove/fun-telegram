@@ -17,12 +17,12 @@ import (
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
+	"github.com/cockroachdb/errors"
 	"github.com/gotd/contrib/middleware/floodwait"
 	"github.com/gotd/contrib/middleware/ratelimit"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 )
@@ -70,7 +70,7 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			Context:          ctx,
 			InMemory:         false,
 			DisableCopyright: true,
-			Session:          sessionMaker.SqlSession(sqlite.Open(".mtproto")),
+			Session:          sessionMaker.SqlSession(sqlite.Open(utils.AppSettings.Telegram.SessionPath)),
 			Middlewares:      middlewares,
 			RunMiddleware:    runMiddleware,
 			RetryInterval:    10 * time.Second,

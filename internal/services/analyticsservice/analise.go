@@ -5,7 +5,7 @@ import (
 
 	"github.com/TeaDove/fun-telegram/internal/suppliers/dssupplier"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 const imageExtensionJPEG = "jpeg"

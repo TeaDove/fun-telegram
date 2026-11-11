@@ -5,8 +5,8 @@ import (
 	"slices"
 
 	"github.com/celestix/gotgproto/ext"
+	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/telegram/message/styling"
-	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
 )
 

@@ -8,8 +8,8 @@ import (
 	"github.com/TeaDove/fun-telegram/internal/services/messageservice"
 
 	"github.com/celestix/gotgproto/types"
+	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/telegram/peers/members"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 

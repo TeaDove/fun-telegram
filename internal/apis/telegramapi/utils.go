@@ -11,9 +11,9 @@ import (
 
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
+	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
-	"github.com/pkg/errors"
 )
 
 func filterNonNewMessages(update *ext.Update) bool {

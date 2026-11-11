@@ -15,8 +15,8 @@ import (
 
 	"github.com/aaaton/golem/v4"
 	"github.com/aaaton/golem/v4/dicts/ru"
+	"github.com/cockroachdb/errors"
 	"github.com/dlclark/regexp2"
-	"github.com/pkg/errors"
 )
 
 type Service struct {

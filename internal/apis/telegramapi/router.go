@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/celestix/gotgproto/ext"
+	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/tg"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 

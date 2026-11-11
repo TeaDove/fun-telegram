@@ -3,8 +3,8 @@ package telegramapi
 import (
 	"os"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/tg"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 

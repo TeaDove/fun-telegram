@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/TeaDove/fun-telegram/internal/utils"
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 type Supplier struct {

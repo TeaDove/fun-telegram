@@ -8,10 +8,10 @@ import (
 
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
 
+	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
-	"github.com/pkg/errors"
 )
 
 var (

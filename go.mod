@@ -6,6 +6,7 @@ require (
 	github.com/aaaton/golem/v4 v4.0.2
 	github.com/aaaton/golem/v4/dicts/ru v0.0.0-20250408131944-3488790fc110
 	github.com/celestix/gotgproto v1.0.0-beta22.0.20261104034138-a6ce80caa86f
+	github.com/cockroachdb/errors v1.14.0
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/glebarez/sqlite v1.11.0
@@ -13,7 +14,6 @@ require (
 	github.com/gotd/contrib v0.25.0
 	github.com/gotd/td v0.163.0
 	github.com/guregu/null/v5 v5.0.0
-	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	github.com/teadove/teasutils/serviceutils v1.0.1
@@ -29,7 +29,6 @@ require (
 	github.com/caarlos0/env/v11 v11.4.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cockroachdb/errors v1.14.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
 	github.com/cockroachdb/redact v1.1.8 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
@@ -57,6 +56,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/ogen-go/ogen v1.24.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.16.0 // indirect

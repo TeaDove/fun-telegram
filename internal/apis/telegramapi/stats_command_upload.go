@@ -15,7 +15,7 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/guregu/null/v5"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 	"github.com/rs/zerolog"
 )
 

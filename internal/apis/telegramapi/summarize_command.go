@@ -9,7 +9,7 @@ import (
 	"github.com/TeaDove/fun-telegram/internal/suppliers/gigachatsupplier"
 
 	"github.com/celestix/gotgproto/ext"
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 )
 
 func (r *Presentation) summarizeCommand(c *Context) error {

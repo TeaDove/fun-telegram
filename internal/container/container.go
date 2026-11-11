@@ -6,7 +6,7 @@ import (
 	"github.com/TeaDove/fun-telegram/internal/suppliers/dssupplier"
 	"github.com/TeaDove/fun-telegram/internal/suppliers/gigachatsupplier"
 
-	"github.com/pkg/errors"
+	"github.com/cockroachdb/errors"
 
 	"github.com/TeaDove/fun-telegram/internal/apis/telegramapi"
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"

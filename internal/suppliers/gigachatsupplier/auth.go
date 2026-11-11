@@ -10,8 +10,8 @@ import (
 
 	"github.com/TeaDove/fun-telegram/internal/utils"
 
+	"github.com/cockroachdb/errors"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/tidwall/gjson"
 )
