@@ -4,7 +4,7 @@ bootstrap*
 fun-telegram-v*
 fun-telegram
 
-core/supplier/yt_supplier/video.mp4
+internal/suppliers/ytsupplier/video.mp4
 
 data/
 !data/.gitkeep

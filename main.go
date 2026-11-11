@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fun_telegram/core/container"
+	"github.com/TeaDove/fun-telegram/internal/container"
 
-	"github.com/teadove/teasutils/utils/logger_utils"
+	"github.com/teadove/teasutils/serviceutils/loggerutils"
 )
 
 func main() {
-	ctx := logger_utils.NewLoggedCtx()
+	ctx := loggerutils.NewLoggedCtx()
 
 	combatContainer, err := container.NewContainer(ctx)
 	if err != nil {
