@@ -1,21 +1,22 @@
-# Start by building the application.
-FROM golang:1.27.4-bookworm AS build
+FROM golang:1.27.4-trixie AS build
 
 WORKDIR /src
-COPY . .
 
 ENV CGO_ENABLED=0
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-RUN go mod download
-RUN go build -o bootstrap
+COPY main.go ./
+COPY internal/ ./internal/
 
-## Now copy it into our base image.
-FROM debian:trixie
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -trimpath -o=bootstrap .
 
-RUN rm -rf /var/lib/apt/lists/* && apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
-RUN update-ca-certificates
-RUN rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/static-debian13:latest
 
-COPY --from=build /src/bootstrap /
+WORKDIR /
+COPY --from=build /src/bootstrap /bootstrap
 
 CMD ["/bootstrap"]

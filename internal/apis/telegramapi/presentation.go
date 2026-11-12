@@ -68,11 +68,15 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 			InMemory:         false,
 			DisableCopyright: true,
 			Session:          sessionMaker.SqlSession(sqlite.Open(".mtproto")),
-			Middlewares:      middlewares,
-			RunMiddleware:    runMiddleware,
-			RetryInterval:    10 * time.Second,
-			MaxRetries:       10,
-			DC:               2,
+			AuthConversator: authConversator{
+				AuthConversator: gotgproto.BasicConversator(),
+				logger:          zerolog.Ctx(ctx),
+			},
+			Middlewares:   middlewares,
+			RunMiddleware: runMiddleware,
+			RetryInterval: 10 * time.Second,
+			MaxRetries:    10,
+			DC:            2,
 		})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create gotgproto client")
