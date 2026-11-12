@@ -143,7 +143,7 @@ func MustNewTelegramPresentation(
 			flags:       historyFlags(),
 			example:     "-d=7 -q",
 		},
-		"dump_history": {
+		"dump-history": {
 			executor:    presentation.dumpHistoryCommand,
 			description: "send compressed chat history to Saved Messages",
 			flags:       historyFlags(),

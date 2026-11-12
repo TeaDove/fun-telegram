@@ -30,9 +30,9 @@ func TestDumpHistoryCommand(t *testing.T) {
 		command string
 		saved   bool
 	}{
-		{name: "archived chat title", command: `!dump_history -q "Тестовый чат"`, saved: true},
-		{name: "archived chat ID", command: "!dump_history --peer-id=-2", saved: true},
-		{name: "quiet command in chat", command: "!dump_history -q"},
+		{name: "archived chat title", command: `!dump-history -q "Тестовый чат"`, saved: true},
+		{name: "archived chat ID", command: "!dump-history --peer-id=-2", saved: true},
+		{name: "quiet command in chat", command: "!dump-history -q"},
 	}
 
 	for _, test := range tests {
@@ -145,7 +145,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 
 	r := Presentation{telegramAPI: api}
 	r.router = map[string]messageProcessor{
-		"dump_history": {executor: r.dumpHistoryCommand, flags: historyFlags()},
+		"dump-history": {executor: r.dumpHistoryCommand, flags: historyFlags()},
 	}
 	entities := &tg.Entities{Chats: map[int64]*tg.Chat{source.ID: source}}
 	ctx := ext.NewContext(t.Context(), api, nil, self, message.NewSender(api), entities, false)
