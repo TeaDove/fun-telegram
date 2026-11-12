@@ -2,106 +2,95 @@ package telegramapi
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/TeaDove/fun-telegram/internal/services/messageservice"
-
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
-
+	"github.com/TeaDove/fun-telegram/internal/services/messageservice"
+	"github.com/TeaDove/fun-telegram/internal/utils"
 	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
+	"github.com/guregu/null/v5"
 )
 
-var (
-	FlagUploadStatsOffset = optFlag{ //nolint: gochecknoglobals // FIXME
-		Long:        "offset",
-		Short:       "o",
-		Description: "force message offset",
-	}
-	FlagUploadStatsDay = optFlag{ //nolint: gochecknoglobals // FIXME
-		Long:        "day",
-		Short:       "d",
-		Description: "max age of message to upload in days",
-	}
-	FlagUploadStatsCount = optFlag{ //nolint: gochecknoglobals // FIXME
-		Long:        "count",
-		Short:       "c",
-		Description: "max amount of message to upload",
-	}
-	FlagStatsAnonymize = optFlag{ //nolint: gochecknoglobals // FIXME
-		Long:        "anonymize",
-		Short:       "a",
-		Description: "anonymize names of users",
-	}
-)
-
-// compileStats
-// TODO fix cyclop
-func (r *Presentation) compileStats(c *Context, storage *messageservice.Storage) error {
-	_, anonymize := c.Ops[FlagStatsAnonymize.Long]
-
-	analiseInput := analyticsservice.AnaliseChatInput{
-		TgChatID:  c.update.EffectiveChat().GetID(),
-		Anonymize: anonymize,
-		Storage:   *storage,
-	}
-
-	report, err := r.analiticsService.AnaliseChat(c.extCtx, &analiseInput)
+func (r *Presentation) statsCommand(c *Context) error {
+	chat, err := r.resolveHistoryChat(c)
 	if err != nil {
-		return errors.Wrap(err, "failed to analise chat")
+		return err
 	}
 
-	fileUploader := uploader.NewUploader(c.extCtx.Raw)
+	storage := r.analiticsService.NewStorage()
+	authors := make(map[int64]struct{})
+
+	summary, err := r.readHistory(c, chat, func(msg historyMessage) error {
+		authorID := int64(msg.authorID)
+		if _, known := authors[authorID]; !known && msg.authorName != "" {
+			storage.Users = append(storage.Users, messageservice.UserInChat{
+				TgID: authorID, TgName: utils.ReplaceNonASCIIWithSpace(msg.authorName),
+				TgUsername: strings.ToLower(msg.authorUsername),
+			})
+			authors[authorID] = struct{}{}
+		}
+
+		record := messageservice.Message{
+			CreatedAt: msg.date, TgChatID: int64(chat.id), TgID: msg.id, TgUserID: authorID, Text: msg.text,
+			ReplyToTgMsgID: null.NewInt(int64(msg.replyTo), msg.replyTo != 0),
+		}
+		r.analiticsService.AppendMessage(storage, &record)
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	storage.UsersNameGetter = storage.Users.GetNameGetter()
+
+	return r.compileStats(c, chat, summary, storage)
+}
+
+func (r *Presentation) compileStats(
+	c *Context,
+	chat historyChat,
+	summary historySummary,
+	storage *messageservice.Storage,
+) error {
+	report, err := r.analiticsService.AnaliseChat(c.extCtx, &analyticsservice.AnaliseChatInput{Storage: *storage})
+	if err != nil {
+		return errors.Wrap(err, "analyse chat history")
+	}
 
 	if len(report.Images) == 0 {
 		return errors.New("no images in report")
 	}
 
-	firstFile, err := fileUploader.FromBytes(
-		c.extCtx,
-		report.Images[0].Filename(),
-		report.Images[0].Content,
-	)
-	if err != nil {
-		return errors.WithStack(err)
-	}
+	caption := styling.Plain(fmt.Sprintf("%s\n\n%s\nCompiled in: %.2fs",
+		chat.label(), summary.caption(), time.Since(c.StartedAt).Seconds()))
 
-	album := make([]message.MultiMediaOption, 0, 10)
+	fileUploader := uploader.NewUploader(c.extCtx.Raw)
+	album := make([]message.MultiMediaOption, 0, len(report.Images))
 
-	for _, repostImage := range report.Images[1:] {
-		file, err := fileUploader.FromBytes(c.extCtx, repostImage.Filename(), repostImage.Content)
+	for i, image := range report.Images {
+		file, err := fileUploader.FromBytes(c.extCtx, image.Filename(), image.Content)
 		if err != nil {
-			return errors.WithStack(err)
+			return errors.Wrap(err, "upload statistics chart")
 		}
 
-		album = append(album, message.UploadedPhoto(file))
+		if i == 0 {
+			album = append(album, message.UploadedPhoto(file, caption))
+		} else {
+			album = append(album, message.UploadedPhoto(file))
+		}
 	}
 
-	text := make([]styling.StyledTextOption, 0, 3)
-	text = append(text, styling.Plain(fmt.Sprintf("%s \n\n", GetChatName(c.update.EffectiveChat()))))
-
-	text = append(text,
-		styling.Plain(
-			fmt.Sprintf(`"Messages processed: %d
-Compiled in: %.2fs`,
-				report.MessagesCount,
-				time.Since(c.StartedAt).Seconds()),
-		),
-	)
-
-	var requestBuilder *message.RequestBuilder
-	if c.Silent {
-		requestBuilder = c.extCtx.Sender.Self()
-	} else {
-		requestBuilder = c.extCtx.Sender.To(c.update.EffectiveChat().GetInputPeer())
+	destination := c.extCtx.Sender.To(chat.peer)
+	if c.Silent || c.inSavedMessages() {
+		destination = c.extCtx.Sender.Self()
 	}
 
-	_, err = requestBuilder.Album(c.extCtx, message.UploadedPhoto(firstFile, text...), album...)
-	if err != nil {
-		return errors.WithStack(err)
-	}
+	_, err = destination.Album(c.extCtx, album[0], album[1:]...)
 
-	return nil
+	return errors.Wrap(err, "send statistics charts")
 }

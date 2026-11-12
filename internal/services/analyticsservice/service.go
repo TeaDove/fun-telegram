@@ -158,9 +158,6 @@ func (r *Service) analiseWholeChat(
 }
 
 type AnaliseChatInput struct {
-	TgChatID  int64 // TODO to remove
-	Anonymize bool
-
 	Storage messageservice.Storage
 }
 

@@ -44,13 +44,21 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	c.update = update
 	c.presentation = r
 
-	if update.EffectiveUser().GetID() != ctx.Self.ID {
+	if !isOwnCommandMessage(update.EffectiveMessage.Message, ctx.Self.ID) {
+		if update.EffectiveUser() == nil {
+			return nil
+		}
+
 		_, err := ctx.Reply(update, ext.ReplyTextString("Err: insufficient privilege: owner rights required"), nil)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		return nil
+	}
+
+	if c.Silent && !c.inSavedMessages() {
+		c.deleteQuietCommand()
 	}
 
 	c.StartedAt = time.Now().UTC()
@@ -76,7 +84,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 		if c.Silent {
 			_, innerErr = ctx.SendMessage(
 				ctx.Self.ID,
-				&tg.MessagesSendMessageRequest{Message: errMessage},
+				&tg.MessagesSendMessageRequest{Peer: &tg.InputPeerSelf{}, Message: errMessage},
 			)
 		} else {
 			_, innerErr = ctx.Reply(update, ext.ReplyTextString(errMessage), nil)

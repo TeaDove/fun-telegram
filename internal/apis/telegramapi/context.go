@@ -2,6 +2,7 @@ package telegramapi
 
 import (
 	"github.com/celestix/gotgproto/ext"
+	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog"
 	"github.com/teadove/teasutils/serviceutils/loggerutils"
 )
@@ -23,24 +24,38 @@ func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error
 	return nil
 }
 
-func (r *Presentation) deleteOut(ctx *ext.Context, update *ext.Update) error {
-	if update.EffectiveUser().GetID() != ctx.Self.ID {
-		return nil
+func isOwnCommandMessage(msg *tg.Message, selfID int64) bool {
+	if msg.Out {
+		return true
 	}
 
-	if !getOpt(update.EffectiveMessage.Message.Message).Silent {
-		return nil
+	from, ok := msg.FromID.(*tg.PeerUser)
+
+	return ok && from.UserID == selfID
+}
+
+func (c *Context) inSavedMessages() bool {
+	peer, ok := c.update.EffectiveMessage.PeerID.(*tg.PeerUser)
+
+	return ok && peer.UserID == c.extCtx.Self.ID
+}
+
+func (c *Context) deleteQuietCommand() {
+	ids := []int{c.update.EffectiveMessage.ID}
+	peer := c.update.EffectiveChat().GetInputPeer()
+
+	var err error
+
+	if channel, ok := peer.(*tg.InputPeerChannel); ok {
+		_, err = c.extCtx.Raw.ChannelsDeleteMessages(c.extCtx, &tg.ChannelsDeleteMessagesRequest{
+			Channel: &tg.InputChannel{ChannelID: channel.ChannelID, AccessHash: channel.AccessHash},
+			ID:      ids,
+		})
+	} else {
+		_, err = c.extCtx.Raw.MessagesDeleteMessages(c.extCtx, &tg.MessagesDeleteMessagesRequest{Revoke: true, ID: ids})
 	}
 
-	err := ctx.DeleteMessages(update.EffectiveChat().GetID(), []int{update.EffectiveMessage.ID})
 	if err != nil {
-		zerolog.Ctx(ctx.Context).
-			Warn().
-			Str("status", "failed to delete message").
-			Stack().
-			Err(err).
-			Send()
+		zerolog.Ctx(c.extCtx).Warn().Err(err).Msg("command.delete.failed")
 	}
-
-	return nil
 }

@@ -34,10 +34,14 @@ func (r *Presentation) compileHelpMessage() []styling.StyledTextOption {
 		)
 
 		for _, flag := range command.flags {
-			helpMessage = append(
-				helpMessage,
-				styling.Code(fmt.Sprintf("-%s", flag.Short)),
-				styling.Plain("/"),
+			if flag.Short != "" {
+				helpMessage = append(helpMessage,
+					styling.Code(fmt.Sprintf("-%s", flag.Short)),
+					styling.Plain("/"),
+				)
+			}
+
+			helpMessage = append(helpMessage,
 				styling.Code(fmt.Sprintf("--%s", flag.Long)),
 				styling.Plain(fmt.Sprintf(" - %s\n", flag.Description)),
 			)
