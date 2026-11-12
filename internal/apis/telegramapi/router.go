@@ -44,7 +44,7 @@ func (r *Presentation) route(ctx *ext.Context, update *ext.Update) error {
 	c.update = update
 	c.presentation = r
 
-	if !isOwnCommandMessage(update.EffectiveMessage.Message, ctx.Self.ID) {
+	if !c.isOwnCommandMessage() {
 		if update.EffectiveUser() == nil {
 			return nil
 		}
