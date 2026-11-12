@@ -3,35 +3,37 @@ package messageservice
 import (
 	"fmt"
 	"strings"
+
+	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 )
 
 type NameGetter struct {
-	idToUser map[int64]UserInChat
+	idToUser map[int64]tgdtos.Author
 }
 
 func (r *NameGetter) GetName(userID int64) string {
 	user, ok := r.idToUser[userID]
-	if !ok || strings.TrimSpace(user.TgName) == "" {
+	if !ok || strings.TrimSpace(user.Name) == "" {
 		return fmt.Sprintf("id: %d", userID)
 	}
 
-	return user.TgName
+	return user.Name
 }
 
 func (r *NameGetter) GetNameAndUsername(userID int64) string {
 	user, ok := r.idToUser[userID]
-	if !ok || (strings.TrimSpace(user.TgName) == "" && strings.TrimSpace(user.TgUsername) == "") {
+	if !ok || (strings.TrimSpace(user.Name) == "" && strings.TrimSpace(user.Username) == "") {
 		return fmt.Sprintf("id: %d", userID)
 	}
 
-	return fmt.Sprintf("%s (@%s)", user.TgName, user.TgUsername)
+	return fmt.Sprintf("%s (@%s)", user.Name, user.Username)
 }
 
 func (r UsersInChat) GetNameGetter() NameGetter {
-	idToUser := make(map[int64]UserInChat, len(r))
+	idToUser := make(map[int64]tgdtos.Author, len(r))
 
 	for _, user := range r {
-		idToUser[user.TgID] = user
+		idToUser[user.ID] = user
 	}
 
 	getter := NameGetter{idToUser: idToUser}

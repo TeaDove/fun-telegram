@@ -23,16 +23,14 @@ import (
 	"github.com/gotd/contrib/middleware/floodwait"
 	"github.com/gotd/contrib/middleware/ratelimit"
 	"github.com/gotd/td/telegram"
-	"github.com/gotd/td/telegram/peers"
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 )
 
 type Presentation struct {
-	telegramAPI     *tg.Client
-	telegramManager *peers.Manager
-	protoClient     *gotgproto.Client
+	telegramAPI *tg.Client
+	protoClient *gotgproto.Client
 
 	router map[string]messageProcessor
 
@@ -115,7 +113,6 @@ func MustNewTelegramPresentation(
 	presentation := Presentation{
 		protoClient:      protoClient,
 		telegramAPI:      api,
-		telegramManager:  peers.Options{}.Build(api),
 		analiticsService: analiticsService,
 	}
 
@@ -127,17 +124,9 @@ func MustNewTelegramPresentation(
 	)
 	protoClient.Dispatcher.AddHandler(
 		handlers.Message{
-			Callback:      presentation.deleteOut,
-			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessagesNotFromUser,
-			Outgoing:      true,
-		},
-	)
-	protoClient.Dispatcher.AddHandler(
-		handlers.Message{
 			Callback:      presentation.route,
 			Filters:       filters.Message.Text,
-			UpdateFilters: filterNonNewMessagesNotFromUser,
+			UpdateFilters: filterNonNewMessages,
 			Outgoing:      true,
 		},
 	)
@@ -150,14 +139,15 @@ func MustNewTelegramPresentation(
 		},
 		"stats": {
 			executor:    presentation.statsCommand,
-			description: "uploads stats from this chat",
-			flags: []optFlag{
-				FlagUploadStatsCount,
-				FlagUploadStatsDay,
-				FlagUploadStatsOffset,
-				FlagStatsAnonymize,
-			},
-			example: "-c=400000 -d=365 -o=0 --silent",
+			description: "render charts from the selected chat",
+			flags:       historyFlags(),
+			example:     "-d=7 -q",
+		},
+		"dump_history": {
+			executor:    presentation.dumpHistoryCommand,
+			description: "send compressed chat history to Saved Messages",
+			flags:       historyFlags(),
+			example:     `"Chat Title" -d=7`,
 		},
 		"restart": {
 			executor:    presentation.restartCommandHandler,

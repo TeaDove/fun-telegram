@@ -73,8 +73,8 @@ func stripWords(text string) []string {
 		idx++
 	}
 
-	if start != idx {
-		output = append(output, text[start:idx])
+	if buff.Len() > 0 {
+		output = append(output, buff.String())
 	}
 
 	return output
@@ -113,7 +113,7 @@ func getOpt(text string, flags ...optFlag) Context { //nolint: gocognit, funlen 
 			statement string
 		)
 
-		splited := strings.Split(word, "=")
+		splited := strings.SplitN(word, "=", 2)
 
 		switch {
 		case word[0] == longHypenByte:

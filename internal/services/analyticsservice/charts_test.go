@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
 	"github.com/TeaDove/fun-telegram/internal/services/messageservice"
 	"github.com/stretchr/testify/require"
@@ -29,15 +30,14 @@ func TestAnaliseChatJPEG(t *testing.T) {
 	for index := range participantCount {
 		id := int64(index + 1)
 		storage.Messages = append(storage.Messages, messageservice.Message{
-			TgUserID:        id,
-			CreatedAt:       start.AddDate(0, 0, index*7),
+			Message:         tgdtos.Message{AuthorID: id, Date: start.AddDate(0, 0, index*7).Unix()},
 			WordsCount:      uint64(index * 37),
 			ToxicWordsCount: uint64(index / 3),
 		})
-		storage.Users = append(storage.Users, messageservice.UserInChat{
-			TgID:       id,
-			TgName:     fmt.Sprintf("Участник с длинной подписью %d", index+1),
-			TgUsername: fmt.Sprintf("sample_%d", index+1),
+		storage.Users = append(storage.Users, tgdtos.Author{
+			ID:       id,
+			Name:     fmt.Sprintf("Участник с длинной подписью %d", index+1),
+			Username: fmt.Sprintf("sample_%d", index+1),
 		})
 	}
 
