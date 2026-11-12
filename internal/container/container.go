@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cockroachdb/errors"
+	"github.com/rs/zerolog"
 
 	"github.com/TeaDove/fun-telegram/internal/apis/telegramapi"
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
@@ -27,6 +28,8 @@ func NewContainer(ctx context.Context) (Container, error) {
 	telegramPresentation := telegramapi.MustNewTelegramPresentation(protoClient, analiticsService)
 
 	container := Container{telegramPresentation}
+
+	zerolog.Ctx(ctx).Info().Msg("container.built")
 
 	return container, nil
 }
