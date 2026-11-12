@@ -18,9 +18,10 @@ import (
 const historyPeerIDFlag = "peer-id"
 
 type historyChat struct {
-	peer tg.InputPeerClass
-	id   constant.TDLibPeerID
-	name string
+	peer  tg.InputPeerClass
+	id    constant.TDLibPeerID
+	name  string
+	forum bool
 }
 
 func telegramPeerID(p tg.PeerClass) constant.TDLibPeerID {
@@ -109,9 +110,13 @@ func (s historyChatSelector) matches(chat historyChat) bool {
 	return strings.EqualFold(s.name, strings.TrimSpace(chat.name))
 }
 
-func selectHistoryChat(matches map[constant.TDLibPeerID]historyChat) (historyChat, error) {
+func (s historyChatSelector) selectChat(matches map[constant.TDLibPeerID]historyChat) (historyChat, error) {
 	if len(matches) == 0 {
-		return historyChat{}, errors.New("chat not found in your Telegram dialogs")
+		if s.id != 0 {
+			return historyChat{}, errors.Newf("chat with peer_id %d not found in your Telegram dialogs", s.id)
+		}
+
+		return historyChat{}, errors.Newf("chat %q not found in your Telegram dialogs", s.name)
 	}
 
 	if len(matches) == 1 {
@@ -146,26 +151,37 @@ func (r *Presentation) resolveHistoryChat(c *Context) (historyChat, error) {
 		return r.findHistoryChat(c.extCtx, selector, constant.TDLibPeerID(c.extCtx.Self.ID))
 	}
 
-	p := c.update.EffectiveMessage.PeerID
+	effectiveChat := c.update.EffectiveChat()
 
-	id := telegramPeerID(p)
-	if id == 0 {
+	var entities peer.Entities
+	if c.update.Entities != nil {
+		entities = peer.EntitiesFromUpdate(*c.update.Entities)
+	}
+
+	chat := historyChatFromPeer(c.update.EffectiveMessage.PeerID, effectiveChat.GetInputPeer(), entities)
+	if chat.id == 0 {
 		return historyChat{}, errors.New("unable to identify the current chat")
 	}
 
-	input := c.update.EffectiveChat().GetInputPeer()
-	if _, empty := input.(*tg.InputPeerEmpty); empty || input == nil {
+	if _, empty := chat.peer.(*tg.InputPeerEmpty); empty || chat.peer == nil {
 		return historyChat{}, errors.New("current chat is unavailable")
 	}
 
-	name := GetChatName(c.update.EffectiveChat())
-	if c.update.Entities != nil {
-		if title := historyPeerName(p, peer.EntitiesFromUpdate(*c.update.Entities)); title != "" {
-			name = title
-		}
+	if chat.name == "" {
+		chat.name = GetChatName(effectiveChat)
 	}
 
-	return historyChat{peer: input, id: id, name: name}, nil
+	return chat, nil
+}
+
+func historyChatFromPeer(p tg.PeerClass, input tg.InputPeerClass, entities peer.Entities) historyChat {
+	chat := historyChat{peer: input, id: telegramPeerID(p), name: historyPeerName(p, entities)}
+	if channelPeer, ok := p.(*tg.PeerChannel); ok {
+		channel, found := entities.Channel(channelPeer.ChannelID)
+		chat.forum = found && channel.Forum
+	}
+
+	return chat
 }
 
 func historyChatFromDialog(elem dialogs.Elem) historyChat {
@@ -178,11 +194,7 @@ func historyChatFromDialog(elem dialogs.Elem) historyChat {
 		return historyChat{}
 	}
 
-	return historyChat{
-		peer: elem.Peer,
-		id:   telegramPeerID(dialog.Peer),
-		name: historyPeerName(dialog.Peer, elem.Entities),
-	}
+	return historyChatFromPeer(dialog.Peer, elem.Peer, elem.Entities)
 }
 
 func (r *Presentation) findHistoryChat(
@@ -215,7 +227,7 @@ func (r *Presentation) findHistoryChat(
 		}
 	}
 
-	return selectHistoryChat(matches)
+	return selector.selectChat(matches)
 }
 
 func (c historyChat) label() string {

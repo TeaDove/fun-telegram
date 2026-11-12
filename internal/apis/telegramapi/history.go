@@ -91,7 +91,12 @@ func historyAuthor(msg *tg.Message, selfID int64) tg.PeerClass {
 	}
 }
 
-func decodeHistoryMessage(elem messages.Elem, msg *tg.Message, selfID int64) (tgdtos.Message, tgdtos.Author) {
+func decodeHistoryMessage(
+	elem messages.Elem,
+	msg *tg.Message,
+	selfID int64,
+	forum bool,
+) (tgdtos.Message, tgdtos.Author) {
 	p := historyAuthor(msg, selfID)
 	author := tgdtos.Author{
 		ID:   int64(telegramPeerID(p)),
@@ -105,9 +110,20 @@ func decodeHistoryMessage(elem messages.Elem, msg *tg.Message, selfID int64) (tg
 	}
 
 	record := tgdtos.Message{ID: msg.ID, Date: int64(msg.Date), Text: msg.Message, AuthorID: author.ID}
+	if forum {
+		record.TopicID = 1
+	}
+
 	if reply, ok := msg.ReplyTo.(*tg.MessageReplyHeader); ok {
 		if reply.ReplyToPeerID == nil || telegramPeerID(reply.ReplyToPeerID) == telegramPeerID(msg.PeerID) {
 			record.ReplyTo = reply.ReplyToMsgID
+		}
+
+		if reply.ForumTopic {
+			record.TopicID = reply.ReplyToTopID
+			if record.TopicID == 0 {
+				record.TopicID = record.ReplyTo
+			}
 		}
 	}
 
@@ -197,7 +213,7 @@ func (r *Presentation) readHistory(
 
 	iter := history.Iter()
 
-	summary, err := walkHistory(ctx, iter, options, c.extCtx.Self.ID, consume, progress)
+	summary, err := walkHistory(ctx, iter, options, c.extCtx.Self.ID, chat.forum, consume, progress)
 	if err != nil {
 		progress(c.extCtx, "History could not be read.")
 		return historySummary{}, err
@@ -219,6 +235,7 @@ func walkHistory(
 	iter historyIterator,
 	options historyOptions,
 	selfID int64,
+	forum bool,
 	consume func(record tgdtos.Message, author tgdtos.Author) error,
 	progress func(context.Context, string),
 ) (historySummary, error) {
@@ -234,7 +251,7 @@ func walkHistory(
 			continue
 		}
 
-		record, author := decodeHistoryMessage(elem, msg, selfID)
+		record, author := decodeHistoryMessage(elem, msg, selfID, forum)
 		date := time.Unix(record.Date, 0).UTC()
 
 		if date.Before(options.cutoff) {

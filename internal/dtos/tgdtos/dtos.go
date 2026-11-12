@@ -33,12 +33,22 @@ func (Author) TGType() TGType {
 	return TGTypeAuthor
 }
 
+type Topic struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+}
+
+func (Topic) TGType() TGType {
+	return TGTypeTopic
+}
+
 type Message struct {
 	ID       int    `json:"id"`
 	Date     int64  `json:"date"`
 	AuthorID int64  `json:"author_id,string,omitempty"`
 	Text     string `json:"text,omitempty"`
 	ReplyTo  int    `json:"reply_to,omitempty"`
+	TopicID  int    `json:"topic_id,omitempty"`
 }
 
 func (Message) TGType() TGType {
