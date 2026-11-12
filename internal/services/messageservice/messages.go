@@ -39,16 +39,16 @@ func (r *MessagesGroupByUserID) SortByWordsCount(asc bool) {
 func (r *Messages) GroupByUserID() MessagesGroupByUserID {
 	users := make(map[int64]MessageGroupByUserID)
 	for _, m := range *r {
-		user, ok := users[m.TgUserID]
+		user, ok := users[m.AuthorID]
 		if !ok {
-			user.TgUserID = m.TgUserID
+			user.TgUserID = m.AuthorID
 		}
 
 		user.ToxicWordsCount += m.ToxicWordsCount
 		user.WordsCount += m.WordsCount
 		user.MessagesCount++
 
-		users[m.TgUserID] = user
+		users[m.AuthorID] = user
 	}
 
 	return slices.Collect(maps.Values(users))
@@ -65,7 +65,7 @@ func (r *Messages) GroupByTime(precision time.Duration) MessagesGroupByTime {
 	msgs := make(map[time.Time]MessageGroupByTime)
 
 	for _, m := range *r {
-		createdAt := m.CreatedAt.Round(precision)
+		createdAt := time.Unix(m.Date, 0).UTC().Round(precision)
 
 		msg, ok := msgs[createdAt]
 		if !ok {

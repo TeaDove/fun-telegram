@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"strconv"
 
+	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/cockroachdb/errors"
-	"github.com/gotd/td/constant"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
@@ -17,69 +17,34 @@ import (
 
 const historyDumpFilename = "history.jsonl.gz"
 
-type historyDumpHeader struct {
-	Type    string `json:"type"`
-	Version int    `json:"version"`
-	PeerID  string `json:"peer_id"`
-	Title   string `json:"title"`
-}
-
-type historyDumpAuthor struct {
-	Type     string `json:"type"`
-	ID       string `json:"id"`
-	Name     string `json:"name,omitempty"`
-	Username string `json:"username,omitempty"`
-}
-
-type historyDumpMessage struct {
-	Type     string `json:"type"`
-	ID       int    `json:"id"`
-	Date     int64  `json:"date"`
-	AuthorID string `json:"author_id,omitempty"`
-	Text     string `json:"text,omitempty"`
-	ReplyTo  int    `json:"reply_to,omitempty"`
-}
-
 type historyDump struct {
 	encoder *json.Encoder
-	authors map[constant.TDLibPeerID]struct{}
+	authors mapset.Set[int64]
 }
 
 func newHistoryDump(output io.Writer, chat historyChat) (*historyDump, error) {
 	encoder := json.NewEncoder(output)
 	encoder.SetEscapeHTML(false)
 
-	err := encoder.Encode(historyDumpHeader{
-		Type: "chat", Version: 1, PeerID: strconv.FormatInt(int64(chat.id), 10), Title: chat.name,
-	})
+	header := tgdtos.HistoryHeader{Version: 1, PeerID: int64(chat.id), Title: chat.name}
+
+	err := encoder.Encode(tgdtos.NewRecord(header))
 	if err != nil {
 		return nil, errors.Wrap(err, "encode chat header")
 	}
 
-	return &historyDump{encoder: encoder, authors: make(map[constant.TDLibPeerID]struct{})}, nil
+	return &historyDump{encoder: encoder, authors: mapset.NewThreadUnsafeSet[int64]()}, nil
 }
 
-func (d *historyDump) append(msg historyMessage) error {
-	var authorID string
-	if msg.authorID != 0 {
-		authorID = strconv.FormatInt(int64(msg.authorID), 10)
-
-		_, known := d.authors[msg.authorID]
-		if !known && (msg.authorName != "" || msg.authorUsername != "") {
-			err := d.encoder.Encode(historyDumpAuthor{
-				Type: "author", ID: authorID, Name: msg.authorName, Username: msg.authorUsername,
-			})
-			if err != nil {
-				return errors.Wrap(err, "encode message author")
-			}
-
-			d.authors[msg.authorID] = struct{}{}
+func (d *historyDump) append(msg tgdtos.Message, author tgdtos.Author) error {
+	if author.ID != 0 && (author.Name != "" || author.Username != "") && d.authors.Add(author.ID) {
+		err := d.encoder.Encode(tgdtos.NewRecord(author))
+		if err != nil {
+			return errors.Wrap(err, "encode message author")
 		}
 	}
 
-	err := d.encoder.Encode(historyDumpMessage{
-		Type: "message", ID: msg.id, Date: msg.date.Unix(), AuthorID: authorID, Text: msg.text, ReplyTo: msg.replyTo,
-	})
+	err := d.encoder.Encode(tgdtos.NewRecord(msg))
 
 	return errors.Wrap(err, "encode history message")
 }

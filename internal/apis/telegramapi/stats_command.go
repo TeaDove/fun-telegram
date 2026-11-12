@@ -5,14 +5,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
 	"github.com/TeaDove/fun-telegram/internal/services/messageservice"
 	"github.com/TeaDove/fun-telegram/internal/utils"
 	"github.com/cockroachdb/errors"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
-	"github.com/guregu/null/v5"
 )
 
 func (r *Presentation) statsCommand(c *Context) error {
@@ -22,23 +23,16 @@ func (r *Presentation) statsCommand(c *Context) error {
 	}
 
 	storage := r.analiticsService.NewStorage()
-	authors := make(map[int64]struct{})
+	authors := mapset.NewThreadUnsafeSet[int64]()
 
-	summary, err := r.readHistory(c, chat, func(msg historyMessage) error {
-		authorID := int64(msg.authorID)
-		if _, known := authors[authorID]; !known && msg.authorName != "" {
-			storage.Users = append(storage.Users, messageservice.UserInChat{
-				TgID: authorID, TgName: utils.ReplaceNonASCIIWithSpace(msg.authorName),
-				TgUsername: strings.ToLower(msg.authorUsername),
-			})
-			authors[authorID] = struct{}{}
+	summary, err := r.readHistory(c, chat, func(msg tgdtos.Message, author tgdtos.Author) error {
+		if author.Name != "" && authors.Add(author.ID) {
+			author.Name = utils.ReplaceNonASCIIWithSpace(author.Name)
+			author.Username = strings.ToLower(author.Username)
+			storage.Users = append(storage.Users, author)
 		}
 
-		record := messageservice.Message{
-			CreatedAt: msg.date, TgChatID: int64(chat.id), TgID: msg.id, TgUserID: authorID, Text: msg.text,
-			ReplyToTgMsgID: null.NewInt(int64(msg.replyTo), msg.replyTo != 0),
-		}
-		r.analiticsService.AppendMessage(storage, &record)
+		r.analiticsService.AppendMessage(storage, &messageservice.Message{Message: msg})
 
 		return nil
 	})

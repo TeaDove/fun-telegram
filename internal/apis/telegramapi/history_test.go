@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/bin"
@@ -100,14 +101,20 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 	}).ThenResult(&tg.MessagesMessages{
 		Chats: []tg.ChatClass{source},
 		Users: []tg.UserClass{author},
-		Messages: []tg.MessageClass{&tg.Message{
-			ID: messageID, PeerID: sourcePeer, Date: int(date.Unix()), Message: "Строка\n<тест>",
-			FromID:  &tg.PeerUser{UserID: author.ID},
-			ReplyTo: &tg.MessageReplyHeader{ReplyToMsgID: messageID - 1},
-		}},
+		Messages: []tg.MessageClass{
+			&tg.Message{
+				ID: messageID, PeerID: sourcePeer, Date: int(date.Unix()), Message: "Строка\n<тест>",
+				FromID:  &tg.PeerUser{UserID: author.ID},
+				ReplyTo: &tg.MessageReplyHeader{ReplyToMsgID: messageID - 1},
+			},
+			&tg.Message{
+				ID: messageID - 1, PeerID: sourcePeer, Date: int(date.Unix()), Message: "Earlier message",
+				FromID: &tg.PeerUser{UserID: author.ID},
+			},
+		},
 	})
 	mock.ExpectCall(&tg.MessagesGetHistoryRequest{
-		Peer: &tg.InputPeerChat{ChatID: source.ID}, OffsetID: messageID,
+		Peer: &tg.InputPeerChat{ChatID: source.ID}, OffsetID: messageID - 1,
 		OffsetDate: int(date.Unix()), Limit: historyBatchSize,
 	}).ThenResult(&tg.MessagesMessages{})
 	mock.ExpectFunc(func(body bin.Encoder) {
@@ -115,7 +122,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		request := body.(*tg.MessagesEditMessageRequest)
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
 		require.Equal(t, progressID, request.ID)
-		require.Contains(t, request.Message, "Messages read: 1")
+		require.Contains(t, request.Message, "Messages read: 2")
 	}).ThenResult(&tg.Updates{})
 
 	var archive []byte
@@ -163,19 +170,29 @@ func requireHistoryArchive(t *testing.T, archive []byte, date time.Time, message
 
 	decoder := json.NewDecoder(reader)
 
-	var header historyDumpHeader
+	var header tgdtos.Record[tgdtos.HistoryHeader]
 	require.NoError(t, decoder.Decode(&header))
-	require.Equal(t, historyDumpHeader{Type: "chat", Version: 1, PeerID: "-2", Title: "Тестовый чат"}, header)
+	require.Equal(t, tgdtos.TGType("HISTORY_HEADER"), header.Type)
+	require.Equal(t, tgdtos.HistoryHeader{Version: 1, PeerID: -2, Title: "Тестовый чат"}, header.Payload)
 
-	var author historyDumpAuthor
+	var author tgdtos.Record[tgdtos.Author]
 	require.NoError(t, decoder.Decode(&author))
-	require.Equal(t, historyDumpAuthor{Type: "author", ID: "3", Name: "Автор", Username: "test_author"}, author)
+	require.Equal(t, tgdtos.TGType("AUTHOR"), author.Type)
+	require.Equal(t, tgdtos.Author{ID: 3, Name: "Автор", Username: "test_author"}, author.Payload)
 
-	var message historyDumpMessage
+	var message tgdtos.Record[tgdtos.Message]
 	require.NoError(t, decoder.Decode(&message))
-	require.Equal(t, historyDumpMessage{
-		Type: "message", ID: messageID, Date: date.Unix(), AuthorID: "3", Text: "Строка\n<тест>", ReplyTo: messageID - 1,
-	}, message)
+	require.Equal(t, tgdtos.TGType("MESSAGE"), message.Type)
+	require.Equal(t, tgdtos.Message{
+		ID: messageID, Date: date.Unix(), AuthorID: 3, Text: "Строка\n<тест>", ReplyTo: messageID - 1,
+	}, message.Payload)
+
+	var previous tgdtos.Record[tgdtos.Message]
+	require.NoError(t, decoder.Decode(&previous))
+	require.Equal(t, tgdtos.TGTypeMessage, previous.Type)
+	require.Equal(t, tgdtos.Message{
+		ID: messageID - 1, Date: date.Unix(), AuthorID: 3, Text: "Earlier message",
+	}, previous.Payload)
 	require.ErrorIs(t, decoder.Decode(&message), io.EOF)
 }
 
@@ -233,8 +250,8 @@ func TestWalkHistoryLimits(t *testing.T) {
 			ids := make([]int, 0, test.count)
 			summary, err := walkHistory(t.Context(), iter,
 				historyOptions{count: test.count, cutoff: time.Unix(cutoffDate, 0)}, 1,
-				func(record historyMessage) error {
-					ids = append(ids, record.id)
+				func(record tgdtos.Message, _ tgdtos.Author) error {
+					ids = append(ids, record.ID)
 					return nil
 				}, func(context.Context, string) {})
 			require.NoError(t, err)

@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/TeaDove/fun-telegram/internal/utils"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/cockroachdb/errors"
-	"github.com/gotd/td/constant"
 	"github.com/gotd/td/telegram/query"
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/tg"
@@ -72,16 +72,6 @@ func parseHistoryOptions(options map[string]string, now time.Time) (historyOptio
 	return historyOptions{count: count, cutoff: now.UTC().Add(-time.Duration(days) * historyDay)}, nil
 }
 
-type historyMessage struct {
-	date           time.Time
-	text           string
-	authorName     string
-	authorUsername string
-	authorID       constant.TDLibPeerID
-	id             int
-	replyTo        int
-}
-
 func historyAuthor(msg *tg.Message, selfID int64) tg.PeerClass {
 	if msg.FromID != nil {
 		return msg.FromID
@@ -101,29 +91,27 @@ func historyAuthor(msg *tg.Message, selfID int64) tg.PeerClass {
 	}
 }
 
-func decodeHistoryMessage(elem messages.Elem, msg *tg.Message, selfID int64) historyMessage {
-	author := historyAuthor(msg, selfID)
-	result := historyMessage{
-		id:         msg.ID,
-		date:       time.Unix(int64(msg.Date), 0).UTC(),
-		text:       msg.Message,
-		authorID:   telegramPeerID(author),
-		authorName: historyPeerName(author, elem.Entities),
+func decodeHistoryMessage(elem messages.Elem, msg *tg.Message, selfID int64) (tgdtos.Message, tgdtos.Author) {
+	p := historyAuthor(msg, selfID)
+	author := tgdtos.Author{
+		ID:   int64(telegramPeerID(p)),
+		Name: historyPeerName(p, elem.Entities),
 	}
 
-	if p, ok := author.(*tg.PeerUser); ok {
-		if user, found := elem.Entities.User(p.UserID); found {
-			result.authorUsername = user.Username
+	if userPeer, ok := p.(*tg.PeerUser); ok {
+		if user, found := elem.Entities.User(userPeer.UserID); found {
+			author.Username = user.Username
 		}
 	}
 
+	record := tgdtos.Message{ID: msg.ID, Date: int64(msg.Date), Text: msg.Message, AuthorID: author.ID}
 	if reply, ok := msg.ReplyTo.(*tg.MessageReplyHeader); ok {
 		if reply.ReplyToPeerID == nil || telegramPeerID(reply.ReplyToPeerID) == telegramPeerID(msg.PeerID) {
-			result.replyTo = reply.ReplyToMsgID
+			record.ReplyTo = reply.ReplyToMsgID
 		}
 	}
 
-	return result
+	return record, author
 }
 
 type historySummary struct {
@@ -187,7 +175,7 @@ func (c *Context) startHistoryProgress(chat historyChat) (func(context.Context, 
 func (r *Presentation) readHistory(
 	c *Context,
 	chat historyChat,
-	consume func(historyMessage) error,
+	consume func(record tgdtos.Message, author tgdtos.Author) error,
 ) (historySummary, error) {
 	options, err := parseHistoryOptions(c.Ops, c.StartedAt)
 	if err != nil {
@@ -231,7 +219,7 @@ func walkHistory(
 	iter historyIterator,
 	options historyOptions,
 	selfID int64,
-	consume func(historyMessage) error,
+	consume func(record tgdtos.Message, author tgdtos.Author) error,
 	progress func(context.Context, string),
 ) (historySummary, error) {
 	const progressInterval = 5 * historyBatchSize
@@ -246,18 +234,20 @@ func walkHistory(
 			continue
 		}
 
-		record := decodeHistoryMessage(elem, msg, selfID)
-		if record.date.Before(options.cutoff) {
+		record, author := decodeHistoryMessage(elem, msg, selfID)
+		date := time.Unix(record.Date, 0).UTC()
+
+		if date.Before(options.cutoff) {
 			summary.stop = "date limit"
 			return summary, nil
 		}
 
-		err := consume(record)
+		err := consume(record, author)
 		if err != nil {
 			return historySummary{}, errors.Wrap(err, "process history message")
 		}
 
-		summary.append(record.date)
+		summary.append(date)
 
 		if summary.count == options.count {
 			summary.stop = "message limit"

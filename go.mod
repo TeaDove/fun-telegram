@@ -13,7 +13,6 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/gotd/contrib v0.25.0
 	github.com/gotd/td v0.163.0
-	github.com/guregu/null/v5 v5.0.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	github.com/teadove/teasutils/serviceutils v1.0.1
