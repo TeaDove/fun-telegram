@@ -2,6 +2,7 @@ package telegramapi
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
+	protoerrors "github.com/celestix/gotgproto/errors"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/cockroachdb/errors"
@@ -37,13 +39,13 @@ type Presentation struct {
 	analiticsService *analyticsservice.Service
 }
 
-func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
+func NewProtoClient(ctx context.Context, settings utils.TelegramSettings) (*gotgproto.Client, error) {
 	middlewares := make([]telegram.Middleware, 0, 2)
 
-	if utils.AppSettings.Telegram.RateLimiterEnabled {
+	if settings.RateLimiterEnabled {
 		middlewares = append(middlewares, ratelimit.New(
-			rate.Every(utils.AppSettings.Telegram.RateLimiterRate),
-			utils.AppSettings.Telegram.RateLimiterLimit))
+			rate.Every(settings.RateLimiterRate),
+			settings.RateLimiterLimit))
 	}
 
 	var runMiddleware func(
@@ -52,7 +54,7 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 		f func(ctx context.Context) (err error),
 	) (err error)
 
-	if utils.AppSettings.Telegram.FloodWaiterEnabled {
+	if settings.FloodWaiterEnabled {
 		waiter := floodwait.
 			NewSimpleWaiter().
 			WithMaxWait(time.Minute * 10).
@@ -62,35 +64,46 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 	}
 
 	zerolog.Ctx(ctx).Info().
-		Str("app_id", redactutils.Redact(strconv.Itoa(utils.AppSettings.Telegram.AppID))).
-		Str("app_hash", redactutils.Redact(utils.AppSettings.Telegram.AppHash)).
-		Str("phone", redactutils.Redact(utils.AppSettings.Telegram.PhoneNumber)).
+		Str("app_id", redactutils.Redact(strconv.Itoa(settings.AppID))).
+		Str("app_hash", redactutils.Redact(settings.AppHash)).
 		Msg("creating.client")
 
-	protoClient, err := gotgproto.NewClient(
-		utils.AppSettings.Telegram.AppID,
-		utils.AppSettings.Telegram.AppHash,
-		gotgproto.ClientTypePhone(utils.AppSettings.Telegram.PhoneNumber),
-		&gotgproto.ClientOpts{
-			Context:          ctx,
-			InMemory:         false,
-			DisableCopyright: true,
-			Session:          sessionMaker.SqlSession(sqlite.Open(".mtproto")),
-			AuthConversator: authConversator{
-				AuthConversator: gotgproto.BasicConversator(),
-				logger:          zerolog.Ctx(ctx),
-			},
-			Middlewares:   middlewares,
-			RunMiddleware: runMiddleware,
-			RetryInterval: 10 * time.Second,
-			MaxRetries:    10,
-			DC:            2,
-		})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create gotgproto client")
+	options := &gotgproto.ClientOpts{
+		Context:          ctx,
+		DisableCopyright: true,
+		Session:          sessionMaker.SqlSession(sqlite.Open(sessionPath)),
+		NoAutoAuth:       true,
+		Middlewares:      middlewares,
+		RunMiddleware:    runMiddleware,
+		RetryInterval:    10 * time.Second,
+		MaxRetries:       10,
+		DC:               2,
+	}
+	clientType := gotgproto.ClientTypePhone("")
+	client, err := gotgproto.NewClient(settings.AppID, settings.AppHash, clientType, options)
+
+	if errors.Is(err, protoerrors.ErrSessionUnauthorized) {
+		if client != nil {
+			client.Stop()
+		}
+
+		err = LoginQR(ctx, settings, os.Stdin, os.Stdout)
+		if err != nil {
+			return nil, errors.Wrap(err, "authorize Telegram session")
+		}
+
+		client, err = gotgproto.NewClient(settings.AppID, settings.AppHash, clientType, options)
 	}
 
-	return protoClient, nil
+	if err != nil {
+		if client != nil {
+			client.Stop()
+		}
+
+		return nil, errors.Wrap(err, "create gotgproto client")
+	}
+
+	return client, nil
 }
 
 func MustNewTelegramPresentation(

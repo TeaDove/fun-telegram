@@ -8,19 +8,20 @@ import (
 
 	"github.com/TeaDove/fun-telegram/internal/apis/telegramapi"
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
+	"github.com/TeaDove/fun-telegram/internal/utils"
 )
 
 type Container struct {
 	Presentation *telegramapi.Presentation
 }
 
-func NewContainer(ctx context.Context) (Container, error) {
+func NewContainer(ctx context.Context, settings utils.TelegramSettings) (Container, error) {
 	analiticsService, err := analyticsservice.New()
 	if err != nil {
 		return Container{}, errors.WithStack(err)
 	}
 
-	protoClient, err := telegramapi.NewProtoClient(ctx)
+	protoClient, err := telegramapi.NewProtoClient(ctx, settings)
 	if err != nil {
 		return Container{}, errors.WithStack(err)
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/TeaDove/fun-telegram/internal/container"
+	"github.com/TeaDove/fun-telegram/internal/utils"
 
 	"github.com/teadove/teasutils/serviceutils/loggerutils"
 )
@@ -9,7 +10,12 @@ import (
 func main() {
 	ctx := loggerutils.NewLoggedCtx()
 
-	combatContainer, err := container.NewContainer(ctx)
+	settings, err := utils.LoadSettings()
+	if err != nil {
+		panic(err)
+	}
+
+	combatContainer, err := container.NewContainer(ctx, settings.Telegram)
 	if err != nil {
 		panic(err)
 	}
