@@ -11,29 +11,40 @@ import (
 )
 
 const (
-	TGTypeMessage       TGType = "MESSAGE"
-	TGTypeAuthor        TGType = "AUTHOR"
-	TGTypeHistoryHeader TGType = "HISTORY_HEADER"
+	TGTypeMessage TGType = iota + 1
+	TGTypeAuthor
+	TGTypeHistoryHeader
 )
 
 var ErrInvalidTGType = errors.New("not a valid TGType")
 
+const _TGTypeName = "MESSAGEAUTHORHISTORY_HEADER"
+
+var _TGTypeMap = map[TGType]string{
+	TGTypeMessage:       _TGTypeName[0:7],
+	TGTypeAuthor:        _TGTypeName[7:13],
+	TGTypeHistoryHeader: _TGTypeName[13:27],
+}
+
 // String implements the Stringer interface.
 func (x TGType) String() string {
-	return string(x)
+	if str, ok := _TGTypeMap[x]; ok {
+		return str
+	}
+	return fmt.Sprintf("TGType(%d)", x)
 }
 
 // IsValid provides a quick way to determine if the typed value is
 // part of the allowed enumerated values
 func (x TGType) IsValid() bool {
-	_, err := ParseTGType(string(x))
-	return err == nil
+	_, ok := _TGTypeMap[x]
+	return ok
 }
 
 var _TGTypeValue = map[string]TGType{
-	"MESSAGE":        TGTypeMessage,
-	"AUTHOR":         TGTypeAuthor,
-	"HISTORY_HEADER": TGTypeHistoryHeader,
+	_TGTypeName[0:7]:   TGTypeMessage,
+	_TGTypeName[7:13]:  TGTypeAuthor,
+	_TGTypeName[13:27]: TGTypeHistoryHeader,
 }
 
 // ParseTGType attempts to convert a string to a TGType.
@@ -41,5 +52,29 @@ func ParseTGType(name string) (TGType, error) {
 	if x, ok := _TGTypeValue[name]; ok {
 		return x, nil
 	}
-	return TGType(""), fmt.Errorf("%s is %w", name, ErrInvalidTGType)
+	return TGType(0), fmt.Errorf("%s is %w", name, ErrInvalidTGType)
+}
+
+// MarshalText implements the text marshaller method.
+func (x TGType) MarshalText() ([]byte, error) {
+	return []byte(x.String()), nil
+}
+
+// UnmarshalText implements the text unmarshaller method.
+func (x *TGType) UnmarshalText(text []byte) error {
+	name := string(text)
+	tmp, err := ParseTGType(name)
+	if err != nil {
+		return err
+	}
+	*x = tmp
+	return nil
+}
+
+// AppendText appends the textual representation of itself to the end of b
+// (allocating a larger slice if necessary) and returns the updated slice.
+//
+// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
+func (x TGType) AppendText(b []byte) ([]byte, error) {
+	return append(b, x.String()...), nil
 }

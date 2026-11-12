@@ -1,6 +1,6 @@
 package tgdtos
 
-//go:generate go run github.com/abice/go-enum@v0.9.5 --file $GOFILE --nocomments
+//go:generate go tool go-enum --file $GOFILE --marshal --forceupper --nocomments
 
-// ENUM(Message=MESSAGE, Author=AUTHOR, HistoryHeader=HISTORY_HEADER).
-type TGType string
+// ENUM(message=1, author, history_header).
+type TGType uint8
