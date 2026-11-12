@@ -9,7 +9,7 @@ import (
 
 	"github.com/TeaDove/fun-telegram/internal/services/messageservice"
 
-	"github.com/TeaDove/fun-telegram/internal/suppliers/dssupplier"
+	"github.com/TeaDove/fun-telegram/internal/utils/plotutil"
 
 	"github.com/rs/zerolog"
 
@@ -20,14 +20,19 @@ import (
 )
 
 type Service struct {
-	dsSupplier *dssupplier.Supplier
+	charts plotutil.Renderer
 
 	toxicityExp *regexp2.Regexp
 	lemmatizer  *golem.Lemmatizer
 }
 
-func New(dsSupplier *dssupplier.Supplier) (*Service, error) {
-	r := Service{dsSupplier: dsSupplier}
+func New() (*Service, error) {
+	renderer, err := plotutil.New()
+	if err != nil {
+		return nil, errors.Wrap(err, "initialize chart renderer")
+	}
+
+	r := Service{charts: renderer}
 
 	exp := regexp2.MustCompile(
 		`((у|[нз]а|(хитро|не)?вз?[ыьъ]|с[ьъ]|(и|ра)[зс]ъ?|(о[тб]|под)[ьъ]?|(.\B)+?[оаеи])?-?([её]б(?!о[рй])|и[пб][ае][тц]).*?|(н[иеа]|[дп]о|ра[зс]|з?а|с(ме)?|о(т|дно)?|апч)?-?х[уy]([яйиеёю]|ли(?!ган)).*?|(в[зы]|(три|два|четыре)жды|(н|сук)а)?-?[б6]л(я(?!(х|ш[кн]|мб)[ауеыио]).*?|[еэ][дт]ь?)|(ра[сз]|[зн]а|[со]|вы?|п(р[ои]|од)|и[зс]ъ?|[ао]т)?п[иеё]зд.*?|(за)?п[ие]д[аое]?р((ас)?(и(ли)?[нщктл]ь?)?|(о(ч[еи])?)?к|юг)[ауеы]?|манд([ауеы]|ой|[ао]вошь?(е?к[ауе])?|юк(ов|[ауи])?)|муд([аио].*?|е?н([ьюия]|ей))|мля([тд]ь)?|лять|([нз]а|по)х|м[ао]л[ао]фь[яию]|(жоп|чмо|гнид)[а-я]*|г[ао]ндон|[а-я]*(с[рс]ать|хрен|хер|дрист|дроч|минет|говн|шлюх|г[а|о]вн)[а-я]*|мраз(ь|ота)|сук[а-я])|cock|fuck(er|ing)?`, //nolint: lll // as expected
@@ -133,16 +138,16 @@ func (r *Service) analiseWholeChat(
 	})
 
 	wg.Go(func() {
-		r.getChatterBoxes(ctx, statsReportChan, input, true)
+		r.getChatterBoxes(statsReportChan, input, true)
 	})
 	wg.Go(func() {
-		r.getChatterBoxes(ctx, statsReportChan, input, false)
+		r.getChatterBoxes(statsReportChan, input, false)
 	})
 	wg.Go(func() {
-		r.getMessagesGroupedByDateByChatID(ctx, statsReportChan, input)
+		r.getMessagesGroupedByDateByChatID(statsReportChan, input)
 	})
 	wg.Go(func() {
-		r.getMostToxicUsers(ctx, statsReportChan, input)
+		r.getMostToxicUsers(statsReportChan, input)
 	})
 
 	wg.Wait()
@@ -160,6 +165,10 @@ type AnaliseChatInput struct {
 }
 
 func (r *Service) AnaliseChat(ctx context.Context, input *AnaliseChatInput) (AnaliseReport, error) {
+	if len(input.Storage.Messages) == 0 {
+		return AnaliseReport{}, ErrNoMessagesFound
+	}
+
 	zerolog.Ctx(ctx).Info().Msg("compiling.stats.begin")
 
 	report, err := r.analiseWholeChat(ctx, input)

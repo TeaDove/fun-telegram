@@ -56,7 +56,7 @@ func (r *Presentation) compileStats(c *Context, storage *messageservice.Storage)
 	fileUploader := uploader.NewUploader(c.extCtx.Raw)
 
 	if len(report.Images) == 0 {
-		return errors.Wrapf(err, "no images in report")
+		return errors.New("no images in report")
 	}
 
 	firstFile, err := fileUploader.FromBytes(

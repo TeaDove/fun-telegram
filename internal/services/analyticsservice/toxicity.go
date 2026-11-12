@@ -1,15 +1,11 @@
 package analyticsservice
 
 import (
-	"context"
-
-	"github.com/TeaDove/fun-telegram/internal/suppliers/dssupplier"
-
+	"github.com/TeaDove/fun-telegram/internal/utils/plotutil"
 	"github.com/cockroachdb/errors"
 )
 
 func (r *Service) getMostToxicUsers(
-	ctx context.Context,
 	statsReportChan chan<- statsReport,
 	input *AnaliseChatInput,
 ) {
@@ -20,41 +16,40 @@ func (r *Service) getMostToxicUsers(
 		},
 	}
 
-	limit := 15
-	userToCountArray := input.Storage.Messages.GroupByUserID()
-	userToCountArray.SortByWordsCount(true)
+	const limit = 15
 
-	if limit > len(userToCountArray) {
-		limit = len(userToCountArray)
+	users := input.Storage.Messages.GroupByUserID()
+	users.SortByWordsCount(true)
+
+	bars := make([]plotutil.Bar, 0, min(limit, len(users)))
+	for _, user := range users {
+		if user.WordsCount == 0 {
+			continue
+		}
+
+		bars = append(bars, plotutil.Bar{
+			Label: input.Storage.UsersNameGetter.GetName(user.TgUserID),
+			Value: float64(user.ToxicWordsCount) / float64(user.WordsCount) * 100,
+		})
+
+		if len(bars) == limit {
+			break
+		}
 	}
 
-	userToCountArray = userToCountArray[:limit]
-
-	userToCount := make(map[string]float64, limit)
-	for _, message := range userToCountArray {
-		userToCount[input.Storage.UsersNameGetter.GetName(message.TgUserID)] = float64(
-			message.ToxicWordsCount,
-		) / float64(
-			message.WordsCount,
-		) * 100
+	labels := plotutil.Labels{
+		Title: "Toxic words percent",
+		X:     "User",
+		Y:     "Percent of toxic words compared to all words",
 	}
 
-	jpgImg, err := r.dsSupplier.DrawBar(ctx, &dssupplier.DrawBarInput{
-		DrawInput: dssupplier.DrawInput{
-			Title:  "Toxic words percent",
-			XLabel: "User",
-			YLabel: "Percent of toxic words compared to all words",
-		},
-		Values: userToCount,
-	})
+	image, err := r.charts.Bars(labels, bars, false)
 	if err != nil {
-		output.err = errors.Wrap(err, "failed to draw in ds supplier")
-		statsReportChan <- output
-
-		return
+		output.err = errors.Wrap(err, "render toxic words percent")
+	} else {
+		output.repostImage.Content = image
 	}
 
-	output.repostImage.Content = jpgImg
 	statsReportChan <- output
 }
 

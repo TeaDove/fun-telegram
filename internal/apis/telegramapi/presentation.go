@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/TeaDove/fun-telegram/internal/suppliers/gigachatsupplier"
-
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/glebarez/sqlite"
 
@@ -35,7 +33,6 @@ type Presentation struct {
 	router map[string]messageProcessor
 
 	analiticsService *analyticsservice.Service
-	gigachatSupplier *gigachatsupplier.Supplier
 }
 
 func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
@@ -87,7 +84,6 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 func MustNewTelegramPresentation(
 	protoClient *gotgproto.Client,
 	analiticsService *analyticsservice.Service,
-	gigachatSupplier *gigachatsupplier.Supplier,
 ) *Presentation {
 	api := protoClient.API()
 
@@ -96,7 +92,6 @@ func MustNewTelegramPresentation(
 		telegramAPI:      api,
 		telegramManager:  peers.Options{}.Build(api),
 		analiticsService: analiticsService,
-		gigachatSupplier: gigachatSupplier,
 	}
 
 	protoClient.Dispatcher.AddHandler(
@@ -138,11 +133,6 @@ func MustNewTelegramPresentation(
 				FlagStatsAnonymize,
 			},
 			example: "-c=400000 -d=365 -o=0 --silent",
-		},
-		"summarize": {
-			executor:    presentation.summarizeCommand,
-			description: "summarize last messages",
-			flags:       []optFlag{},
 		},
 		"restart": {
 			executor:    presentation.restartCommandHandler,
