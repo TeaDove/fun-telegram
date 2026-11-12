@@ -11,14 +11,14 @@ type authConversator struct {
 	logger *zerolog.Logger
 }
 
-func (conversation authConversator) AuthStatus(status gotgproto.AuthStatus) {
-	conversation.AuthConversator.AuthStatus(status)
+func (c authConversator) AuthStatus(status gotgproto.AuthStatus) {
+	c.AuthConversator.AuthStatus(status)
 
 	if status.SentCodeType == nil {
 		return
 	}
 
-	conversation.logger.Info().
+	c.logger.Info().
 		Str("delivery", status.SentCodeType.TypeName()).
 		Msg("telegram.auth.code.delivery")
 }
