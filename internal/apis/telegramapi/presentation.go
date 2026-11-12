@@ -79,41 +79,31 @@ func NewProtoClient(ctx context.Context, settings utils.TelegramSettings) (*gotg
 		MaxRetries:       10,
 		DC:               2,
 	}
-	connect := func() (*gotgproto.Client, error) {
-		client, err := gotgproto.NewClient(
-			settings.AppID, settings.AppHash, gotgproto.ClientTypePhone(""), options,
-		)
-		if err != nil {
-			if client != nil {
-				client.Stop()
-			}
+	clientType := gotgproto.ClientTypePhone("")
+	client, err := gotgproto.NewClient(settings.AppID, settings.AppHash, clientType, options)
 
-			return nil, errors.Wrap(err, "create gotgproto client")
+	if errors.Is(err, protoerrors.ErrSessionUnauthorized) {
+		if client != nil {
+			client.Stop()
 		}
 
-		return client, nil
+		err = LoginQR(ctx, settings, os.Stdin, os.Stdout)
+		if err != nil {
+			return nil, errors.Wrap(err, "authorize Telegram session")
+		}
+
+		client, err = gotgproto.NewClient(settings.AppID, settings.AppHash, clientType, options)
 	}
 
-	return connectWithQR(connect, func() error {
-		return LoginQR(ctx, settings, os.Stdin, os.Stdout)
-	})
-}
-
-func connectWithQR(
-	connect func() (*gotgproto.Client, error),
-	login func() error,
-) (*gotgproto.Client, error) {
-	client, err := connect()
-	if !errors.Is(err, protoerrors.ErrSessionUnauthorized) {
-		return client, err
-	}
-
-	err = login()
 	if err != nil {
-		return nil, errors.Wrap(err, "authorize Telegram session")
+		if client != nil {
+			client.Stop()
+		}
+
+		return nil, errors.Wrap(err, "create gotgproto client")
 	}
 
-	return connect()
+	return client, nil
 }
 
 func MustNewTelegramPresentation(
