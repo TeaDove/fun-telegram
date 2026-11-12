@@ -6,5 +6,5 @@ run:
 update:
 	git pull
 	docker compose up -d --build
-	docker compose logs -f backend
+	docker compose logs -f 
 
