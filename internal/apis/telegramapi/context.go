@@ -24,14 +24,20 @@ func (r *Presentation) injectContext(ctx *ext.Context, update *ext.Update) error
 	return nil
 }
 
-func isOwnCommandMessage(msg *tg.Message, selfID int64) bool {
+func (c *Context) isOwnCommandMessage() bool {
+	msg := c.update.EffectiveMessage.Message
 	if msg.Out {
 		return true
 	}
 
+	if msg.FromID == nil && c.inSavedMessages() {
+		_, forwarded := msg.GetFwdFrom()
+		return !forwarded
+	}
+
 	from, ok := msg.FromID.(*tg.PeerUser)
 
-	return ok && from.UserID == selfID
+	return ok && from.UserID == c.extCtx.Self.ID
 }
 
 func (c *Context) inSavedMessages() bool {

@@ -151,7 +151,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 	ctx := ext.NewContext(t.Context(), api, nil, self, message.NewSender(api), entities, false)
 	update := &ext.Update{
 		EffectiveMessage: types.ConstructMessage(&tg.Message{
-			ID: commandID, Out: true, PeerID: origin, Message: command,
+			ID: commandID, Out: !saved, PeerID: origin, Message: command,
 		}),
 		Entities: entities,
 	}
