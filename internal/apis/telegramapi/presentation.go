@@ -2,10 +2,12 @@ package telegramapi
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
 	"github.com/glebarez/sqlite"
+	"github.com/teadove/teasutils/utils/redactutils"
 
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
 	"github.com/TeaDove/fun-telegram/internal/utils"
@@ -58,6 +60,12 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 
 		middlewares = append(middlewares, waiter)
 	}
+
+	zerolog.Ctx(ctx).Info().
+		Str("app_id", redactutils.Redact(strconv.Itoa(utils.AppSettings.Telegram.AppID))).
+		Str("app_hash", redactutils.Redact(utils.AppSettings.Telegram.AppHash)).
+		Str("phone", redactutils.Redact(utils.AppSettings.Telegram.PhoneNumber)).
+		Msg("creating.client")
 
 	protoClient, err := gotgproto.NewClient(
 		utils.AppSettings.Telegram.AppID,
