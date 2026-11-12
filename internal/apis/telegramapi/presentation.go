@@ -2,6 +2,7 @@ package telegramapi
 
 import (
 	"context"
+	"os"
 	"strconv"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
+	protoerrors "github.com/celestix/gotgproto/errors"
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/cockroachdb/errors"
@@ -67,30 +69,61 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 		Str("phone", redactutils.Redact(utils.AppSettings.Telegram.PhoneNumber)).
 		Msg("creating.client")
 
-	protoClient, err := gotgproto.NewClient(
-		utils.AppSettings.Telegram.AppID,
-		utils.AppSettings.Telegram.AppHash,
-		gotgproto.ClientTypePhone(utils.AppSettings.Telegram.PhoneNumber),
-		&gotgproto.ClientOpts{
-			Context:          ctx,
-			InMemory:         false,
-			DisableCopyright: true,
-			Session:          sessionMaker.SqlSession(sqlite.Open(".mtproto")),
-			AuthConversator: authConversator{
-				AuthConversator: gotgproto.BasicConversator(),
-				logger:          zerolog.Ctx(ctx),
-			},
-			Middlewares:   middlewares,
-			RunMiddleware: runMiddleware,
-			RetryInterval: 10 * time.Second,
-			MaxRetries:    10,
-			DC:            2,
-		})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create gotgproto client")
+	settings := utils.AppSettings.Telegram
+	options := &gotgproto.ClientOpts{
+		Context:          ctx,
+		DisableCopyright: true,
+		Session:          sessionMaker.SqlSession(sqlite.Open(sessionPath)),
+		NoAutoAuth:       !settings.LoginByPhone,
+		AuthConversator: authConversator{
+			AuthConversator: gotgproto.BasicConversator(),
+			logger:          zerolog.Ctx(ctx),
+		},
+		Middlewares:   middlewares,
+		RunMiddleware: runMiddleware,
+		RetryInterval: 10 * time.Second,
+		MaxRetries:    10,
+		DC:            2,
+	}
+	connect := func() (*gotgproto.Client, error) {
+		client, err := gotgproto.NewClient(
+			settings.AppID, settings.AppHash, gotgproto.ClientTypePhone(settings.PhoneNumber), options,
+		)
+		if err != nil {
+			if client != nil {
+				client.Stop()
+			}
+
+			return nil, errors.Wrap(err, "create gotgproto client")
+		}
+
+		return client, nil
 	}
 
-	return protoClient, nil
+	if settings.LoginByPhone {
+		return connect()
+	}
+
+	return connectWithQR(connect, func() error {
+		return LoginQR(ctx, os.Stdin, os.Stdout)
+	})
+}
+
+func connectWithQR(
+	connect func() (*gotgproto.Client, error),
+	login func() error,
+) (*gotgproto.Client, error) {
+	client, err := connect()
+	if !errors.Is(err, protoerrors.ErrSessionUnauthorized) {
+		return client, err
+	}
+
+	err = login()
+	if err != nil {
+		return nil, errors.Wrap(err, "authorize Telegram session")
+	}
+
+	return connect()
 }
 
 func MustNewTelegramPresentation(
