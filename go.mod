@@ -3,6 +3,7 @@ module github.com/TeaDove/fun-telegram
 go 1.27.4
 
 require (
+	codeberg.org/go-fonts/dejavu v0.4.0
 	github.com/aaaton/golem/v4 v4.0.2
 	github.com/aaaton/golem/v4/dicts/ru v0.0.0-20250408131944-3488790fc110
 	github.com/celestix/gotgproto v1.0.0-beta22.0.20261104034138-a6ce80caa86f
@@ -10,7 +11,6 @@ require (
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/glebarez/sqlite v1.11.0
-	github.com/google/uuid v1.6.0
 	github.com/gotd/contrib v0.25.0
 	github.com/gotd/td v0.163.0
 	github.com/guregu/null/v5 v5.0.0
@@ -18,13 +18,19 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/teadove/teasutils/serviceutils v1.0.1
 	github.com/teadove/teasutils/utils v1.0.1
-	github.com/tidwall/gjson v1.20.2
 	golang.org/x/exp v0.0.0-20261109185158-a52e3aef5920
+	golang.org/x/image v0.30.0
 	golang.org/x/time v0.16.0
+	gonum.org/v1/plot v0.17.0
 )
 
 require (
+	codeberg.org/go-fonts/liberation v0.5.0 // indirect
+	codeberg.org/go-latex/latex v0.2.0 // indirect
+	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
+	git.sr.ht/~sbinet/gg v0.7.0 // indirect
 	github.com/AnimeKaizoku/cacher v1.0.3 // indirect
+	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/andybalholm/brotli v1.3.0 // indirect
 	github.com/caarlos0/env/v11 v11.4.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -42,6 +48,8 @@ require (
 	github.com/go-faster/xor v1.0.0 // indirect
 	github.com/go-faster/yaml v0.4.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gotd/ige v0.3.0 // indirect
 	github.com/gotd/log v0.1.0 // indirect
 	github.com/gotd/log/logzap v0.1.1 // indirect
@@ -62,8 +70,6 @@ require (
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.6.0 // indirect
-	github.com/tidwall/match v1.2.0 // indirect
-	github.com/tidwall/pretty v1.3.0 // indirect
 	github.com/yuin/goldmark v1.8.7 // indirect
 	go.mongodb.org/mongo-driver v1.17.10 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect

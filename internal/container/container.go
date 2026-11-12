@@ -3,9 +3,6 @@ package container
 import (
 	"context"
 
-	"github.com/TeaDove/fun-telegram/internal/suppliers/dssupplier"
-	"github.com/TeaDove/fun-telegram/internal/suppliers/gigachatsupplier"
-
 	"github.com/cockroachdb/errors"
 
 	"github.com/TeaDove/fun-telegram/internal/apis/telegramapi"
@@ -17,9 +14,7 @@ type Container struct {
 }
 
 func NewContainer(ctx context.Context) (Container, error) {
-	dsSupplier := dssupplier.New()
-
-	analiticsService, err := analyticsservice.New(dsSupplier)
+	analiticsService, err := analyticsservice.New()
 	if err != nil {
 		return Container{}, errors.WithStack(err)
 	}
@@ -29,12 +24,7 @@ func NewContainer(ctx context.Context) (Container, error) {
 		return Container{}, errors.WithStack(err)
 	}
 
-	gigachatSupplier, err := gigachatsupplier.NewSupplier(ctx)
-	if err != nil {
-		return Container{}, errors.WithStack(err)
-	}
-
-	telegramPresentation := telegramapi.MustNewTelegramPresentation(protoClient, analiticsService, gigachatSupplier)
+	telegramPresentation := telegramapi.MustNewTelegramPresentation(protoClient, analiticsService)
 
 	container := Container{telegramPresentation}
 
