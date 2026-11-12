@@ -29,14 +29,9 @@ type qrTerminal struct {
 	output *os.File
 }
 
-func LoginQR(ctx context.Context, input, output *os.File) error {
+func LoginQR(ctx context.Context, settings utils.TelegramSettings, input, output *os.File) error {
 	if !term.IsTerminal(int(input.Fd())) || !term.IsTerminal(int(output.Fd())) {
 		return errors.New("run go run . login-qr in an interactive terminal to authorize this session")
-	}
-
-	settings := utils.AppSettings.Telegram
-	if settings.AppID <= 0 || settings.AppHash == "" {
-		return errors.New("set FUN_TELEGRAM__APP_ID and FUN_TELEGRAM__APP_HASH before QR login")
 	}
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
@@ -90,7 +85,7 @@ func authenticateQR(
 	defer func() {
 		_, restoreErr := terminal.output.WriteString("\x1b[0m\x1b[?1049l")
 		if restoreErr != nil {
-			zerolog.Ctx(ctx).Warn().Err(restoreErr).Msg("restore terminal")
+			zerolog.Ctx(ctx).Warn().Err(restoreErr).Msg("terminal.restore.failed")
 		}
 	}()
 

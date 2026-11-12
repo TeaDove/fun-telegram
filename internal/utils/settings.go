@@ -6,11 +6,9 @@ import (
 	"github.com/teadove/teasutils/serviceutils/settingsutils"
 )
 
-type telegram struct {
-	AppID        int    `env:"APP_ID"`
-	AppHash      string `env:"APP_HASH"`
-	PhoneNumber  string `env:"PHONE_NUMBER"`
-	LoginByPhone bool   `env:"LOGIN_BY_PHONE" envDefault:"false"`
+type TelegramSettings struct {
+	AppID   int    `env:"APP_ID,required,notEmpty"`
+	AppHash string `env:"APP_HASH,required,notEmpty"`
 
 	FloodWaiterEnabled bool          `env:"FLOOD_WAITER_ENABLED" envDefault:"true"`
 	RateLimiterEnabled bool          `env:"RATE_LIMITER_ENABLED" envDefault:"true"`
@@ -19,7 +17,9 @@ type telegram struct {
 }
 
 type Settings struct {
-	Telegram telegram `envPrefix:"TELEGRAM__"`
+	Telegram TelegramSettings `envPrefix:"TELEGRAM__"`
 }
 
-var AppSettings = settingsutils.MustGetSetting[Settings]("FUN_") //nolint: gochecknoglobals // FIXME
+func LoadSettings() (Settings, error) {
+	return settingsutils.GetSettings[Settings]("FUN_")
+}

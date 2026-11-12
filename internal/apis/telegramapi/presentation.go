@@ -39,13 +39,13 @@ type Presentation struct {
 	analiticsService *analyticsservice.Service
 }
 
-func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
+func NewProtoClient(ctx context.Context, settings utils.TelegramSettings) (*gotgproto.Client, error) {
 	middlewares := make([]telegram.Middleware, 0, 2)
 
-	if utils.AppSettings.Telegram.RateLimiterEnabled {
+	if settings.RateLimiterEnabled {
 		middlewares = append(middlewares, ratelimit.New(
-			rate.Every(utils.AppSettings.Telegram.RateLimiterRate),
-			utils.AppSettings.Telegram.RateLimiterLimit))
+			rate.Every(settings.RateLimiterRate),
+			settings.RateLimiterLimit))
 	}
 
 	var runMiddleware func(
@@ -54,7 +54,7 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 		f func(ctx context.Context) (err error),
 	) (err error)
 
-	if utils.AppSettings.Telegram.FloodWaiterEnabled {
+	if settings.FloodWaiterEnabled {
 		waiter := floodwait.
 			NewSimpleWaiter().
 			WithMaxWait(time.Minute * 10).
@@ -64,30 +64,24 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 	}
 
 	zerolog.Ctx(ctx).Info().
-		Str("app_id", redactutils.Redact(strconv.Itoa(utils.AppSettings.Telegram.AppID))).
-		Str("app_hash", redactutils.Redact(utils.AppSettings.Telegram.AppHash)).
-		Str("phone", redactutils.Redact(utils.AppSettings.Telegram.PhoneNumber)).
+		Str("app_id", redactutils.Redact(strconv.Itoa(settings.AppID))).
+		Str("app_hash", redactutils.Redact(settings.AppHash)).
 		Msg("creating.client")
 
-	settings := utils.AppSettings.Telegram
 	options := &gotgproto.ClientOpts{
 		Context:          ctx,
 		DisableCopyright: true,
 		Session:          sessionMaker.SqlSession(sqlite.Open(sessionPath)),
-		NoAutoAuth:       !settings.LoginByPhone,
-		AuthConversator: authConversator{
-			AuthConversator: gotgproto.BasicConversator(),
-			logger:          zerolog.Ctx(ctx),
-		},
-		Middlewares:   middlewares,
-		RunMiddleware: runMiddleware,
-		RetryInterval: 10 * time.Second,
-		MaxRetries:    10,
-		DC:            2,
+		NoAutoAuth:       true,
+		Middlewares:      middlewares,
+		RunMiddleware:    runMiddleware,
+		RetryInterval:    10 * time.Second,
+		MaxRetries:       10,
+		DC:               2,
 	}
 	connect := func() (*gotgproto.Client, error) {
 		client, err := gotgproto.NewClient(
-			settings.AppID, settings.AppHash, gotgproto.ClientTypePhone(settings.PhoneNumber), options,
+			settings.AppID, settings.AppHash, gotgproto.ClientTypePhone(""), options,
 		)
 		if err != nil {
 			if client != nil {
@@ -100,12 +94,8 @@ func NewProtoClient(ctx context.Context) (*gotgproto.Client, error) {
 		return client, nil
 	}
 
-	if settings.LoginByPhone {
-		return connect()
-	}
-
 	return connectWithQR(connect, func() error {
-		return LoginQR(ctx, os.Stdin, os.Stdout)
+		return LoginQR(ctx, settings, os.Stdin, os.Stdout)
 	})
 }
 
