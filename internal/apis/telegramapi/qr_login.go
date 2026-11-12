@@ -31,7 +31,7 @@ type qrTerminal struct {
 
 func LoginQR(ctx context.Context, settings utils.TelegramSettings, input, output *os.File) error {
 	if !term.IsTerminal(int(input.Fd())) || !term.IsTerminal(int(output.Fd())) {
-		return errors.New("run go run . login-qr in an interactive terminal to authorize this session")
+		return errors.New("start the bot with go run main.go in an interactive terminal to authorize this session")
 	}
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
