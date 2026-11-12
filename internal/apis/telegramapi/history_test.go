@@ -173,7 +173,7 @@ func requireHistoryArchive(t *testing.T, archive []byte, date time.Time, message
 	var header tgdtos.Record[tgdtos.HistoryHeader]
 	require.NoError(t, decoder.Decode(&header))
 	require.Equal(t, "HISTORY_HEADER", header.Type.String())
-	require.Equal(t, tgdtos.HistoryHeader{Version: 1, PeerID: -2, Title: "Тестовый чат"}, header.Payload)
+	require.Equal(t, tgdtos.HistoryHeader{Version: 2, PeerID: -2, Title: "Тестовый чат"}, header.Payload)
 
 	var author tgdtos.Record[tgdtos.Author]
 	require.NoError(t, decoder.Decode(&author))
@@ -215,7 +215,7 @@ func TestHistoryChatSelector(t *testing.T) {
 	_, err = parseHistoryChatSelector("", args.Ops, false)
 	require.Error(t, err)
 
-	_, err = selectHistoryChat(map[constant.TDLibPeerID]historyChat{
+	_, err = selector.selectChat(map[constant.TDLibPeerID]historyChat{
 		id: {id: id, name: "Title"}, -2: {id: -2, name: "Title"},
 	})
 	require.ErrorContains(t, err, "-1000000000002, -2")
@@ -249,7 +249,7 @@ func TestWalkHistoryLimits(t *testing.T) {
 
 			ids := make([]int, 0, test.count)
 			summary, err := walkHistory(t.Context(), iter,
-				historyOptions{count: test.count, cutoff: time.Unix(cutoffDate, 0)}, 1,
+				historyOptions{count: test.count, cutoff: time.Unix(cutoffDate, 0)}, 1, false,
 				func(record tgdtos.Message, _ tgdtos.Author) error {
 					ids = append(ids, record.ID)
 					return nil

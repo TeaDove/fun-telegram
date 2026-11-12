@@ -2,9 +2,11 @@ package telegramapi
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"io"
 	"os"
+	"slices"
 
 	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/cockroachdb/errors"
@@ -12,6 +14,7 @@ import (
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
+	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog"
 )
 
@@ -20,20 +23,25 @@ const historyDumpFilename = "history.jsonl.gz"
 type historyDump struct {
 	encoder *json.Encoder
 	authors mapset.Set[int64]
+	topics  mapset.Set[int]
 }
 
 func newHistoryDump(output io.Writer, chat historyChat) (*historyDump, error) {
 	encoder := json.NewEncoder(output)
 	encoder.SetEscapeHTML(false)
 
-	header := tgdtos.HistoryHeader{Version: 1, PeerID: int64(chat.id), Title: chat.name}
+	header := tgdtos.HistoryHeader{Version: 2, PeerID: int64(chat.id), Title: chat.name}
 
 	err := encoder.Encode(tgdtos.NewRecord(header))
 	if err != nil {
 		return nil, errors.Wrap(err, "encode chat header")
 	}
 
-	return &historyDump{encoder: encoder, authors: mapset.NewThreadUnsafeSet[int64]()}, nil
+	return &historyDump{
+		encoder: encoder,
+		authors: mapset.NewThreadUnsafeSet[int64](),
+		topics:  mapset.NewThreadUnsafeSet[int](),
+	}, nil
 }
 
 func (d *historyDump) append(msg tgdtos.Message, author tgdtos.Author) error {
@@ -44,9 +52,42 @@ func (d *historyDump) append(msg tgdtos.Message, author tgdtos.Author) error {
 		}
 	}
 
+	if msg.TopicID != 0 {
+		d.topics.Add(msg.TopicID)
+	}
+
 	err := d.encoder.Encode(tgdtos.NewRecord(msg))
 
 	return errors.Wrap(err, "encode history message")
+}
+
+func (d *historyDump) appendTopics(ctx context.Context, api *tg.Client, chat tg.InputPeerClass) error {
+	ids := d.topics.ToSlice()
+	slices.Sort(ids)
+
+	for batch := range slices.Chunk(ids, historyBatchSize) {
+		response, err := api.MessagesGetForumTopicsByID(ctx, &tg.MessagesGetForumTopicsByIDRequest{
+			Peer: chat, Topics: batch,
+		})
+		if err != nil {
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("history.topics.fetch.failed")
+			break
+		}
+
+		for _, item := range response.Topics {
+			topic, ok := item.(*tg.ForumTopic)
+			if !ok || topic.Title == "" {
+				continue
+			}
+
+			err = d.encoder.Encode(tgdtos.NewRecord(tgdtos.Topic{ID: topic.ID, Title: topic.Title}))
+			if err != nil {
+				return errors.Wrap(err, "encode forum topic")
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *Presentation) writeHistoryDump(c *Context, chat historyChat, file io.Writer) (historySummary, error) {
@@ -58,6 +99,9 @@ func (r *Presentation) writeHistoryDump(c *Context, chat historyChat, file io.Wr
 	}
 
 	summary, err := r.readHistory(c, chat, dump.append)
+	if err == nil {
+		err = dump.appendTopics(c.extCtx, r.telegramAPI, chat.peer)
+	}
 
 	return summary, errors.Join(err, errors.Wrap(compressed.Close(), "finish compressed history"))
 }
