@@ -88,11 +88,11 @@ func walkHistory(
 		}
 
 		err := consume(record, author)
-		if err != nil && ctx.Err() == nil {
+		if err != nil {
 			return historySummary{}, errors.Wrap(err, "process history message")
 		}
 
-		summary.append(date)
+		summary.append(record)
 
 		if summary.count == options.count {
 			summary.stop = "message limit"

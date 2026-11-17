@@ -56,15 +56,15 @@ func TestDumpMultipleChats(t *testing.T) {
 					FromID: &tg.PeerUser{UserID: self.ID}, Message: "Test message"},
 			}}, nil
 		case *tg.MessagesEditMessageRequest:
-			require.Contains(t, request.Message, "Messages read: 2")
+			require.Contains(t, request.Message, "msgs=1, range=0s")
 			return &tg.Updates{}, nil
 		case *tg.UploadSaveFilePartRequest:
 			archive = append(archive, request.Bytes...)
 			return &tg.BoolTrue{}, nil
 		case *tg.MessagesSendMediaRequest:
 			require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-			require.Contains(t, request.Message, "peer_id: -2")
-			require.Contains(t, request.Message, "peer_id: -3")
+			require.Contains(t, request.Message, "First test chat (-2), msgs=1, range=0s")
+			require.Contains(t, request.Message, "Second test chat (-3), msgs=1, range=0s")
 
 			sentFiles++
 
@@ -81,7 +81,7 @@ func TestDumpMultipleChats(t *testing.T) {
 	ctx := ext.NewContext(t.Context(), api, nil, self, message.NewSender(api), nil, false)
 	update := &ext.Update{EffectiveMessage: types.ConstructMessage(&tg.Message{
 		ID: 8, PeerID: &tg.PeerUser{UserID: self.ID},
-		Message: "!dump-history --peer-id=-2 --peer-id=-3 --peer-id=-2 -c=2",
+		Message: `!dump-history -n "First test chat" -n "Second test chat" -n "First test chat" -c=2`,
 	})}
 	err := presentation.route(ctx, update)
 	require.NoError(t, err)
@@ -101,9 +101,12 @@ func assertBulkArchive(t *testing.T, archive []byte) {
 	peers := make([]int64, 0, 2)
 
 	for range 2 {
+		var raw json.RawMessage
+		require.NoError(t, decoder.Decode(&raw))
+		require.NotContains(t, string(raw), "version")
+
 		var header tgdtos.Record[tgdtos.HistoryHeader]
-		require.NoError(t, decoder.Decode(&header))
-		require.Equal(t, 3, header.Payload.Version)
+		require.NoError(t, json.Unmarshal(raw, &header))
 		peers = append(peers, header.Payload.PeerID)
 	}
 

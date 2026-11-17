@@ -3,8 +3,6 @@ package telegramapi
 import (
 	"context"
 	"fmt"
-	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -15,14 +13,13 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-const historyPeerIDFlag = "peer-id"
+const historyNameFlag = "name"
 
 type historyChat struct {
-	peer       tg.InputPeerClass
-	id         constant.TDLibPeerID
-	name       string
-	forum      bool
-	migratedTo *tg.InputChannel
+	peer  tg.InputPeerClass
+	id    constant.TDLibPeerID
+	name  string
+	forum bool
 }
 
 func telegramPeerID(p tg.PeerClass) constant.TDLibPeerID {
@@ -68,89 +65,6 @@ func historyPeerName(p tg.PeerClass, entities peer.Entities) string {
 	return ""
 }
 
-type historyChatSelector struct {
-	id   constant.TDLibPeerID
-	name string
-}
-
-func parseHistoryChatSelector(text string, options map[string][]string, saved bool) (historyChatSelector, error) {
-	values, hasID := options[historyPeerIDFlag]
-	if !saved {
-		if text != "" || hasID {
-			return historyChatSelector{}, errors.New("specify a chat only when running the command from Saved Messages")
-		}
-
-		return historyChatSelector{}, nil
-	}
-
-	if !hasID && text != "" {
-		return historyChatSelector{name: text}, nil
-	}
-
-	if !hasID || len(values) != 1 || text != "" {
-		return historyChatSelector{}, errors.New("specify one chat title or --peer-id=<peer_id>")
-	}
-
-	id, err := strconv.ParseInt(values[0], 10, 64)
-	if err != nil {
-		return historyChatSelector{}, errors.Wrap(err, "parse peer ID")
-	}
-
-	if peerID := constant.TDLibPeerID(id); !peerID.IsUser() && !peerID.IsChat() && !peerID.IsChannel() {
-		return historyChatSelector{}, errors.New("peer ID is invalid")
-	}
-
-	return historyChatSelector{id: constant.TDLibPeerID(id)}, nil
-}
-
-func (s historyChatSelector) matches(chat historyChat) bool {
-	if s.id != 0 {
-		return s.id == chat.id || s.id == chat.canonicalID()
-	}
-
-	return strings.EqualFold(s.name, strings.TrimSpace(chat.name))
-}
-
-func (s historyChatSelector) selectChat(matches map[constant.TDLibPeerID]historyChat) (historyChat, error) {
-	if len(matches) == 0 {
-		if s.id != 0 {
-			return historyChat{}, errors.Newf("chat with peer_id %d not found in your Telegram dialogs", s.id)
-		}
-
-		return historyChat{}, errors.Newf("chat %q not found in your Telegram dialogs", s.name)
-	}
-
-	canonical := make(map[constant.TDLibPeerID]historyChat, len(matches))
-	for _, chat := range matches {
-		id := chat.canonicalID()
-		if _, found := canonical[id]; !found || chat.id == id {
-			canonical[id] = chat
-		}
-	}
-
-	matches = canonical
-	if len(matches) == 1 {
-		for _, chat := range matches {
-			return chat, nil
-		}
-	}
-
-	ids := make([]constant.TDLibPeerID, 0, len(matches))
-	for id := range matches {
-		ids = append(ids, id)
-	}
-
-	slices.Sort(ids)
-
-	values := make([]string, 0, len(ids))
-	for _, id := range ids {
-		values = append(values, strconv.FormatInt(int64(id), 10))
-	}
-
-	return historyChat{}, errors.Newf("multiple chats match the title. Use --peer-id with one of: %s",
-		strings.Join(values, ", "))
-}
-
 func (r *Presentation) resolveHistoryChat(c *Context) (historyChat, error) {
 	effectiveChat := c.update.EffectiveChat()
 
@@ -177,11 +91,6 @@ func (r *Presentation) resolveHistoryChat(c *Context) (historyChat, error) {
 
 func historyChatFromPeer(p tg.PeerClass, input tg.InputPeerClass, entities peer.Entities) historyChat {
 	chat := historyChat{peer: input, id: telegramPeerID(p), name: historyPeerName(p, entities)}
-	if group, ok := p.(*tg.PeerChat); ok {
-		if raw, found := entities.Chat(group.ChatID); found {
-			chat.migratedTo, _ = raw.MigratedTo.(*tg.InputChannel)
-		}
-	}
 
 	if channelPeer, ok := p.(*tg.PeerChannel); ok {
 		channel, found := entities.Channel(channelPeer.ChannelID)
@@ -225,14 +134,6 @@ func (r *Presentation) historyDialogs(ctx context.Context, selfID int64) (map[co
 	}
 
 	return chats, nil
-}
-
-func (c historyChat) canonicalID() constant.TDLibPeerID {
-	if c.migratedTo != nil {
-		return telegramPeerID(&tg.PeerChannel{ChannelID: c.migratedTo.ChannelID})
-	}
-
-	return c.id
 }
 
 type historyChats []historyChat

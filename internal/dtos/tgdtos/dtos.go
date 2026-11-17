@@ -14,10 +14,8 @@ func NewRecord[T DTO](payload T) Record[T] {
 }
 
 type HistoryHeader struct {
-	Version          int    `json:"version"`
-	PeerID           int64  `json:"peer_id,string"`
-	Title            string `json:"title"`
-	MigratedToPeerID int64  `json:"migrated_to_peer_id,string,omitempty"`
+	PeerID int64  `json:"peer_id,string"`
+	Title  string `json:"title"`
 }
 
 func (HistoryHeader) TGType() TGType {

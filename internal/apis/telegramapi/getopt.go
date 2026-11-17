@@ -11,6 +11,7 @@ type optFlag struct {
 	Short       string
 	Long        string
 	Description string
+	HasValue    bool
 }
 
 type Context struct {
@@ -84,11 +85,11 @@ func getOpt(text string, flags ...optFlag) Context { //nolint: gocognit, funlen 
 	const longHypenByte = 226
 
 	flags = append(flags, FlagSilent)
-	longs := make(map[string]struct{}, 4)
+	longs := make(map[string]optFlag, 4)
 	shortToLong := make(map[string]string, 4)
 
 	for _, flag := range flags {
-		longs[flag.Long] = struct{}{}
+		longs[flag.Long] = flag
 		shortToLong[flag.Short] = flag.Long
 	}
 
@@ -102,7 +103,8 @@ func getOpt(text string, flags ...optFlag) Context { //nolint: gocognit, funlen 
 		return output
 	}
 
-	for _, word := range words[1:] {
+	for i := 1; i < len(words); i++ {
+		word := words[i]
 		if len(word) == 0 || len(word) == 1 || (word[0] != '-' && word[0] != longHypenByte) {
 			textBuilder.WriteString(" " + word)
 			continue
@@ -152,10 +154,18 @@ func getOpt(text string, flags ...optFlag) Context { //nolint: gocognit, funlen 
 			}
 		}
 
-		_, ok := longs[long]
+		flag, ok := longs[long]
 		if !ok {
 			textBuilder.WriteString(" " + word)
 			continue
+		}
+
+		if flag.HasValue && len(splited) == 1 && i+1 < len(words) {
+			next := words[i+1]
+			if !strings.HasPrefix(next, "-") && !strings.HasPrefix(next, "—") {
+				statement = next
+				i++
+			}
 		}
 
 		output.Ops[long] = append(output.Ops[long], strings.Trim(statement, `"`))

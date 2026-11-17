@@ -2,7 +2,6 @@ package telegramapi
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -21,17 +20,21 @@ const (
 	historyCountFlag    = "count"
 	historyDayFlag      = "day"
 	historyDay          = 24 * time.Hour
-	historyRangeFormat  = "2006-01-02 15:04:05 UTC"
 	historyReadDeadline = time.Hour
 )
 
 func historyFlags() []optFlag {
 	return []optFlag{
-		{Long: historyCountFlag, Short: "c", Description: "maximum total number of messages across all selected chats"},
-		{Long: historyDayFlag, Short: "d", Description: "maximum message age in days"},
 		{
-			Long:        historyPeerIDFlag,
-			Description: "select a chat from Saved Messages by peer_id, repeat for multiple chats",
+			Long:        historyCountFlag,
+			Short:       "c",
+			HasValue:    true,
+			Description: "maximum total number of messages across all selected chats",
+		},
+		{Long: historyDayFlag, Short: "d", HasValue: true, Description: "maximum message age in days"},
+		{
+			Long: historyNameFlag, Short: "n", HasValue: true,
+			Description: "select all chats with this name, repeat for multiple names",
 		},
 		{Long: FlagSilent.Long, Short: FlagSilent.Short, Description: "send progress and results to Saved Messages"},
 	}
@@ -136,31 +139,6 @@ func decodeHistoryMessage(
 	return record, author
 }
 
-type historySummary struct {
-	newest time.Time
-	oldest time.Time
-	count  int
-	stop   string
-}
-
-func (s *historySummary) append(date time.Time) {
-	if s.count == 0 {
-		s.newest = date
-	}
-
-	s.oldest = date
-	s.count++
-}
-
-func (s *historySummary) caption() string {
-	if s.count == 0 {
-		return fmt.Sprintf("Messages read: 0\nStopped: %s", s.stop)
-	}
-
-	return fmt.Sprintf("Messages read: %d\nRange: %s to %s\nStopped: %s",
-		s.count, s.oldest.Format(historyRangeFormat), s.newest.Format(historyRangeFormat), s.stop)
-}
-
 func (c *Context) startHistoryProgress(chats historyChats) (func(context.Context, string), error) {
 	text := chats.label() + "\nReading messages…"
 	origin := c.update.EffectiveChat().GetInputPeer()
@@ -186,7 +164,7 @@ func (c *Context) startHistoryProgress(chats historyChats) (func(context.Context
 
 	return func(ctx context.Context, status string) {
 		_, err := c.extCtx.Raw.MessagesEditMessage(ctx, &tg.MessagesEditMessageRequest{
-			Peer: origin, ID: replyID, Message: chats.label() + "\n" + status,
+			Peer: origin, ID: replyID, Message: status,
 		})
 		if err != nil {
 			zerolog.Ctx(c.extCtx).Warn().Err(err).Msg("history.progress.edit.failed")
@@ -228,7 +206,7 @@ func (r *Presentation) readHistory(
 		return historySummary{}, err
 	}
 
-	progress(c.extCtx, summary.caption())
+	progress(c.extCtx, summary.caption(chats)+"\nStopped: "+summary.stop)
 
 	return summary, nil
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/cockroachdb/errors"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gotd/td/telegram/message"
-	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
 	"github.com/rs/zerolog"
@@ -31,10 +30,7 @@ func newHistoryDump(output io.Writer, chats historyChats) (*historyDump, error) 
 	encoder.SetEscapeHTML(false)
 
 	for _, chat := range chats {
-		header := tgdtos.HistoryHeader{Version: 3, PeerID: int64(chat.id), Title: chat.name}
-		if chat.migratedTo != nil {
-			header.MigratedToPeerID = int64(chat.canonicalID())
-		}
+		header := tgdtos.HistoryHeader{PeerID: int64(chat.id), Title: chat.name}
 
 		err := encoder.Encode(tgdtos.NewRecord(header))
 		if err != nil {
@@ -172,8 +168,8 @@ func (r *Presentation) dumpHistoryCommand(c *Context) error {
 		return errors.Wrap(err, "upload history file")
 	}
 
-	caption := styling.Plain(chats.label() + "\n\n" + summary.caption())
-	document := message.File(attachment, caption).MIME("application/gzip").Filename(historyDumpFilename)
+	caption := summary.styledCaption(chats)
+	document := message.File(attachment, caption...).MIME("application/gzip").Filename(historyDumpFilename)
 	_, err = c.extCtx.Sender.Self().Media(c.extCtx, document)
 
 	return errors.Wrap(err, "send history file to Saved Messages")

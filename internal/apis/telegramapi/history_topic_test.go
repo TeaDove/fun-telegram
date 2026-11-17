@@ -13,32 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHistoryChatNotFound(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		command string
-		want    string
-	}{
-		{command: `!stats "Test chat"`, want: `chat "Test chat" not found`},
-		{command: "!stats --peer-id=-2", want: "chat with peer_id -2 not found"},
-		{command: "!stats -peer-id=-2", want: `chat "-peer-id=-2" not found`},
-	}
-
-	for _, test := range tests {
-		t.Run(test.command, func(t *testing.T) {
-			t.Parallel()
-
-			args := getOpt(test.command, historyFlags()...)
-			selector, err := parseHistoryChatSelector(args.Text, args.Ops, true)
-			require.NoError(t, err)
-
-			_, err = selector.selectChat(nil)
-			require.ErrorContains(t, err, test.want)
-		})
-	}
-}
-
 func TestHistoryMessageTopic(t *testing.T) {
 	t.Parallel()
 
