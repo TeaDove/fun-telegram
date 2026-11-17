@@ -17,7 +17,7 @@ import (
 )
 
 func (r *Presentation) statsCommand(c *Context) error {
-	chat, err := r.resolveHistoryChat(c)
+	chats, err := r.resolveHistoryChats(c)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (r *Presentation) statsCommand(c *Context) error {
 	storage := r.analiticsService.NewStorage()
 	authors := mapset.NewThreadUnsafeSet[int64]()
 
-	summary, err := r.readHistory(c, chat, func(msg tgdtos.Message, author tgdtos.Author) error {
+	summary, err := r.readHistory(c, chats, func(msg tgdtos.Message, author tgdtos.Author) error {
 		if author.Name != "" && authors.Add(author.ID) {
 			author.Name = utils.ReplaceNonASCIIWithSpace(author.Name)
 			author.Username = strings.ToLower(author.Username)
@@ -42,12 +42,12 @@ func (r *Presentation) statsCommand(c *Context) error {
 
 	storage.UsersNameGetter = storage.Users.GetNameGetter()
 
-	return r.compileStats(c, chat, summary, storage)
+	return r.compileStats(c, chats, summary, storage)
 }
 
 func (r *Presentation) compileStats(
 	c *Context,
-	chat historyChat,
+	chats historyChats,
 	summary historySummary,
 	storage *messageservice.Storage,
 ) error {
@@ -61,7 +61,7 @@ func (r *Presentation) compileStats(
 	}
 
 	caption := styling.Plain(fmt.Sprintf("%s\n\n%s\nCompiled in: %.2fs",
-		chat.label(), summary.caption(), time.Since(c.StartedAt).Seconds()))
+		chats.label(), summary.caption(), time.Since(c.StartedAt).Seconds()))
 
 	fileUploader := uploader.NewUploader(c.extCtx.Raw)
 	album := make([]message.MultiMediaOption, 0, len(report.Images))
@@ -79,7 +79,7 @@ func (r *Presentation) compileStats(
 		}
 	}
 
-	destination := c.extCtx.Sender.To(chat.peer)
+	destination := c.extCtx.Sender.To(chats[0].peer)
 	if c.Silent || c.inSavedMessages() {
 		destination = c.extCtx.Sender.Self()
 	}

@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -77,11 +76,9 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 			Chats:   []tg.ChatClass{source},
 		})
 
-		if !strings.Contains(command, "--peer-id") {
-			mock.ExpectCall(&tg.MessagesGetDialogsRequest{
-				Limit: historyBatchSize, FolderID: 1, OffsetPeer: &tg.InputPeerEmpty{},
-			}).ThenResult(&tg.MessagesDialogs{})
-		}
+		mock.ExpectCall(&tg.MessagesGetDialogsRequest{
+			Limit: historyBatchSize, FolderID: 1, OffsetPeer: &tg.InputPeerEmpty{},
+		}).ThenResult(&tg.MessagesDialogs{})
 	} else {
 		mock.ExpectCall(&tg.MessagesDeleteMessagesRequest{Revoke: true, ID: []int{commandID}}).
 			ThenResult(&tg.MessagesAffectedMessages{})
@@ -173,7 +170,7 @@ func requireHistoryArchive(t *testing.T, archive []byte, date time.Time, message
 	var header tgdtos.Record[tgdtos.HistoryHeader]
 	require.NoError(t, decoder.Decode(&header))
 	require.Equal(t, "HISTORY_HEADER", header.Type.String())
-	require.Equal(t, tgdtos.HistoryHeader{Version: 2, PeerID: -2, Title: "Тестовый чат"}, header.Payload)
+	require.Equal(t, tgdtos.HistoryHeader{Version: 3, PeerID: -2, Title: "Тестовый чат"}, header.Payload)
 
 	var author tgdtos.Record[tgdtos.Author]
 	require.NoError(t, decoder.Decode(&author))
@@ -184,14 +181,14 @@ func requireHistoryArchive(t *testing.T, archive []byte, date time.Time, message
 	require.NoError(t, decoder.Decode(&message))
 	require.Equal(t, "MESSAGE", message.Type.String())
 	require.Equal(t, tgdtos.Message{
-		ID: messageID, Date: date.Unix(), AuthorID: 3, Text: "Строка\n<тест>", ReplyTo: messageID - 1,
+		ID: messageID, PeerID: -2, Date: date.Unix(), AuthorID: 3, Text: "Строка\n<тест>", ReplyTo: messageID - 1,
 	}, message.Payload)
 
 	var previous tgdtos.Record[tgdtos.Message]
 	require.NoError(t, decoder.Decode(&previous))
 	require.Equal(t, tgdtos.TGTypeMessage, previous.Type)
 	require.Equal(t, tgdtos.Message{
-		ID: messageID - 1, Date: date.Unix(), AuthorID: 3, Text: "Earlier message",
+		ID: messageID - 1, PeerID: -2, Date: date.Unix(), AuthorID: 3, Text: "Earlier message",
 	}, previous.Payload)
 	require.ErrorIs(t, decoder.Decode(&message), io.EOF)
 }
@@ -248,8 +245,8 @@ func TestWalkHistoryLimits(t *testing.T) {
 			}}
 
 			ids := make([]int, 0, test.count)
-			summary, err := walkHistory(t.Context(), iter,
-				historyOptions{count: test.count, cutoff: time.Unix(cutoffDate, 0)}, 1, false,
+			summary, err := walkHistory(t.Context(), []historySource{{iter: iter, chat: historyChat{id: -2}}},
+				historyOptions{count: test.count, cutoff: time.Unix(cutoffDate, 0)}, 1,
 				func(record tgdtos.Message, _ tgdtos.Author) error {
 					ids = append(ids, record.ID)
 					return nil
@@ -265,6 +262,7 @@ func TestWalkHistoryLimits(t *testing.T) {
 type testHistoryIterator struct {
 	records []tg.NotEmptyMessage
 	index   int
+	err     error
 }
 
 func (i *testHistoryIterator) Next(context.Context) bool {
@@ -277,5 +275,5 @@ func (i *testHistoryIterator) Value() messages.Elem {
 }
 
 func (i *testHistoryIterator) Err() error {
-	return nil
+	return i.err
 }

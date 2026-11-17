@@ -16,7 +16,7 @@ type optFlag struct {
 type Context struct {
 	Text      string
 	Silent    bool
-	Ops       map[string]string
+	Ops       map[string][]string
 	StartedAt time.Time
 
 	extCtx       *ext.Context
@@ -94,7 +94,7 @@ func getOpt(text string, flags ...optFlag) Context { //nolint: gocognit, funlen 
 
 	var output Context
 
-	output.Ops = make(map[string]string, 3)
+	output.Ops = make(map[string][]string, 3)
 	textBuilder := strings.Builder{}
 	words := stripWords(text)
 
@@ -158,7 +158,7 @@ func getOpt(text string, flags ...optFlag) Context { //nolint: gocognit, funlen 
 			continue
 		}
 
-		output.Ops[long] = strings.Trim(statement, `"`)
+		output.Ops[long] = append(output.Ops[long], strings.Trim(statement, `"`))
 	}
 
 	_, ok := output.Ops[FlagSilent.Long]

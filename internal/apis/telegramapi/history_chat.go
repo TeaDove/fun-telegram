@@ -18,10 +18,11 @@ import (
 const historyPeerIDFlag = "peer-id"
 
 type historyChat struct {
-	peer  tg.InputPeerClass
-	id    constant.TDLibPeerID
-	name  string
-	forum bool
+	peer       tg.InputPeerClass
+	id         constant.TDLibPeerID
+	name       string
+	forum      bool
+	migratedTo *tg.InputChannel
 }
 
 func telegramPeerID(p tg.PeerClass) constant.TDLibPeerID {
@@ -72,8 +73,8 @@ type historyChatSelector struct {
 	name string
 }
 
-func parseHistoryChatSelector(text string, options map[string]string, saved bool) (historyChatSelector, error) {
-	value, hasID := options[historyPeerIDFlag]
+func parseHistoryChatSelector(text string, options map[string][]string, saved bool) (historyChatSelector, error) {
+	values, hasID := options[historyPeerIDFlag]
 	if !saved {
 		if text != "" || hasID {
 			return historyChatSelector{}, errors.New("specify a chat only when running the command from Saved Messages")
@@ -86,17 +87,17 @@ func parseHistoryChatSelector(text string, options map[string]string, saved bool
 		return historyChatSelector{name: text}, nil
 	}
 
-	if !hasID || text != "" {
+	if !hasID || len(values) != 1 || text != "" {
 		return historyChatSelector{}, errors.New("specify one chat title or --peer-id=<peer_id>")
 	}
 
-	id, err := strconv.ParseInt(value, 10, 64)
+	id, err := strconv.ParseInt(values[0], 10, 64)
 	if err != nil {
 		return historyChatSelector{}, errors.Wrap(err, "parse peer ID")
 	}
 
-	if id == 0 {
-		return historyChatSelector{}, errors.New("peer ID must be nonzero")
+	if peerID := constant.TDLibPeerID(id); !peerID.IsUser() && !peerID.IsChat() && !peerID.IsChannel() {
+		return historyChatSelector{}, errors.New("peer ID is invalid")
 	}
 
 	return historyChatSelector{id: constant.TDLibPeerID(id)}, nil
@@ -104,7 +105,7 @@ func parseHistoryChatSelector(text string, options map[string]string, saved bool
 
 func (s historyChatSelector) matches(chat historyChat) bool {
 	if s.id != 0 {
-		return s.id == chat.id
+		return s.id == chat.id || s.id == chat.canonicalID()
 	}
 
 	return strings.EqualFold(s.name, strings.TrimSpace(chat.name))
@@ -119,6 +120,15 @@ func (s historyChatSelector) selectChat(matches map[constant.TDLibPeerID]history
 		return historyChat{}, errors.Newf("chat %q not found in your Telegram dialogs", s.name)
 	}
 
+	canonical := make(map[constant.TDLibPeerID]historyChat, len(matches))
+	for _, chat := range matches {
+		id := chat.canonicalID()
+		if _, found := canonical[id]; !found || chat.id == id {
+			canonical[id] = chat
+		}
+	}
+
+	matches = canonical
 	if len(matches) == 1 {
 		for _, chat := range matches {
 			return chat, nil
@@ -142,15 +152,6 @@ func (s historyChatSelector) selectChat(matches map[constant.TDLibPeerID]history
 }
 
 func (r *Presentation) resolveHistoryChat(c *Context) (historyChat, error) {
-	selector, err := parseHistoryChatSelector(c.Text, c.Ops, c.inSavedMessages())
-	if err != nil {
-		return historyChat{}, err
-	}
-
-	if c.inSavedMessages() {
-		return r.findHistoryChat(c.extCtx, selector, constant.TDLibPeerID(c.extCtx.Self.ID))
-	}
-
 	effectiveChat := c.update.EffectiveChat()
 
 	var entities peer.Entities
@@ -176,6 +177,12 @@ func (r *Presentation) resolveHistoryChat(c *Context) (historyChat, error) {
 
 func historyChatFromPeer(p tg.PeerClass, input tg.InputPeerClass, entities peer.Entities) historyChat {
 	chat := historyChat{peer: input, id: telegramPeerID(p), name: historyPeerName(p, entities)}
+	if group, ok := p.(*tg.PeerChat); ok {
+		if raw, found := entities.Chat(group.ChatID); found {
+			chat.migratedTo, _ = raw.MigratedTo.(*tg.InputChannel)
+		}
+	}
+
 	if channelPeer, ok := p.(*tg.PeerChannel); ok {
 		channel, found := entities.Channel(channelPeer.ChannelID)
 		chat.forum = found && channel.Forum
@@ -197,37 +204,46 @@ func historyChatFromDialog(elem dialogs.Elem) historyChat {
 	return historyChatFromPeer(dialog.Peer, elem.Peer, elem.Entities)
 }
 
-func (r *Presentation) findHistoryChat(
-	ctx context.Context,
-	selector historyChatSelector,
-	selfID constant.TDLibPeerID,
-) (historyChat, error) {
+func (r *Presentation) historyDialogs(ctx context.Context, selfID int64) (map[constant.TDLibPeerID]historyChat, error) {
 	const archiveFolder = 1
 
-	matches := make(map[constant.TDLibPeerID]historyChat)
+	chats := make(map[constant.TDLibPeerID]historyChat)
 
 	for _, folder := range []int{0, archiveFolder} {
 		iter := query.GetDialogs(r.telegramAPI).FolderID(folder).BatchSize(historyBatchSize).Iter()
 		for iter.Next(ctx) {
 			chat := historyChatFromDialog(iter.Value())
-			if chat.id == 0 || chat.id == selfID || !selector.matches(chat) {
-				continue
+			if chat.id != 0 && chat.id != constant.TDLibPeerID(selfID) {
+				chats[chat.id] = chat
 			}
-
-			if selector.id != 0 {
-				return chat, nil
-			}
-
-			matches[chat.id] = chat
 		}
 
 		err := iter.Err()
 		if err != nil {
-			return historyChat{}, errors.Wrap(err, "read Telegram dialogs")
+			return nil, errors.Wrap(err, "read Telegram dialogs")
 		}
 	}
 
-	return selector.selectChat(matches)
+	return chats, nil
+}
+
+func (c historyChat) canonicalID() constant.TDLibPeerID {
+	if c.migratedTo != nil {
+		return telegramPeerID(&tg.PeerChannel{ChannelID: c.migratedTo.ChannelID})
+	}
+
+	return c.id
+}
+
+type historyChats []historyChat
+
+func (c historyChats) label() string {
+	labels := make([]string, 0, len(c))
+	for _, chat := range c {
+		labels = append(labels, chat.label())
+	}
+
+	return strings.Join(labels, "\n\n")
 }
 
 func (c historyChat) label() string {

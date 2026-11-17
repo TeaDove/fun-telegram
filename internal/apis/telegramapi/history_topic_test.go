@@ -97,22 +97,34 @@ func TestHistoryDumpForumTopics(t *testing.T) {
 
 	var output bytes.Buffer
 
-	dump, err := newHistoryDump(&output, chat)
+	dump, err := newHistoryDump(&output, historyChats{chat})
 	require.NoError(t, err)
 
 	for index, id := range []int{5, 5, 1, 9} {
-		err = dump.append(tgdtos.Message{ID: 10 + index, TopicID: id}, tgdtos.Author{})
+		err = dump.append(tgdtos.Message{PeerID: int64(chat.id), ID: 10 + index, TopicID: id}, tgdtos.Author{})
 		require.NoError(t, err)
 	}
 
-	err = dump.appendTopics(t.Context(), tg.NewClient(mock), input)
+	err = dump.appendTopics(t.Context(), tg.NewClient(mock), historyChats{chat})
 	require.NoError(t, err)
 
 	lines := strings.Split(strings.TrimSpace(output.String()), "\n")
 	require.Len(t, lines, 7)
-	require.JSONEq(t, `{"type":"MESSAGE","payload":{"id":10,"date":0,"topic_id":5}}`, lines[1])
-	require.JSONEq(t, `{"type":"MESSAGE","payload":{"id":12,"date":0,"topic_id":1}}`, lines[3])
-	require.JSONEq(t, `{"type":"MESSAGE","payload":{"id":13,"date":0,"topic_id":9}}`, lines[4])
-	require.JSONEq(t, `{"type":"TOPIC","payload":{"id":1,"title":"General"}}`, lines[5])
-	require.JSONEq(t, `{"type":"TOPIC","payload":{"id":5,"title":"Test topic"}}`, lines[6])
+	require.JSONEq(
+		t,
+		`{"type":"MESSAGE","payload":{"peer_id":"-1000000000002","id":10,"date":0,"topic_id":5}}`,
+		lines[1],
+	)
+	require.JSONEq(
+		t,
+		`{"type":"MESSAGE","payload":{"peer_id":"-1000000000002","id":12,"date":0,"topic_id":1}}`,
+		lines[3],
+	)
+	require.JSONEq(
+		t,
+		`{"type":"MESSAGE","payload":{"peer_id":"-1000000000002","id":13,"date":0,"topic_id":9}}`,
+		lines[4],
+	)
+	require.JSONEq(t, `{"type":"TOPIC","payload":{"peer_id":"-1000000000002","id":1,"title":"General"}}`, lines[5])
+	require.JSONEq(t, `{"type":"TOPIC","payload":{"peer_id":"-1000000000002","id":5,"title":"Test topic"}}`, lines[6])
 }
