@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/constant"
 	"github.com/gotd/td/telegram/message/peer"
@@ -16,10 +17,11 @@ import (
 const historyNameFlag = "name"
 
 type historyChat struct {
-	peer  tg.InputPeerClass
-	id    constant.TDLibPeerID
-	name  string
-	forum bool
+	peer       tg.InputPeerClass
+	id         constant.TDLibPeerID
+	name       string
+	forum      bool
+	migratedTo constant.TDLibPeerID
 }
 
 func telegramPeerID(p tg.PeerClass) constant.TDLibPeerID {
@@ -92,6 +94,14 @@ func (r *Presentation) resolveHistoryChat(c *Context) (historyChat, error) {
 func historyChatFromPeer(p tg.PeerClass, input tg.InputPeerClass, entities peer.Entities) historyChat {
 	chat := historyChat{peer: input, id: telegramPeerID(p), name: historyPeerName(p, entities)}
 
+	if groupPeer, ok := p.(*tg.PeerChat); ok {
+		if group, found := entities.Chat(groupPeer.ChatID); found {
+			if target, ok := group.MigratedTo.(*tg.InputChannel); ok {
+				chat.migratedTo = telegramPeerID(&tg.PeerChannel{ChannelID: target.ChannelID})
+			}
+		}
+	}
+
 	if channelPeer, ok := p.(*tg.PeerChannel); ok {
 		channel, found := entities.Channel(channelPeer.ChannelID)
 		chat.forum = found && channel.Forum
@@ -137,6 +147,38 @@ func (r *Presentation) historyDialogs(ctx context.Context, selfID int64) (map[co
 }
 
 type historyChats []historyChat
+
+func (c historyChats) toDTOs() []tgdtos.Chat {
+	byID := make(map[constant.TDLibPeerID]historyChat, len(c))
+	for _, chat := range c {
+		byID[chat.id] = chat
+	}
+
+	output := make([]tgdtos.Chat, 0, len(c))
+	groups := make(map[constant.TDLibPeerID]int, len(c))
+
+	for _, chat := range c {
+		groupID := chat.id
+		title := chat.name
+
+		if target, found := byID[chat.migratedTo]; found {
+			groupID = target.id
+			title = target.name
+		}
+
+		index, found := groups[groupID]
+		if !found {
+			index = len(output)
+			groups[groupID] = index
+
+			output = append(output, tgdtos.Chat{Title: title})
+		}
+
+		output[index].PeerIDs = append(output[index].PeerIDs, int64(chat.id))
+	}
+
+	return output
+}
 
 func (c historyChats) label() string {
 	labels := make([]string, 0, len(c))

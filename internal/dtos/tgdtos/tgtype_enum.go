@@ -13,19 +13,19 @@ import (
 const (
 	TGTypeMessage TGType = iota + 1
 	TGTypeAuthor
-	TGTypeHistoryHeader
+	TGTypeChat
 	TGTypeTopic
 )
 
 var ErrInvalidTGType = errors.New("not a valid TGType")
 
-const _TGTypeName = "MESSAGEAUTHORHISTORY_HEADERTOPIC"
+const _TGTypeName = "MESSAGEAUTHORCHATTOPIC"
 
 var _TGTypeMap = map[TGType]string{
-	TGTypeMessage:       _TGTypeName[0:7],
-	TGTypeAuthor:        _TGTypeName[7:13],
-	TGTypeHistoryHeader: _TGTypeName[13:27],
-	TGTypeTopic:         _TGTypeName[27:32],
+	TGTypeMessage: _TGTypeName[0:7],
+	TGTypeAuthor:  _TGTypeName[7:13],
+	TGTypeChat:    _TGTypeName[13:17],
+	TGTypeTopic:   _TGTypeName[17:22],
 }
 
 // String implements the Stringer interface.
@@ -46,8 +46,8 @@ func (x TGType) IsValid() bool {
 var _TGTypeValue = map[string]TGType{
 	_TGTypeName[0:7]:   TGTypeMessage,
 	_TGTypeName[7:13]:  TGTypeAuthor,
-	_TGTypeName[13:27]: TGTypeHistoryHeader,
-	_TGTypeName[27:32]: TGTypeTopic,
+	_TGTypeName[13:17]: TGTypeChat,
+	_TGTypeName[17:22]: TGTypeTopic,
 }
 
 // ParseTGType attempts to convert a string to a TGType.

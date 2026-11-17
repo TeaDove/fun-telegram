@@ -105,9 +105,9 @@ func assertBulkArchive(t *testing.T, archive []byte) {
 		require.NoError(t, decoder.Decode(&raw))
 		require.NotContains(t, string(raw), "version")
 
-		var header tgdtos.Record[tgdtos.HistoryHeader]
+		var header tgdtos.Record[tgdtos.Chat]
 		require.NoError(t, json.Unmarshal(raw, &header))
-		peers = append(peers, header.Payload.PeerID)
+		peers = append(peers, header.Payload.PeerIDs...)
 	}
 
 	require.Equal(t, []int64{-2, -3}, peers)

@@ -13,13 +13,13 @@ func NewRecord[T DTO](payload T) Record[T] {
 	return Record[T]{Type: payload.TGType(), Payload: payload}
 }
 
-type HistoryHeader struct {
-	PeerID int64  `json:"peer_id,string"`
-	Title  string `json:"title"`
+type Chat struct {
+	PeerIDs []int64 `json:"peer_ids"`
+	Title   string  `json:"title"`
 }
 
-func (HistoryHeader) TGType() TGType {
-	return TGTypeHistoryHeader
+func (Chat) TGType() TGType {
+	return TGTypeChat
 }
 
 type Author struct {

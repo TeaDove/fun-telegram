@@ -110,7 +110,7 @@ func walkHistory(
 	}
 
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		summary.stop = "time limit"
+		summary.stop = context.DeadlineExceeded.Error()
 		return summary, nil
 	}
 

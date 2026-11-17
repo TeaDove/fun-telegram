@@ -165,10 +165,10 @@ func requireHistoryArchive(t *testing.T, archive []byte, date time.Time, message
 
 	decoder := json.NewDecoder(reader)
 
-	var header tgdtos.Record[tgdtos.HistoryHeader]
+	var header tgdtos.Record[tgdtos.Chat]
 	require.NoError(t, decoder.Decode(&header))
-	require.Equal(t, "HISTORY_HEADER", header.Type.String())
-	require.Equal(t, tgdtos.HistoryHeader{PeerID: -2, Title: "Тестовый чат"}, header.Payload)
+	require.Equal(t, "CHAT", header.Type.String())
+	require.Equal(t, tgdtos.Chat{PeerIDs: []int64{-2}, Title: "Тестовый чат"}, header.Payload)
 
 	var author tgdtos.Record[tgdtos.Author]
 	require.NoError(t, decoder.Decode(&author))

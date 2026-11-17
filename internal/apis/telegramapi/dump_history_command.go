@@ -20,28 +20,26 @@ import (
 const historyDumpFilename = "history.jsonl.gz"
 
 type historyDump struct {
-	encoder *json.Encoder
-	authors mapset.Set[int64]
-	topics  map[int64]mapset.Set[int]
+	encoder        *json.Encoder
+	authors        mapset.Set[int64]
+	chatIDToTopics map[int64]mapset.Set[int]
 }
 
 func newHistoryDump(output io.Writer, chats historyChats) (*historyDump, error) {
 	encoder := json.NewEncoder(output)
 	encoder.SetEscapeHTML(false)
 
-	for _, chat := range chats {
-		header := tgdtos.HistoryHeader{PeerID: int64(chat.id), Title: chat.name}
-
-		err := encoder.Encode(tgdtos.NewRecord(header))
+	for _, chat := range chats.toDTOs() {
+		err := encoder.Encode(tgdtos.NewRecord(chat))
 		if err != nil {
-			return nil, errors.Wrap(err, "encode chat header")
+			return nil, errors.Wrap(err, "encode chat metadata")
 		}
 	}
 
 	return &historyDump{
-		encoder: encoder,
-		authors: mapset.NewThreadUnsafeSet[int64](),
-		topics:  make(map[int64]mapset.Set[int]),
+		encoder:        encoder,
+		authors:        mapset.NewThreadUnsafeSet[int64](),
+		chatIDToTopics: make(map[int64]mapset.Set[int]),
 	}, nil
 }
 
@@ -54,11 +52,11 @@ func (d *historyDump) append(msg tgdtos.Message, author tgdtos.Author) error {
 	}
 
 	if msg.TopicID != 0 {
-		if d.topics[msg.PeerID] == nil {
-			d.topics[msg.PeerID] = mapset.NewThreadUnsafeSet[int]()
+		if d.chatIDToTopics[msg.PeerID] == nil {
+			d.chatIDToTopics[msg.PeerID] = mapset.NewThreadUnsafeSet[int]()
 		}
 
-		d.topics[msg.PeerID].Add(msg.TopicID)
+		d.chatIDToTopics[msg.PeerID].Add(msg.TopicID)
 	}
 
 	err := d.encoder.Encode(tgdtos.NewRecord(msg))
@@ -68,7 +66,7 @@ func (d *historyDump) append(msg tgdtos.Message, author tgdtos.Author) error {
 
 func (d *historyDump) appendTopics(ctx context.Context, api *tg.Client, chats historyChats) error {
 	for _, chat := range chats {
-		if d.topics[int64(chat.id)] == nil {
+		if d.chatIDToTopics[int64(chat.id)] == nil {
 			continue
 		}
 
@@ -82,7 +80,7 @@ func (d *historyDump) appendTopics(ctx context.Context, api *tg.Client, chats hi
 }
 
 func (d *historyDump) appendChatTopics(ctx context.Context, api *tg.Client, chat historyChat) error {
-	ids := d.topics[int64(chat.id)].ToSlice()
+	ids := d.chatIDToTopics[int64(chat.id)].ToSlice()
 	slices.Sort(ids)
 
 	for batch := range slices.Chunk(ids, historyBatchSize) {
