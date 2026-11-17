@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/bin"
-	"github.com/gotd/td/constant"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/tg"
@@ -30,9 +28,9 @@ func TestDumpHistoryCommand(t *testing.T) {
 		command string
 		saved   bool
 	}{
-		{name: "archived chat title", command: `!dump_history -q "Тестовый чат"`, saved: true},
-		{name: "archived chat ID", command: "!dump_history --peer-id=-2", saved: true},
-		{name: "quiet command in chat", command: "!dump_history -q"},
+		{name: "archived chat title", command: `!dump-history -q "Тестовый чат"`, saved: true},
+		{name: "archived chat name flag", command: `!dump-history -n "Тестовый чат"`, saved: true},
+		{name: "quiet command in chat", command: "!dump-history -q"},
 	}
 
 	for _, test := range tests {
@@ -65,27 +63,24 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 	if saved {
 		origin = &tg.PeerUser{UserID: self.ID}
 		offset = 0
-
-		mock.ExpectCall(&tg.MessagesGetDialogsRequest{
-			Limit: historyBatchSize, OffsetPeer: &tg.InputPeerEmpty{},
-		}).ThenResult(&tg.MessagesDialogs{})
-
-		mock.ExpectCall(&tg.MessagesGetDialogsRequest{
-			Limit: historyBatchSize, FolderID: 1, OffsetPeer: &tg.InputPeerEmpty{},
-		}).ThenResult(&tg.MessagesDialogs{
-			Dialogs: []tg.DialogClass{&tg.Dialog{Peer: sourcePeer}},
-			Chats:   []tg.ChatClass{source},
-		})
-
-		if !strings.Contains(command, "--peer-id") {
-			mock.ExpectCall(&tg.MessagesGetDialogsRequest{
-				Limit: historyBatchSize, FolderID: 1, OffsetPeer: &tg.InputPeerEmpty{},
-			}).ThenResult(&tg.MessagesDialogs{})
-		}
 	} else {
 		mock.ExpectCall(&tg.MessagesDeleteMessagesRequest{Revoke: true, ID: []int{commandID}}).
 			ThenResult(&tg.MessagesAffectedMessages{})
 	}
+
+	mock.ExpectCall(&tg.MessagesGetDialogsRequest{
+		Limit: historyBatchSize, OffsetPeer: &tg.InputPeerEmpty{},
+	}).ThenResult(&tg.MessagesDialogs{})
+
+	mock.ExpectCall(&tg.MessagesGetDialogsRequest{
+		Limit: historyBatchSize, FolderID: 1, OffsetPeer: &tg.InputPeerEmpty{},
+	}).ThenResult(&tg.MessagesDialogs{
+		Dialogs: []tg.DialogClass{&tg.Dialog{Peer: sourcePeer}},
+		Chats:   []tg.ChatClass{source},
+	})
+	mock.ExpectCall(&tg.MessagesGetDialogsRequest{
+		Limit: historyBatchSize, FolderID: 1, OffsetPeer: &tg.InputPeerEmpty{},
+	}).ThenResult(&tg.MessagesDialogs{})
 
 	mock.ExpectFunc(func(body bin.Encoder) {
 		require.IsType(t, &tg.MessagesSendMessageRequest{}, body)
@@ -122,7 +117,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		request := body.(*tg.MessagesEditMessageRequest)
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
 		require.Equal(t, progressID, request.ID)
-		require.Contains(t, request.Message, "Messages read: 2")
+		require.Contains(t, request.Message, "Тестовый чат (-2), msgs=2, range=0s")
 	}).ThenResult(&tg.Updates{})
 
 	var archive []byte
@@ -136,7 +131,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		require.IsType(t, &tg.MessagesSendMediaRequest{}, body)
 		request := body.(*tg.MessagesSendMediaRequest)
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-		require.Contains(t, request.Message, "peer_id: -2")
+		require.Contains(t, request.Message, "Тестовый чат (-2), msgs=2, range=0s")
 		require.IsType(t, &tg.InputMediaUploadedDocument{}, request.Media)
 		document := request.Media.(*tg.InputMediaUploadedDocument)
 		require.Equal(t, "application/gzip", document.MimeType)
@@ -145,7 +140,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 
 	r := Presentation{telegramAPI: api}
 	r.router = map[string]messageProcessor{
-		"dump_history": {executor: r.dumpHistoryCommand, flags: historyFlags()},
+		"dump-history": {executor: r.dumpHistoryCommand, flags: historyFlags()},
 	}
 	entities := &tg.Entities{Chats: map[int64]*tg.Chat{source.ID: source}}
 	ctx := ext.NewContext(t.Context(), api, nil, self, message.NewSender(api), entities, false)
@@ -170,10 +165,10 @@ func requireHistoryArchive(t *testing.T, archive []byte, date time.Time, message
 
 	decoder := json.NewDecoder(reader)
 
-	var header tgdtos.Record[tgdtos.HistoryHeader]
+	var header tgdtos.Record[tgdtos.Chat]
 	require.NoError(t, decoder.Decode(&header))
-	require.Equal(t, "HISTORY_HEADER", header.Type.String())
-	require.Equal(t, tgdtos.HistoryHeader{Version: 2, PeerID: -2, Title: "Тестовый чат"}, header.Payload)
+	require.Equal(t, "CHAT", header.Type.String())
+	require.Equal(t, tgdtos.Chat{PeerIDs: []int64{-2}, Title: "Тестовый чат"}, header.Payload)
 
 	var author tgdtos.Record[tgdtos.Author]
 	require.NoError(t, decoder.Decode(&author))
@@ -184,41 +179,16 @@ func requireHistoryArchive(t *testing.T, archive []byte, date time.Time, message
 	require.NoError(t, decoder.Decode(&message))
 	require.Equal(t, "MESSAGE", message.Type.String())
 	require.Equal(t, tgdtos.Message{
-		ID: messageID, Date: date.Unix(), AuthorID: 3, Text: "Строка\n<тест>", ReplyTo: messageID - 1,
+		ID: messageID, PeerID: -2, Date: date.Unix(), AuthorID: 3, Text: "Строка\n<тест>", ReplyTo: messageID - 1,
 	}, message.Payload)
 
 	var previous tgdtos.Record[tgdtos.Message]
 	require.NoError(t, decoder.Decode(&previous))
 	require.Equal(t, tgdtos.TGTypeMessage, previous.Type)
 	require.Equal(t, tgdtos.Message{
-		ID: messageID - 1, Date: date.Unix(), AuthorID: 3, Text: "Earlier message",
+		ID: messageID - 1, PeerID: -2, Date: date.Unix(), AuthorID: 3, Text: "Earlier message",
 	}, previous.Payload)
 	require.ErrorIs(t, decoder.Decode(&message), io.EOF)
-}
-
-func TestHistoryChatSelector(t *testing.T) {
-	t.Parallel()
-
-	id := telegramPeerID(&tg.PeerChannel{ChannelID: 2})
-	args := getOpt("!stats --peer-id=-1000000000002 -d=7", historyFlags()...)
-	selector, err := parseHistoryChatSelector(args.Text, args.Ops, true)
-	require.NoError(t, err)
-	require.True(t, selector.matches(historyChat{id: id, name: "Renamed"}))
-	require.False(t, selector.matches(historyChat{id: -2, name: "Renamed"}))
-
-	_, err = parseHistoryChatSelector("", nil, true)
-	require.Error(t, err)
-
-	_, err = parseHistoryChatSelector("Title", args.Ops, true)
-	require.Error(t, err)
-
-	_, err = parseHistoryChatSelector("", args.Ops, false)
-	require.Error(t, err)
-
-	_, err = selector.selectChat(map[constant.TDLibPeerID]historyChat{
-		id: {id: id, name: "Title"}, -2: {id: -2, name: "Title"},
-	})
-	require.ErrorContains(t, err, "-1000000000002, -2")
 }
 
 func TestWalkHistoryLimits(t *testing.T) {
@@ -248,8 +218,8 @@ func TestWalkHistoryLimits(t *testing.T) {
 			}}
 
 			ids := make([]int, 0, test.count)
-			summary, err := walkHistory(t.Context(), iter,
-				historyOptions{count: test.count, cutoff: time.Unix(cutoffDate, 0)}, 1, false,
+			summary, err := walkHistory(t.Context(), []historySource{{iter: iter, chat: historyChat{id: -2}}},
+				historyOptions{count: test.count, cutoff: time.Unix(cutoffDate, 0)}, 1,
 				func(record tgdtos.Message, _ tgdtos.Author) error {
 					ids = append(ids, record.ID)
 					return nil
@@ -265,6 +235,7 @@ func TestWalkHistoryLimits(t *testing.T) {
 type testHistoryIterator struct {
 	records []tg.NotEmptyMessage
 	index   int
+	err     error
 }
 
 func (i *testHistoryIterator) Next(context.Context) bool {
@@ -277,5 +248,5 @@ func (i *testHistoryIterator) Value() messages.Elem {
 }
 
 func (i *testHistoryIterator) Err() error {
-	return nil
+	return i.err
 }

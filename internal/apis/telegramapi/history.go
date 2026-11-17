@@ -2,7 +2,6 @@ package telegramapi
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -21,15 +20,22 @@ const (
 	historyCountFlag    = "count"
 	historyDayFlag      = "day"
 	historyDay          = 24 * time.Hour
-	historyRangeFormat  = "2006-01-02 15:04:05 UTC"
 	historyReadDeadline = time.Hour
 )
 
 func historyFlags() []optFlag {
 	return []optFlag{
-		{Long: historyCountFlag, Short: "c", Description: "maximum number of messages"},
-		{Long: historyDayFlag, Short: "d", Description: "maximum message age in days"},
-		{Long: historyPeerIDFlag, Description: "select a chat by peer_id from Saved Messages"},
+		{
+			Long:        historyCountFlag,
+			Short:       "c",
+			HasValue:    true,
+			Description: "maximum total number of messages across all selected chats",
+		},
+		{Long: historyDayFlag, Short: "d", HasValue: true, Description: "maximum message age in days"},
+		{
+			Long: historyNameFlag, Short: "n", HasValue: true,
+			Description: "select all chats with this name, repeat for multiple names",
+		},
 		{Long: FlagSilent.Long, Short: FlagSilent.Short, Description: "send progress and results to Saved Messages"},
 	}
 }
@@ -39,13 +45,13 @@ type historyOptions struct {
 	cutoff time.Time
 }
 
-func readHistoryLimit(options map[string]string, key string, defaultValue, maxValue int) (int, error) {
+func readHistoryLimit(options map[string][]string, key string, defaultValue, maxValue int) (int, error) {
 	raw, ok := options[key]
-	if !ok {
+	if !ok || len(raw) == 0 {
 		return defaultValue, nil
 	}
 
-	value, err := strconv.Atoi(raw)
+	value, err := strconv.Atoi(raw[len(raw)-1])
 	if err != nil {
 		return 0, errors.Wrapf(err, "parse --%s", key)
 	}
@@ -57,7 +63,7 @@ func readHistoryLimit(options map[string]string, key string, defaultValue, maxVa
 	return min(value, maxValue), nil
 }
 
-func parseHistoryOptions(options map[string]string, now time.Time) (historyOptions, error) {
+func parseHistoryOptions(options map[string][]string, now time.Time) (historyOptions, error) {
 	count, err := readHistoryLimit(options, historyCountFlag, utils.DefaultUploadCount, utils.MaxUploadCount)
 	if err != nil {
 		return historyOptions{}, err
@@ -109,7 +115,10 @@ func decodeHistoryMessage(
 		}
 	}
 
-	record := tgdtos.Message{ID: msg.ID, Date: int64(msg.Date), Text: msg.Message, AuthorID: author.ID}
+	record := tgdtos.Message{
+		ID: msg.ID, PeerID: int64(telegramPeerID(msg.PeerID)),
+		Date: int64(msg.Date), Text: msg.Message, AuthorID: author.ID,
+	}
 	if forum {
 		record.TopicID = 1
 	}
@@ -130,33 +139,8 @@ func decodeHistoryMessage(
 	return record, author
 }
 
-type historySummary struct {
-	newest time.Time
-	oldest time.Time
-	count  int
-	stop   string
-}
-
-func (s *historySummary) append(date time.Time) {
-	if s.count == 0 {
-		s.newest = date
-	}
-
-	s.oldest = date
-	s.count++
-}
-
-func (s *historySummary) caption() string {
-	if s.count == 0 {
-		return fmt.Sprintf("Messages read: 0\nStopped: %s", s.stop)
-	}
-
-	return fmt.Sprintf("Messages read: %d\nRange: %s to %s\nStopped: %s",
-		s.count, s.oldest.Format(historyRangeFormat), s.newest.Format(historyRangeFormat), s.stop)
-}
-
-func (c *Context) startHistoryProgress(chat historyChat) (func(context.Context, string), error) {
-	text := chat.label() + "\nReading messages…"
+func (c *Context) startHistoryProgress(chats historyChats) (func(context.Context, string), error) {
+	text := chats.label() + "\nReading messages…"
 	origin := c.update.EffectiveChat().GetInputPeer()
 	replyID := 0
 
@@ -180,7 +164,7 @@ func (c *Context) startHistoryProgress(chat historyChat) (func(context.Context, 
 
 	return func(ctx context.Context, status string) {
 		_, err := c.extCtx.Raw.MessagesEditMessage(ctx, &tg.MessagesEditMessageRequest{
-			Peer: origin, ID: replyID, Message: chat.label() + "\n" + status,
+			Peer: origin, ID: replyID, Message: status,
 		})
 		if err != nil {
 			zerolog.Ctx(c.extCtx).Warn().Err(err).Msg("history.progress.edit.failed")
@@ -190,7 +174,7 @@ func (c *Context) startHistoryProgress(chat historyChat) (func(context.Context, 
 
 func (r *Presentation) readHistory(
 	c *Context,
-	chat historyChat,
+	chats historyChats,
 	consume func(record tgdtos.Message, author tgdtos.Author) error,
 ) (historySummary, error) {
 	options, err := parseHistoryOptions(c.Ops, c.StartedAt)
@@ -198,7 +182,7 @@ func (r *Presentation) readHistory(
 		return historySummary{}, err
 	}
 
-	progress, err := c.startHistoryProgress(chat)
+	progress, err := c.startHistoryProgress(chats)
 	if err != nil {
 		return historySummary{}, err
 	}
@@ -206,20 +190,23 @@ func (r *Presentation) readHistory(
 	ctx, cancel := context.WithTimeout(c.extCtx, historyReadDeadline)
 	defer cancel()
 
-	history := query.Messages(r.telegramAPI).GetHistory(chat.peer).BatchSize(historyBatchSize)
-	if !c.inSavedMessages() {
-		history.OffsetID(c.update.EffectiveMessage.ID)
+	sources := make([]historySource, 0, len(chats))
+	for _, chat := range chats {
+		history := query.Messages(r.telegramAPI).GetHistory(chat.peer).BatchSize(historyBatchSize)
+		if !c.inSavedMessages() && chat.id == telegramPeerID(c.update.EffectiveMessage.PeerID) {
+			history.OffsetID(c.update.EffectiveMessage.ID)
+		}
+
+		sources = append(sources, historySource{chat: chat, iter: history.Iter()})
 	}
 
-	iter := history.Iter()
-
-	summary, err := walkHistory(ctx, iter, options, c.extCtx.Self.ID, chat.forum, consume, progress)
+	summary, err := walkHistory(ctx, sources, options, c.extCtx.Self.ID, consume, progress)
 	if err != nil {
 		progress(c.extCtx, "History could not be read.")
 		return historySummary{}, err
 	}
 
-	progress(c.extCtx, summary.caption())
+	progress(c.extCtx, summary.caption(chats)+"\nStopped: "+summary.stop)
 
 	return summary, nil
 }
@@ -228,63 +215,4 @@ type historyIterator interface {
 	Next(context.Context) bool
 	Value() messages.Elem
 	Err() error
-}
-
-func walkHistory(
-	ctx context.Context,
-	iter historyIterator,
-	options historyOptions,
-	selfID int64,
-	forum bool,
-	consume func(record tgdtos.Message, author tgdtos.Author) error,
-	progress func(context.Context, string),
-) (historySummary, error) {
-	const progressInterval = 5 * historyBatchSize
-
-	summary := historySummary{stop: "end of history"}
-
-	for ctx.Err() == nil && iter.Next(ctx) {
-		elem := iter.Value()
-
-		msg, ok := elem.Msg.(*tg.Message)
-		if !ok {
-			continue
-		}
-
-		record, author := decodeHistoryMessage(elem, msg, selfID, forum)
-		date := time.Unix(record.Date, 0).UTC()
-
-		if date.Before(options.cutoff) {
-			summary.stop = "date limit"
-			return summary, nil
-		}
-
-		err := consume(record, author)
-		if err != nil {
-			return historySummary{}, errors.Wrap(err, "process history message")
-		}
-
-		summary.append(date)
-
-		if summary.count == options.count {
-			summary.stop = "message limit"
-			return summary, nil
-		}
-
-		if summary.count%progressInterval == 0 {
-			progress(ctx, fmt.Sprintf("Reading messages… %d read", summary.count))
-		}
-	}
-
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		summary.stop = "time limit"
-		return summary, nil
-	}
-
-	err := iter.Err()
-	if err != nil {
-		return historySummary{}, errors.Wrap(err, "iterate chat history")
-	}
-
-	return summary, errors.Wrap(ctx.Err(), "read history")
 }

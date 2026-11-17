@@ -33,7 +33,7 @@ func TestUnit_GetArguments_Arguments_Ok(t *testing.T) {
 	input := getOpt(`!ping -q --negative="bad input" user not found hi!`, optFlag{Long: "negative"})
 
 	assert.True(t, input.Silent)
-	assert.Equal(t, "bad input", input.Ops["negative"])
+	assert.Equal(t, []string{"bad input"}, input.Ops["negative"])
 	assert.Equal(t, "user not found hi!", input.Text)
 }
 

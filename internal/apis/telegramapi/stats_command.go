@@ -1,9 +1,7 @@
 package telegramapi
 
 import (
-	"fmt"
 	"strings"
-	"time"
 
 	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/TeaDove/fun-telegram/internal/services/analyticsservice"
@@ -12,12 +10,11 @@ import (
 	"github.com/cockroachdb/errors"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gotd/td/telegram/message"
-	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/telegram/uploader"
 )
 
 func (r *Presentation) statsCommand(c *Context) error {
-	chat, err := r.resolveHistoryChat(c)
+	chats, err := r.resolveHistoryChats(c)
 	if err != nil {
 		return err
 	}
@@ -25,7 +22,7 @@ func (r *Presentation) statsCommand(c *Context) error {
 	storage := r.analiticsService.NewStorage()
 	authors := mapset.NewThreadUnsafeSet[int64]()
 
-	summary, err := r.readHistory(c, chat, func(msg tgdtos.Message, author tgdtos.Author) error {
+	summary, err := r.readHistory(c, chats, func(msg tgdtos.Message, author tgdtos.Author) error {
 		if author.Name != "" && authors.Add(author.ID) {
 			author.Name = utils.ReplaceNonASCIIWithSpace(author.Name)
 			author.Username = strings.ToLower(author.Username)
@@ -42,12 +39,12 @@ func (r *Presentation) statsCommand(c *Context) error {
 
 	storage.UsersNameGetter = storage.Users.GetNameGetter()
 
-	return r.compileStats(c, chat, summary, storage)
+	return r.compileStats(c, chats, summary, storage)
 }
 
 func (r *Presentation) compileStats(
 	c *Context,
-	chat historyChat,
+	chats historyChats,
 	summary historySummary,
 	storage *messageservice.Storage,
 ) error {
@@ -60,8 +57,7 @@ func (r *Presentation) compileStats(
 		return errors.New("no images in report")
 	}
 
-	caption := styling.Plain(fmt.Sprintf("%s\n\n%s\nCompiled in: %.2fs",
-		chat.label(), summary.caption(), time.Since(c.StartedAt).Seconds()))
+	caption := summary.styledCaption(chats)
 
 	fileUploader := uploader.NewUploader(c.extCtx.Raw)
 	album := make([]message.MultiMediaOption, 0, len(report.Images))
@@ -73,13 +69,13 @@ func (r *Presentation) compileStats(
 		}
 
 		if i == 0 {
-			album = append(album, message.UploadedPhoto(file, caption))
+			album = append(album, message.UploadedPhoto(file, caption...))
 		} else {
 			album = append(album, message.UploadedPhoto(file))
 		}
 	}
 
-	destination := c.extCtx.Sender.To(chat.peer)
+	destination := c.extCtx.Sender.To(c.update.EffectiveChat().GetInputPeer())
 	if c.Silent || c.inSavedMessages() {
 		destination = c.extCtx.Sender.Self()
 	}
