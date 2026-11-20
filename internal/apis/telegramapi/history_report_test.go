@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
+	"github.com/gotd/td/telegram/message/entity"
+	"github.com/gotd/td/telegram/message/styling"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,11 +46,17 @@ func TestHistoryReportGroupsPeers(t *testing.T) {
 	summary := historySummary{}
 	summary.append(tgdtos.Message{PeerID: -2, Date: start})
 	summary.append(tgdtos.Message{PeerID: -3, Date: start + int64((45*historyDay)/time.Second)})
-	summary.append(tgdtos.Message{PeerID: -4, Date: start})
-	summary.append(tgdtos.Message{PeerID: -4, Date: start + 60})
+	summary.append(tgdtos.Message{PeerID: -4, Date: start + int64(60*historyDay/time.Second)})
+	summary.append(tgdtos.Message{PeerID: -4, Date: start + int64(60*historyDay/time.Second) + 60})
+
+	builder := entity.Builder{}
+	err := styling.Perform(&builder, summary.styledCaption(chats)...)
+	require.NoError(t, err)
+
+	caption, _ := builder.Complete()
 
 	require.Equal(t,
-		"A (-2, -3), msgs=2, range=1.5M\nB (-4), msgs=2, range=1m\nEmpty (-5), msgs=0, range=0s",
-		summary.caption(chats),
+		"A, msgs=2, range=1.5M\nB, msgs=2, range=1m\nEmpty, msgs=0, range=0s\nTotal, msgs=4, range=2M",
+		caption,
 	)
 }

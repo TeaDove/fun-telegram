@@ -50,17 +50,15 @@ func (s *historySummary) append(record tgdtos.Message) {
 }
 
 type historyReportRow struct {
-	name  string
-	peers []string
-	data  historyRange
+	name string
+	data historyRange
 }
 
 func (r historyReportRow) details() string {
 	span := time.Duration(r.data.newest-r.data.oldest) * time.Second
 
 	return fmt.Sprintf(
-		" (%s), msgs=%d, range=%s",
-		strings.Join(r.peers, ", "),
+		", msgs=%d, range=%s",
 		r.data.count,
 		formatHistoryDuration(span),
 	)
@@ -84,25 +82,22 @@ func (s *historySummary) rows(chats historyChats) []historyReportRow {
 			rows = append(rows, historyReportRow{name: name})
 		}
 
-		rows[index].peers = append(rows[index].peers, strconv.FormatInt(int64(chat.id), 10))
 		rows[index].data.add(s.peers[int64(chat.id)])
 	}
 
-	return rows
-}
-
-func (s *historySummary) caption(chats historyChats) string {
-	lines := make([]string, 0, len(chats))
-	for _, row := range s.rows(chats) {
-		lines = append(lines, row.name+row.details())
+	var total historyRange
+	for _, row := range rows {
+		total.add(row.data)
 	}
 
-	return strings.Join(lines, "\n")
+	return append(rows, historyReportRow{name: "Total", data: total})
 }
 
 func (s *historySummary) styledCaption(chats historyChats) []styling.StyledTextOption {
-	text := make([]styling.StyledTextOption, 0, len(chats)*2)
-	for i, row := range s.rows(chats) {
+	rows := s.rows(chats)
+	text := make([]styling.StyledTextOption, 0, len(rows)*3)
+
+	for i, row := range rows {
 		if i != 0 {
 			text = append(text, styling.Plain("\n"))
 		}

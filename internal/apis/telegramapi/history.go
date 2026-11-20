@@ -7,12 +7,10 @@ import (
 
 	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
 	"github.com/TeaDove/fun-telegram/internal/utils"
-	"github.com/celestix/gotgproto/ext"
 	"github.com/cockroachdb/errors"
 	"github.com/gotd/td/telegram/query"
 	"github.com/gotd/td/telegram/query/messages"
 	"github.com/gotd/td/tg"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -139,59 +137,16 @@ func decodeHistoryMessage(
 	return record, author
 }
 
-func (c *Context) startHistoryProgress(chats historyChats) (func(context.Context, string), error) {
-	text := chats.label() + "\nReading messages…"
-	origin := c.update.EffectiveChat().GetInputPeer()
-	replyID := 0
-
-	if c.Silent || c.inSavedMessages() {
-		origin = &tg.InputPeerSelf{}
-
-		sent, err := c.extCtx.SendMessage(c.extCtx.Self.ID, &tg.MessagesSendMessageRequest{Peer: origin, Message: text})
-		if err != nil {
-			return nil, errors.Wrap(err, "send history progress to Saved Messages")
-		}
-
-		replyID = sent.ID
-	} else {
-		sent, err := c.extCtx.Reply(c.update, ext.ReplyTextString(text), nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "send history progress")
-		}
-
-		replyID = sent.ID
-	}
-
-	return func(ctx context.Context, status string) {
-		_, err := c.extCtx.Raw.MessagesEditMessage(ctx, &tg.MessagesEditMessageRequest{
-			Peer: origin, ID: replyID, Message: status,
-		})
-		if err != nil {
-			zerolog.Ctx(c.extCtx).Warn().Err(err).Msg("history.progress.edit.failed")
-		}
-	}, nil
-}
-
 func (r *Presentation) readHistory(
 	c *Context,
-	chats historyChats,
+	request historyRequest,
 	consume func(record tgdtos.Message, author tgdtos.Author) error,
 ) (historySummary, error) {
-	options, err := parseHistoryOptions(c.Ops, c.StartedAt)
-	if err != nil {
-		return historySummary{}, err
-	}
-
-	progress, err := c.startHistoryProgress(chats)
-	if err != nil {
-		return historySummary{}, err
-	}
-
 	ctx, cancel := context.WithTimeout(c.extCtx, historyReadDeadline)
 	defer cancel()
 
-	sources := make([]historySource, 0, len(chats))
-	for _, chat := range chats {
+	sources := make([]historySource, 0, len(request.chats))
+	for _, chat := range request.chats {
 		history := query.Messages(r.telegramAPI).GetHistory(chat.peer).BatchSize(historyBatchSize)
 		if !c.inSavedMessages() && chat.id == telegramPeerID(c.update.EffectiveMessage.PeerID) {
 			history.OffsetID(c.update.EffectiveMessage.ID)
@@ -200,13 +155,13 @@ func (r *Presentation) readHistory(
 		sources = append(sources, historySource{chat: chat, iter: history.Iter()})
 	}
 
-	summary, err := walkHistory(ctx, sources, options, c.extCtx.Self.ID, consume, progress)
+	summary, err := walkHistory(ctx, sources, request.options, c.extCtx.Self.ID, consume, request.progress)
 	if err != nil {
-		progress(c.extCtx, "History could not be read.")
-		return historySummary{}, err
+		request.progress(c.extCtx, summary.count, "error")
+		return summary, err
 	}
 
-	progress(c.extCtx, summary.caption(chats)+"\nStopped: "+summary.stop)
+	request.progress(c.extCtx, summary.count, summary.stop)
 
 	return summary, nil
 }

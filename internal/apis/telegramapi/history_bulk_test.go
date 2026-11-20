@@ -31,6 +31,8 @@ func TestDumpMultipleChats(t *testing.T) {
 	var archive []byte
 
 	sentFiles := 0
+	progressMessages := 0
+	progressEdits := 0
 	api := tg.NewClient(tgmock.Invoker(func(request bin.Encoder) (bin.Encoder, error) {
 		switch request := request.(type) {
 		case *tg.MessagesGetDialogsRequest:
@@ -43,6 +45,11 @@ func TestDumpMultipleChats(t *testing.T) {
 			}}, nil
 		case *tg.MessagesSendMessageRequest:
 			require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
+			require.Equal(t, "Loading history for First test chat, Second test chat with 2 amount and 60 day limit",
+				request.Message)
+
+			progressMessages++
+
 			return &tg.UpdateShortSentMessage{ID: 10}, nil
 		case *tg.MessagesGetHistoryRequest:
 			if request.OffsetID != 0 {
@@ -56,15 +63,22 @@ func TestDumpMultipleChats(t *testing.T) {
 					FromID: &tg.PeerUser{UserID: self.ID}, Message: "Test message"},
 			}}, nil
 		case *tg.MessagesEditMessageRequest:
-			require.Contains(t, request.Message, "msgs=1, range=0s")
+			require.Contains(t, request.Message, "\nRead 2 msgs\nStopped: message limit")
+			require.NotContains(t, request.Message, "range=")
+
+			progressEdits++
+
 			return &tg.Updates{}, nil
 		case *tg.UploadSaveFilePartRequest:
 			archive = append(archive, request.Bytes...)
 			return &tg.BoolTrue{}, nil
 		case *tg.MessagesSendMediaRequest:
 			require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-			require.Contains(t, request.Message, "First test chat (-2), msgs=1, range=0s")
-			require.Contains(t, request.Message, "Second test chat (-3), msgs=1, range=0s")
+			require.Contains(t, request.Message, "First test chat, msgs=1, range=0s")
+			require.Contains(t, request.Message, "Second test chat, msgs=1, range=0s")
+
+			require.Contains(t, request.Message, "Total, msgs=2, range=1s")
+			require.NotContains(t, request.Message, "peer")
 
 			sentFiles++
 
@@ -86,6 +100,8 @@ func TestDumpMultipleChats(t *testing.T) {
 	err := presentation.route(ctx, update)
 	require.NoError(t, err)
 	require.Equal(t, 1, sentFiles)
+	require.Equal(t, 1, progressMessages)
+	require.Equal(t, 1, progressEdits)
 
 	assertBulkArchive(t, archive)
 }

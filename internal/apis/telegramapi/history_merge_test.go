@@ -45,7 +45,7 @@ func TestMergedHistoryLimits(t *testing.T) {
 			}, 1, func(record tgdtos.Message, _ tgdtos.Author) error {
 				records = append(records, record)
 				return nil
-			}, func(context.Context, string) {})
+			}, func(context.Context, int, string) {})
 			require.NoError(t, err)
 			require.Equal(t, test.stop, summary.stop)
 			require.Equal(t, len(test.peers), summary.count)
@@ -76,7 +76,7 @@ func TestMergedHistorySourceFailure(t *testing.T) {
 		func(tgdtos.Message, tgdtos.Author) error {
 			consumed++
 			return nil
-		}, func(context.Context, string) {})
+		}, func(context.Context, int, string) {})
 	require.ErrorIs(t, err, failure)
 	require.Zero(t, consumed)
 }
