@@ -59,35 +59,58 @@ func selectHistoryChats(names []string, catalog map[constant.TDLibPeerID]history
 	return chats, nil
 }
 
-func (r *Presentation) resolveHistoryChats(c *Context) (historyChats, error) {
+type historyRequest struct {
+	chats    historyChats
+	options  historyOptions
+	progress historyProgress
+}
+
+func (r *Presentation) prepareHistory(c *Context) (historyRequest, error) {
+	options, err := parseHistoryOptions(c.Ops, c.StartedAt)
+	if err != nil {
+		return historyRequest{}, err
+	}
+
 	names, err := historyChatNames(c)
 	if err != nil {
-		return nil, err
+		return historyRequest{}, err
 	}
 
 	var current historyChat
 
 	if len(names) == 0 {
 		if c.inSavedMessages() {
-			return nil, errors.New("specify a chat name with -n")
+			return historyRequest{}, errors.New("specify a chat name with -n")
 		}
 
 		current, err = r.resolveHistoryChat(c)
 		if err != nil {
-			return nil, err
+			return historyRequest{}, err
 		}
 
 		names = []string{current.name}
 	}
 
+	progress, err := c.startHistoryProgress(names, options)
+	if err != nil {
+		return historyRequest{}, err
+	}
+
 	catalog, err := r.historyDialogs(c.extCtx, c.extCtx.Self.ID)
 	if err != nil {
-		return nil, err
+		progress(c.extCtx, 0, "error")
+		return historyRequest{}, err
 	}
 
 	if current.id != 0 {
 		catalog[current.id] = current
 	}
 
-	return selectHistoryChats(names, catalog)
+	chats, err := selectHistoryChats(names, catalog)
+	if err != nil {
+		progress(c.extCtx, 0, "error")
+		return historyRequest{}, err
+	}
+
+	return historyRequest{chats: chats, options: options, progress: progress}, nil
 }

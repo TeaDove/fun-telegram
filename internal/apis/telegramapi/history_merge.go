@@ -2,7 +2,6 @@ package telegramapi
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
@@ -59,7 +58,7 @@ func walkHistory(
 	options historyOptions,
 	selfID int64,
 	consume func(record tgdtos.Message, author tgdtos.Author) error,
-	progress func(context.Context, string),
+	progress historyProgress,
 ) (historySummary, error) {
 	const progressInterval = 5 * historyBatchSize
 
@@ -68,7 +67,7 @@ func walkHistory(
 	for i := range sources {
 		err := sources[i].advance(ctx)
 		if err != nil && ctx.Err() == nil {
-			return historySummary{}, err
+			return summary, err
 		}
 	}
 
@@ -89,7 +88,7 @@ func walkHistory(
 
 		err := consume(record, author)
 		if err != nil {
-			return historySummary{}, errors.Wrap(err, "process history message")
+			return summary, errors.Wrap(err, "process history message")
 		}
 
 		summary.append(record)
@@ -100,12 +99,12 @@ func walkHistory(
 		}
 
 		if summary.count%progressInterval == 0 {
-			progress(ctx, fmt.Sprintf("Reading messages… %d read", summary.count))
+			progress(ctx, summary.count, "")
 		}
 
 		err = source.advance(ctx)
 		if err != nil && ctx.Err() == nil {
-			return historySummary{}, err
+			return summary, err
 		}
 	}
 

@@ -14,7 +14,7 @@ import (
 )
 
 func (r *Presentation) statsCommand(c *Context) error {
-	chats, err := r.resolveHistoryChats(c)
+	request, err := r.prepareHistory(c)
 	if err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func (r *Presentation) statsCommand(c *Context) error {
 	storage := r.analiticsService.NewStorage()
 	authors := mapset.NewThreadUnsafeSet[int64]()
 
-	summary, err := r.readHistory(c, chats, func(msg tgdtos.Message, author tgdtos.Author) error {
+	summary, err := r.readHistory(c, request, func(msg tgdtos.Message, author tgdtos.Author) error {
 		if author.Name != "" && authors.Add(author.ID) {
 			author.Name = utils.ReplaceNonASCIIWithSpace(author.Name)
 			author.Username = strings.ToLower(author.Username)
@@ -39,7 +39,7 @@ func (r *Presentation) statsCommand(c *Context) error {
 
 	storage.UsersNameGetter = storage.Users.GetNameGetter()
 
-	return r.compileStats(c, chats, summary, storage)
+	return r.compileStats(c, request.chats, summary, storage)
 }
 
 func (r *Presentation) compileStats(

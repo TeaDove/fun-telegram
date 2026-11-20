@@ -50,18 +50,16 @@ func (s *historySummary) append(record tgdtos.Message) {
 }
 
 type historyReportRow struct {
-	name  string
-	peers []string
-	data  historyRange
+	name string
+	data historyRange
 }
 
 func (r historyReportRow) details() string {
 	span := time.Duration(r.data.newest-r.data.oldest) * time.Second
 
 	return fmt.Sprintf(
-		" (%s), msgs=%d, range=%s",
-		strings.Join(r.peers, ", "),
-		r.data.count,
+		", msgs=%s, range=%s",
+		formatHistoryCount(r.data.count),
 		formatHistoryDuration(span),
 	)
 }
@@ -84,33 +82,53 @@ func (s *historySummary) rows(chats historyChats) []historyReportRow {
 			rows = append(rows, historyReportRow{name: name})
 		}
 
-		rows[index].peers = append(rows[index].peers, strconv.FormatInt(int64(chat.id), 10))
 		rows[index].data.add(s.peers[int64(chat.id)])
 	}
 
-	return rows
-}
-
-func (s *historySummary) caption(chats historyChats) string {
-	lines := make([]string, 0, len(chats))
-	for _, row := range s.rows(chats) {
-		lines = append(lines, row.name+row.details())
+	var total historyRange
+	for _, row := range rows {
+		total.add(row.data)
 	}
 
-	return strings.Join(lines, "\n")
+	return append(rows, historyReportRow{name: "Total", data: total})
 }
 
 func (s *historySummary) styledCaption(chats historyChats) []styling.StyledTextOption {
-	text := make([]styling.StyledTextOption, 0, len(chats)*2)
-	for i, row := range s.rows(chats) {
+	rows := s.rows(chats)
+	text := make([]styling.StyledTextOption, 0, len(rows)*3)
+
+	for i, row := range rows {
 		if i != 0 {
-			text = append(text, styling.Plain("\n"))
+			separator := "\n"
+			if i == len(rows)-1 {
+				separator = "\n\n"
+			}
+
+			text = append(text, styling.Plain(separator))
 		}
 
 		text = append(text, styling.Code(row.name), styling.Plain(row.details()))
 	}
 
 	return text
+}
+
+func formatHistoryCount(amount int) string {
+	value := float64(amount)
+	units := 0
+
+	for value >= 1000 {
+		value /= 1000
+		units++
+	}
+
+	rounded := strconv.FormatFloat(value, 'f', 1, 64)
+	if rounded == "1000.0" {
+		rounded = "1"
+		units++
+	}
+
+	return strings.TrimSuffix(rounded, ".0") + strings.Repeat("k", units)
 }
 
 func formatHistoryDuration(span time.Duration) string {
