@@ -35,6 +35,37 @@ func TestHistoryDuration(t *testing.T) {
 	}
 }
 
+func TestHistoryCount(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		amount int
+		want   string
+	}{
+		{amount: 0, want: "0"},
+		{amount: 1, want: "1"},
+		{amount: 999, want: "999"},
+		{amount: 1000, want: "1k"},
+		{amount: 1256, want: "1.3k"},
+		{amount: 10000, want: "10k"},
+		{amount: 12345, want: "12.3k"},
+		{amount: 999900, want: "999.9k"},
+		{amount: 999999, want: "1kk"},
+		{amount: 1000000, want: "1kk"},
+		{amount: 1234567, want: "1.2kk"},
+		{amount: 999999999, want: "1kkk"},
+		{amount: 1234567890, want: "1.2kkk"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.want, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, test.want, formatHistoryCount(test.amount))
+		})
+	}
+}
+
 func TestHistoryReportGroupsPeers(t *testing.T) {
 	t.Parallel()
 
@@ -56,7 +87,7 @@ func TestHistoryReportGroupsPeers(t *testing.T) {
 	caption, _ := builder.Complete()
 
 	require.Equal(t,
-		"A, msgs=2, range=1.5M\nB, msgs=2, range=1m\nEmpty, msgs=0, range=0s\nTotal, msgs=4, range=2M",
+		"A, msgs=2, range=1.5M\nB, msgs=2, range=1m\nEmpty, msgs=0, range=0s\n\nTotal, msgs=4, range=2M",
 		caption,
 	)
 }

@@ -23,17 +23,17 @@ func TestHistoryProgressFormatting(t *testing.T) {
 	mock := tgmock.NewRequire(t)
 	mock.ExpectFunc(func(body bin.Encoder) {
 		request := body.(*tg.MessagesSendMessageRequest)
-		require.Equal(t, "Loading history for "+name+" with 500000 amount and 730 day limit", request.Message)
+		require.Equal(t, "Loading history for "+name+" with 500k amount and 24.3M limit", request.Message)
 		requireHistoryProgressEntities(t, request.Message, request.Entities, name, nil)
 	}).ThenResult(&tg.UpdateShortSentMessage{ID: 7})
 	mock.ExpectFunc(func(body bin.Encoder) {
 		request := body.(*tg.MessagesEditMessageRequest)
 		require.Equal(t, 7, request.ID)
 		require.Equal(t,
-			"Loading history for "+name+" with 500000 amount and 730 day limit\nRead 3 msgs\nStopped: end of history",
+			"Loading history for "+name+" with 500k amount and 24.3M limit\n\nRead 12.3k msgs\nStopped: end of history",
 			request.Message,
 		)
-		requireHistoryProgressEntities(t, request.Message, request.Entities, name, []string{"3", "end of history"})
+		requireHistoryProgressEntities(t, request.Message, request.Entities, name, []string{"12.3k", "end of history"})
 	}).ThenResult(&tg.Updates{})
 
 	api := tg.NewClient(mock)
@@ -47,8 +47,8 @@ func TestHistoryProgressFormatting(t *testing.T) {
 
 	progress, err := c.startHistoryProgress([]string{name, "test 😀<&>"}, options)
 	require.NoError(t, err)
-	progress(t.Context(), 3, "end of history")
-	progress(t.Context(), 3, "end of history")
+	progress(t.Context(), 12345, "end of history")
+	progress(t.Context(), 12346, "end of history")
 }
 
 func requireHistoryProgressEntities(
@@ -84,7 +84,7 @@ func TestHistoryProgressReadCounter(t *testing.T) {
 	header := []styling.StyledTextOption{styling.Plain("Loading history")}
 	text, entities, err := renderHistoryProgress(header, 500, "")
 	require.NoError(t, err)
-	require.Equal(t, "Loading history\nRead 500 msgs", text)
+	require.Equal(t, "Loading history\n\nRead 500 msgs", text)
 	requireHistoryProgressEntities(t, text, entities, "", []string{"500"})
 }
 
@@ -96,7 +96,7 @@ func TestHistoryProgressRepliesInSourceChat(t *testing.T) {
 		request := body.(*tg.MessagesSendMessageRequest)
 		require.Equal(t, &tg.InputPeerChat{ChatID: 2}, request.Peer)
 		require.Equal(t, &tg.InputReplyToMessage{ReplyToMsgID: 4}, request.ReplyTo)
-		require.Equal(t, "Loading history for A with 10000 amount and 60 day limit", request.Message)
+		require.Equal(t, "Loading history for A with 10k amount and 2M limit", request.Message)
 		requireHistoryProgressEntities(t, request.Message, request.Entities, "A", nil)
 	}).ThenResult(&tg.UpdateShortSentMessage{ID: 7})
 

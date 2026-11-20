@@ -72,7 +72,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		require.IsType(t, &tg.MessagesSendMessageRequest{}, body)
 		request := body.(*tg.MessagesSendMessageRequest)
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-		require.Equal(t, "Loading history for Тестовый чат with 10000 amount and 60 day limit", request.Message)
+		require.Equal(t, "Loading history for Тестовый чат with 10k amount and 2M limit", request.Message)
 		requireHistoryProgressEntities(t, request.Message, request.Entities, "Тестовый чат", nil)
 	}).ThenResult(&tg.UpdateShortSentMessage{ID: progressID})
 
@@ -119,7 +119,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
 		require.Equal(t, progressID, request.ID)
 		require.Equal(t,
-			"Loading history for Тестовый чат with 10000 amount and 60 day limit\nRead 2 msgs\nStopped: end of history",
+			"Loading history for Тестовый чат with 10k amount and 2M limit\n\nRead 2 msgs\nStopped: end of history",
 			request.Message,
 		)
 		requireHistoryProgressEntities(
@@ -142,7 +142,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		require.IsType(t, &tg.MessagesSendMediaRequest{}, body)
 		request := body.(*tg.MessagesSendMediaRequest)
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-		require.Equal(t, "Тестовый чат, msgs=2, range=0s\nTotal, msgs=2, range=0s", request.Message)
+		require.Equal(t, "Тестовый чат, msgs=2, range=0s\n\nTotal, msgs=2, range=0s", request.Message)
 		require.IsType(t, &tg.InputMediaUploadedDocument{}, request.Media)
 		document := request.Media.(*tg.InputMediaUploadedDocument)
 		require.Equal(t, "application/gzip", document.MimeType)

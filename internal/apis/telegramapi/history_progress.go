@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,7 +24,12 @@ func renderHistoryProgress(
 ) (string, []tg.MessageEntityClass, error) {
 	text := slices.Clone(header)
 	if amount >= 0 {
-		text = append(text, styling.Plain("\nRead "), styling.Code(strconv.Itoa(amount)), styling.Plain(" msgs"))
+		text = append(
+			text,
+			styling.Plain("\n\nRead "),
+			styling.Code(formatHistoryCount(amount)),
+			styling.Plain(" msgs"),
+		)
 	}
 
 	if stopped != "" {
@@ -52,10 +56,10 @@ func (c *Context) startHistoryProgress(names []string, options historyOptions) (
 		}
 	}
 
-	days := int(c.StartedAt.Sub(options.cutoff) / historyDay)
+	span := formatHistoryDuration(c.StartedAt.Sub(options.cutoff))
 	header := []styling.StyledTextOption{
 		styling.Plain("Loading history for "), styling.Italic(strings.Join(unique, ", ")),
-		styling.Plain(fmt.Sprintf(" with %d amount and %d day limit", options.count, days)),
+		styling.Plain(fmt.Sprintf(" with %s amount and %s limit", formatHistoryCount(options.count), span)),
 	}
 
 	text, entities, err := renderHistoryProgress(header, -1, "")
@@ -97,14 +101,9 @@ func (c *Context) editHistoryProgress(
 	const minInterval = 2 * time.Second
 
 	lastUpdate := time.Now()
-	lastAmount := -1
-	lastStopped := ""
+	lastMessage := ""
 
 	return func(ctx context.Context, amount int, stopped string) {
-		if amount == lastAmount && stopped == lastStopped {
-			return
-		}
-
 		if stopped == "" && time.Since(lastUpdate) < minInterval {
 			return
 		}
@@ -112,6 +111,10 @@ func (c *Context) editHistoryProgress(
 		text, entities, err := renderHistoryProgress(header, amount, stopped)
 		if err != nil {
 			zerolog.Ctx(c.extCtx).Warn().Err(err).Msg("history.progress.render.failed")
+			return
+		}
+
+		if text == lastMessage {
 			return
 		}
 
@@ -125,7 +128,6 @@ func (c *Context) editHistoryProgress(
 			return
 		}
 
-		lastAmount = amount
-		lastStopped = stopped
+		lastMessage = text
 	}
 }

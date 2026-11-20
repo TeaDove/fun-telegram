@@ -58,8 +58,8 @@ func (r historyReportRow) details() string {
 	span := time.Duration(r.data.newest-r.data.oldest) * time.Second
 
 	return fmt.Sprintf(
-		", msgs=%d, range=%s",
-		r.data.count,
+		", msgs=%s, range=%s",
+		formatHistoryCount(r.data.count),
 		formatHistoryDuration(span),
 	)
 }
@@ -99,13 +99,36 @@ func (s *historySummary) styledCaption(chats historyChats) []styling.StyledTextO
 
 	for i, row := range rows {
 		if i != 0 {
-			text = append(text, styling.Plain("\n"))
+			separator := "\n"
+			if i == len(rows)-1 {
+				separator = "\n\n"
+			}
+
+			text = append(text, styling.Plain(separator))
 		}
 
 		text = append(text, styling.Code(row.name), styling.Plain(row.details()))
 	}
 
 	return text
+}
+
+func formatHistoryCount(amount int) string {
+	value := float64(amount)
+	units := 0
+
+	for value >= 1000 {
+		value /= 1000
+		units++
+	}
+
+	rounded := strconv.FormatFloat(value, 'f', 1, 64)
+	if rounded == "1000.0" {
+		rounded = "1"
+		units++
+	}
+
+	return strings.TrimSuffix(rounded, ".0") + strings.Repeat("k", units)
 }
 
 func formatHistoryDuration(span time.Duration) string {

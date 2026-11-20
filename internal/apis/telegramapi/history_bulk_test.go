@@ -45,7 +45,7 @@ func TestDumpMultipleChats(t *testing.T) {
 			}}, nil
 		case *tg.MessagesSendMessageRequest:
 			require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-			require.Equal(t, "Loading history for First test chat, Second test chat with 2 amount and 60 day limit",
+			require.Equal(t, "Loading history for First test chat, Second test chat with 2 amount and 2M limit",
 				request.Message)
 
 			progressMessages++
@@ -63,7 +63,7 @@ func TestDumpMultipleChats(t *testing.T) {
 					FromID: &tg.PeerUser{UserID: self.ID}, Message: "Test message"},
 			}}, nil
 		case *tg.MessagesEditMessageRequest:
-			require.Contains(t, request.Message, "\nRead 2 msgs\nStopped: message limit")
+			require.Contains(t, request.Message, "\n\nRead 2 msgs\nStopped: message limit")
 			require.NotContains(t, request.Message, "range=")
 
 			progressEdits++
