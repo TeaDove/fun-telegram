@@ -2,7 +2,6 @@ package telegramapi
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/TeaDove/fun-telegram/internal/dtos/tgdtos"
@@ -178,21 +177,4 @@ func (c historyChats) toDTOs() []tgdtos.Chat {
 	}
 
 	return output
-}
-
-func (c historyChats) label() string {
-	labels := make([]string, 0, len(c))
-	for _, chat := range c {
-		labels = append(labels, chat.label())
-	}
-
-	return strings.Join(labels, "\n\n")
-}
-
-func (c historyChat) label() string {
-	if c.name == "" {
-		return fmt.Sprintf("peer_id: %d", c.id)
-	}
-
-	return fmt.Sprintf("%s\npeer_id: %d", c.name, c.id)
 }

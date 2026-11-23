@@ -68,6 +68,14 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 			ThenResult(&tg.MessagesAffectedMessages{})
 	}
 
+	mock.ExpectFunc(func(body bin.Encoder) {
+		require.IsType(t, &tg.MessagesSendMessageRequest{}, body)
+		request := body.(*tg.MessagesSendMessageRequest)
+		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
+		require.Equal(t, "Loading history for Тестовый чат with 10k amount and 2M limit", request.Message)
+		requireHistoryProgressEntities(t, request.Message, request.Entities, "Тестовый чат", nil)
+	}).ThenResult(&tg.UpdateShortSentMessage{ID: progressID})
+
 	mock.ExpectCall(&tg.MessagesGetDialogsRequest{
 		Limit: historyBatchSize, OffsetPeer: &tg.InputPeerEmpty{},
 	}).ThenResult(&tg.MessagesDialogs{})
@@ -81,13 +89,6 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 	mock.ExpectCall(&tg.MessagesGetDialogsRequest{
 		Limit: historyBatchSize, FolderID: 1, OffsetPeer: &tg.InputPeerEmpty{},
 	}).ThenResult(&tg.MessagesDialogs{})
-
-	mock.ExpectFunc(func(body bin.Encoder) {
-		require.IsType(t, &tg.MessagesSendMessageRequest{}, body)
-		request := body.(*tg.MessagesSendMessageRequest)
-		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-		require.Contains(t, request.Message, "peer_id: -2")
-	}).ThenResult(&tg.UpdateShortSentMessage{ID: progressID})
 
 	author := &tg.User{ID: 3, FirstName: "Автор", Username: "test_author"}
 	date := time.Now().UTC().Truncate(time.Second).Add(-time.Hour)
@@ -117,7 +118,17 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		request := body.(*tg.MessagesEditMessageRequest)
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
 		require.Equal(t, progressID, request.ID)
-		require.Contains(t, request.Message, "Тестовый чат (-2), msgs=2, range=0s")
+		require.Equal(t,
+			"Loading history for Тестовый чат with 10k amount and 2M limit\n\nRead 2 msgs\nStopped: end of history",
+			request.Message,
+		)
+		requireHistoryProgressEntities(
+			t,
+			request.Message,
+			request.Entities,
+			"Тестовый чат",
+			[]string{"2", "end of history"},
+		)
 	}).ThenResult(&tg.Updates{})
 
 	var archive []byte
@@ -131,7 +142,7 @@ func testDumpHistoryCommand(t *testing.T, command string, saved bool) {
 		require.IsType(t, &tg.MessagesSendMediaRequest{}, body)
 		request := body.(*tg.MessagesSendMediaRequest)
 		require.IsType(t, &tg.InputPeerSelf{}, request.Peer)
-		require.Contains(t, request.Message, "Тестовый чат (-2), msgs=2, range=0s")
+		require.Equal(t, "Тестовый чат, msgs=2, range=0s\n\nTotal, msgs=2, range=0s", request.Message)
 		require.IsType(t, &tg.InputMediaUploadedDocument{}, request.Media)
 		document := request.Media.(*tg.InputMediaUploadedDocument)
 		require.Equal(t, "application/gzip", document.MimeType)
@@ -223,7 +234,7 @@ func TestWalkHistoryLimits(t *testing.T) {
 				func(record tgdtos.Message, _ tgdtos.Author) error {
 					ids = append(ids, record.ID)
 					return nil
-				}, func(context.Context, string) {})
+				}, func(context.Context, int, string) {})
 			require.NoError(t, err)
 			require.Equal(t, test.ids, ids)
 			require.Equal(t, len(test.ids), summary.count)

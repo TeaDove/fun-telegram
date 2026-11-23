@@ -110,30 +110,31 @@ func (d *historyDump) appendChatTopics(ctx context.Context, api *tg.Client, chat
 	return nil
 }
 
-func (r *Presentation) writeHistoryDump(c *Context, chats historyChats, file io.Writer) (historySummary, error) {
+func (r *Presentation) writeHistoryDump(c *Context, request historyRequest, file io.Writer) (historySummary, error) {
 	compressed := gzip.NewWriter(file)
 
-	dump, err := newHistoryDump(compressed, chats)
+	dump, err := newHistoryDump(compressed, request.chats)
 	if err != nil {
 		return historySummary{}, errors.Join(err, compressed.Close())
 	}
 
-	summary, err := r.readHistory(c, chats, dump.append)
+	summary, err := r.readHistory(c, request, dump.append)
 	if err == nil {
-		err = dump.appendTopics(c.extCtx, r.telegramAPI, chats)
+		err = dump.appendTopics(c.extCtx, r.telegramAPI, request.chats)
 	}
 
 	return summary, errors.Join(err, errors.Wrap(compressed.Close(), "finish compressed history"))
 }
 
 func (r *Presentation) dumpHistoryCommand(c *Context) error {
-	chats, err := r.resolveHistoryChats(c)
+	request, err := r.prepareHistory(c)
 	if err != nil {
 		return err
 	}
 
 	file, err := os.CreateTemp("", "history-*.jsonl.gz")
 	if err != nil {
+		request.progress(c.extCtx, 0, "error")
 		return errors.Wrap(err, "create temporary history file")
 	}
 
@@ -144,8 +145,9 @@ func (r *Presentation) dumpHistoryCommand(c *Context) error {
 		}
 	}()
 
-	summary, err := r.writeHistoryDump(c, chats, file)
+	summary, err := r.writeHistoryDump(c, request, file)
 	if err != nil {
+		request.progress(c.extCtx, summary.count, "error")
 		return err
 	}
 
@@ -166,7 +168,7 @@ func (r *Presentation) dumpHistoryCommand(c *Context) error {
 		return errors.Wrap(err, "upload history file")
 	}
 
-	caption := summary.styledCaption(chats)
+	caption := summary.styledCaption(request.chats)
 	document := message.File(attachment, caption...).MIME("application/gzip").Filename(historyDumpFilename)
 	_, err = c.extCtx.Sender.Self().Media(c.extCtx, document)
 

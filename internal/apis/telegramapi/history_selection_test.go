@@ -6,6 +6,7 @@ import (
 	"github.com/celestix/gotgproto/ext"
 	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/constant"
+	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgmock"
 	"github.com/stretchr/testify/require"
@@ -72,6 +73,7 @@ func TestSelectSameNameWithoutMigration(t *testing.T) {
 	group := &tg.Chat{ID: 2, Title: "A", Photo: &tg.ChatPhotoEmpty{}}
 	channel := &tg.Channel{ID: 3, Title: "A", Photo: &tg.ChatPhotoEmpty{}}
 	mock := tgmock.NewRequire(t)
+	mock.Expect().ThenResult(&tg.UpdateShortSentMessage{ID: 1})
 	mock.Expect().ThenResult(&tg.MessagesDialogs{
 		Dialogs: []tg.DialogClass{
 			&tg.Dialog{Peer: peer}, &tg.Dialog{Peer: &tg.PeerChannel{ChannelID: channel.ID}},
@@ -80,17 +82,19 @@ func TestSelectSameNameWithoutMigration(t *testing.T) {
 	})
 	mock.Expect().ThenResult(&tg.MessagesDialogs{})
 	mock.Expect().ThenResult(&tg.MessagesDialogs{})
-	r := Presentation{telegramAPI: tg.NewClient(mock)}
+	api := tg.NewClient(mock)
+	r := Presentation{telegramAPI: api}
 	c := Context{
-		extCtx: &ext.Context{Context: t.Context(), Self: &tg.User{ID: 1}},
+		Silent: true,
+		extCtx: ext.NewContext(t.Context(), api, nil, &tg.User{ID: 1}, message.NewSender(api), nil, false),
 		update: &ext.Update{
 			EffectiveMessage: types.ConstructMessage(&tg.Message{PeerID: peer}),
 			Entities:         &tg.Entities{Chats: map[int64]*tg.Chat{group.ID: group}},
 		},
 	}
-	chats, err := r.resolveHistoryChats(&c)
+	request, err := r.prepareHistory(&c)
 	require.NoError(t, err)
-	require.Len(t, chats, 2)
-	require.Equal(t, constant.TDLibPeerID(-1000000000003), chats[0].id)
-	require.Equal(t, constant.TDLibPeerID(-2), chats[1].id)
+	require.Len(t, request.chats, 2)
+	require.Equal(t, constant.TDLibPeerID(-1000000000003), request.chats[0].id)
+	require.Equal(t, constant.TDLibPeerID(-2), request.chats[1].id)
 }
